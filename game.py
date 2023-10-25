@@ -28,8 +28,8 @@ class UIasset():
 class playerCharacter(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface([12, 12])
-        pygame.draw.circle(self.image,'BLUE',(6,6),6)
+        self.image = pygame.Surface([10, 10])
+        pygame.draw.circle(self.image,'WHITE',(5,5),5)
         self.image.set_colorkey('BLACK')
         self.rect = self.image.get_rect()
         self.rect.x = 455
@@ -67,35 +67,46 @@ class playerCharacter(pygame.sprite.Sprite):
                 self.attackCoolDown += 1
                 return
             self.attackCoolDown = 0
-            if self.slow == 1:
-                self.attackSpeed = 3
-                mybullet = Bullet(0,(255,0,0),10,30,self.rect.x,self.rect.y,0,-40,10,1,False)
-                selfBulletGroup.add(mybullet)
-                mybullet = Bullet(0,(255,0,0),10,30,self.rect.x+30,self.rect.y,0,-40,10,1,False)
-                selfBulletGroup.add(mybullet)
             if self.slow == 0.5:
-                self.attackSpeed = 5
-                mybullet = Bullet(1,(255,255,255),10,10,self.rect.x,self.rect.y,0,-20,6,1,True)
+                self.attackSpeed = 3
+                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeLeft.rect.x + 10,self.rect.y,0,-40,10,1,False)
                 selfBulletGroup.add(mybullet)
-                mybullet = Bullet(1,(255,255,255),10,10,self.rect.x+30,self.rect.y,0,-20,6,1,True)
+                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeRight.rect.x + 10,self.rect.y,0,-40,10,1,False)
+                selfBulletGroup.add(mybullet)
+            if self.slow == 1:
+                self.attackSpeed = 5
+                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeLeft.rect.x + 10,self.rect.y,0,-20,6,1,True)
+                selfBulletGroup.add(mybullet)
+                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeRight.rect.x + 10,self.rect.y,0,-20,6,1,True)
                 selfBulletGroup.add(mybullet)
 
 class playerCharacterImage(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self,image,x,y):
         super().__init__()
-        self.image = pygame.image.load("Picture\\reimu.bmp")
+        self.image = image
         self.image.set_colorkey((240,240,240))
+        self.x = x
+        self.y = y
     def update(self):
         self.rect = self.image.get_rect()
         width,height = self.image.get_size()
-        self.rect.x , self.rect.y = (-width / 2 + selfplayerCharacter.rect.x + 3,-height / 2 + selfplayerCharacter.rect.y + 3)
+        self.rect.x , self.rect.y = (-width / 2 + player_Character.rect.x + self.x,-height / 2 + player_Character.rect.y + self.y)
+
+class playerJade(playerCharacterImage):
+    def __init__(self):
+        super().__init__()
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self,shape,color,width,height,x,y,xspeed,yspeed,damage,belong,track):
         super().__init__()
         self.image = pygame.Surface([width, height])
+        if shape == 2:
+            pygame.draw.circle(self.image,color,(width/2,height/2),width/2)
+            self.image.set_colorkey('BLACK')
         if shape == 1:
             pygame.draw.circle(self.image,color,(width/2,height/2),width/2)
+            pygame.draw.circle(self.image,(color[0]+14,color[1]+14,color[2]+14),(width/2,height/2),width/3)
+            pygame.draw.circle(self.image,'WHITE',(width/2,height/2),width/2-2,1)
             self.image.set_colorkey('BLACK')
         elif shape == 0:
             self.image.fill(color)
@@ -173,51 +184,55 @@ class Enemy(pygame.sprite.Sprite):
 
     def shoot(self):
         while True:
-            bullet = Bullet(1,((random.randint(0,255)),(random.randint(0,255)),(random.randint(0,255))),20,20,self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45),-3+random.randint(0,60)*0.1,-1.5+random.randint(0,80)*0.1,1,0,0)
+            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45),-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1,1,0,0)
             if not (abs(bullet.yspeed) < 1 and abs(bullet.xspeed) < 1):
                 break
         enemyBulletGroup.add(bullet)
 def keydown(key):
     if key == pygame.K_LEFT:
-        selfplayerCharacter.leftspeed = 10
+        player_Character.leftspeed = 8
     if key == pygame.K_RIGHT:
-        selfplayerCharacter.rightspeed = 10
+        player_Character.rightspeed = 8
     if key == pygame.K_UP:
-        selfplayerCharacter.upspeed = 10
+        player_Character.upspeed = 8
     if key == pygame.K_DOWN:
-        selfplayerCharacter.downspeed = 10
+        player_Character.downspeed = 8
     if key == pygame.K_z:
-        selfplayerCharacter.shoot = True
+        player_Character.shoot = True
     if key == pygame.K_LSHIFT:
-        selfplayerCharacter.slow = 0.5
+        player_Character.slow = 0.5
 
 def keyup(key):
     if key == pygame.K_LEFT:
-        selfplayerCharacter.leftspeed = 0
+        player_Character.leftspeed = 0
     if key == pygame.K_RIGHT:
-        selfplayerCharacter.rightspeed = 0
+        player_Character.rightspeed = 0
     if key == pygame.K_UP:
-        selfplayerCharacter.upspeed = 0
+        player_Character.upspeed = 0
     if key == pygame.K_DOWN:
-        selfplayerCharacter.downspeed = 0
+        player_Character.downspeed = 0
     if key == pygame.K_z:
-        selfplayerCharacter.shoot = False
+        player_Character.shoot = False
     if key == pygame.K_LSHIFT:
-        selfplayerCharacter.slow = 1
+        player_Character.slow = 1
 
 def DrawUI():
     pygame.draw.rect(screen, 'RED', (20, 20, 590*Baka.HP/Baka.maxHP, 10), 0)
-    for i in range(selfplayerCharacter.HP):
+    for i in range(player_Character.HP):
         screen.blit(UI.HP, (660+i*30, 200))
 
 selfGroup = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
 selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
-selfplayerCharacter = playerCharacter()
-selfplayerCharacterImage = playerCharacterImage()
-selfGroup.add(selfplayerCharacterImage)
-selfGroup.add(selfplayerCharacter)
+player_Character = playerCharacter()
+player_CharacterImage = playerCharacterImage(pygame.image.load("Picture\\reimu.bmp"),5,3)
+player_CharacterJadeRight = playerCharacterImage(pygame.image.load("Picture\\jade.bmp"),18,-23)
+player_CharacterJadeLeft = playerCharacterImage(pygame.image.load("Picture\\jade.bmp"),-15,-23)
+selfGroup.add(player_CharacterImage)
+selfGroup.add(player_CharacterJadeRight)
+selfGroup.add(player_CharacterJadeLeft)
+selfGroup.add(player_Character)
 UI = UIasset()
 Baka = Enemy(5000,5000,455,100)
 enemyGroup.add(Baka)
@@ -236,8 +251,10 @@ while not done:
         elif event.type == pygame.KEYUP:
             keyup(event.key)
     UI.drawBefore()
-    selfplayerCharacter.update()
-    selfplayerCharacterImage.update()
+    player_Character.update()
+    player_CharacterImage.update()
+    player_CharacterJadeLeft.update()
+    player_CharacterJadeRight.update()
     enemyGroup.update()
     enemyBulletGroup.update()
     selfBulletGroup.update()
