@@ -84,6 +84,7 @@ class playerCharacterImage(pygame.sprite.Sprite):
     def __init__(self,image,x,y):
         super().__init__()
         self.image = image
+        self.originimage = image
         self.image.set_colorkey((240,240,240))
         self.x = x
         self.y = y
@@ -93,8 +94,18 @@ class playerCharacterImage(pygame.sprite.Sprite):
         self.rect.x , self.rect.y = (-width / 2 + player_Character.rect.x + self.x,-height / 2 + player_Character.rect.y + self.y)
 
 class playerJade(playerCharacterImage):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,image,x,y):
+        super(playerJade,self).__init__(image,x,y)
+        self.angle = 0
+    def update(self):
+        self.rect = self.image.get_rect()
+        width,height = self.image.get_size()
+        self.rect.x , self.rect.y = (-width / 2 + player_Character.rect.x + self.x,-height / 2 + player_Character.rect.y + self.y)
+        self.image = pygame.transform.rotate(self.originimage,self.angle+1)
+        self.rect = self.image.get_rect(center = self.rect.center)
+        self.angle += 1
+        if self.angle > 360:
+            self.angle = 0
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self,shape,color,width,height,x,y,xspeed,yspeed,damage,belong,track):
@@ -227,8 +238,8 @@ selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
 player_Character = playerCharacter()
 player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp"),5,3)
-player_CharacterJadeRight = playerCharacterImage(pygame.image.load("Picture/jade.bmp"),18,-23)
-player_CharacterJadeLeft = playerCharacterImage(pygame.image.load("Picture/jade.bmp"),-15,-23)
+player_CharacterJadeRight = playerJade(pygame.image.load("Picture/jade.bmp"),18,-23)
+player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/jade.bmp"),-15,-23)
 selfGroup.add(player_CharacterImage)
 selfGroup.add(player_CharacterJadeRight)
 selfGroup.add(player_CharacterJadeLeft)
