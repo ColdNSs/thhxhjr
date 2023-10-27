@@ -56,12 +56,21 @@ class playerCharacter(pygame.sprite.Sprite):
         list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
         if list:
             if not self.invincibleTime:
-                self.invincibleTime = 60
+                self.invincibleTime = 120
+                self.clearradius = 10
+                self.diecenter = self.rect.center
                 for item in list:
                     self.HP -= item.damage
                     break
         if self.invincibleTime > 0:
             self.invincibleTime -= 1
+            if 0 < self.clearradius < 600:
+                self.clearradius += 20
+                for item in enemyBulletGroup:
+                    if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.clearradius**2:
+                        item.kill()
+            else:
+                self.clearradius = 0
         if self.shoot:
             if self.attackCoolDown - self.attackSpeed:
                 self.attackCoolDown += 1
