@@ -65,7 +65,7 @@ class playerCharacter(pygame.sprite.Sprite):
         if self.invincibleTime > 0:
             self.invincibleTime -= 1
             if 0 < self.clearradius < 600:
-                self.clearradius += 20
+                self.clearradius += 25
                 for item in enemyBulletGroup:
                     if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.clearradius**2:
                         item.kill()
@@ -77,16 +77,16 @@ class playerCharacter(pygame.sprite.Sprite):
                 return
             self.attackCoolDown = 0
             if self.slow == 0.5:
-                self.attackSpeed = 3
-                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeLeft.rect.x + 10,self.rect.y,0,-40,10,1,False)
+                self.attackSpeed = 3               
+                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-40,10,1,False)
                 selfBulletGroup.add(mybullet)
-                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeRight.rect.x + 10,self.rect.y,0,-40,10,1,False)
+                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-40,10,1,False)
                 selfBulletGroup.add(mybullet)
             if self.slow == 1:
                 self.attackSpeed = 5
-                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeLeft.rect.x + 10,self.rect.y,0,-20,6,1,True)
+                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-20,6,1,True)
                 selfBulletGroup.add(mybullet)
-                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeRight.rect.x + 10,self.rect.y,0,-20,6,1,True)
+                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-20,6,1,True)
                 selfBulletGroup.add(mybullet)
 
 class playerCharacterImage(pygame.sprite.Sprite):
@@ -100,7 +100,7 @@ class playerCharacterImage(pygame.sprite.Sprite):
     def update(self):
         self.rect = self.image.get_rect()
         width,height = self.image.get_size()
-        self.rect.x , self.rect.y = (-width / 2 + player_Character.rect.x + self.x,-height / 2 + player_Character.rect.y + self.y)
+        self.rect.center = player_Character.rect.center
 
 class playerJade(playerCharacterImage):
     def __init__(self,image,x,y):
@@ -158,7 +158,7 @@ class Bullet(pygame.sprite.Sprite):
             playerdanmakus(I).xspeed = -(playershapes(I).Left - baka.Left - baka.Width / 2) * 100 / directdistance
             playerdanmakus(I).yspeed = -(playershapes(I).Top - baka.Top - baka.Height / 2) * 100 / directdistance
             '''
-        if self.rect.x - self.width > gameX or self.rect.x < 0 or self.rect.y > screenY or self.rect.y + self.height < 0:
+        if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:
             self.kill()
     
 class Enemy(pygame.sprite.Sprite):
@@ -185,8 +185,8 @@ class Enemy(pygame.sprite.Sprite):
         if self.moveCoolDown == self.moveCoolDownCount:
             self.moveCoolDown = random.randint(120,600)
             self.moveCoolDownCount = 0
-            self.xspeed = 0#random.randint(-3,3)
-            self.yspeed = 0#random.randint(-3,3)
+            self.xspeed = random.randint(-3,3)
+            self.yspeed = random.randint(-3,3)
         if self.shootCoolDown == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
@@ -221,7 +221,10 @@ def keydown(key):
         player_Character.shoot = True
     if key == pygame.K_LSHIFT:
         player_Character.slow = 0.5
-
+        player_CharacterJadeRight.x = 18
+        player_CharacterJadeRight.y = -23
+        player_CharacterJadeLeft.x = -15
+        player_CharacterJadeLeft.y = -23
 def keyup(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 0
@@ -235,6 +238,10 @@ def keyup(key):
         player_Character.shoot = False
     if key == pygame.K_LSHIFT:
         player_Character.slow = 1
+        player_CharacterJadeRight.x = 30
+        player_CharacterJadeRight.y = 28
+        player_CharacterJadeLeft.x = -24
+        player_CharacterJadeLeft.y = 28 
 
 def DrawUI():
     pygame.draw.rect(screen, 'RED', (20, 20, 590*Baka.HP/Baka.maxHP, 10), 0)
@@ -247,8 +254,8 @@ selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
 player_Character = playerCharacter()
 player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp"),5,3)
-player_CharacterJadeRight = playerJade(pygame.image.load("Picture/jade.bmp"),18,-23)
-player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/jade.bmp"),-15,-23)
+player_CharacterJadeRight = playerJade(pygame.image.load("Picture/jade.bmp"),30,28)
+player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/jade.bmp"),-24,28)
 selfGroup.add(player_CharacterImage)
 selfGroup.add(player_CharacterJadeRight)
 selfGroup.add(player_CharacterJadeLeft)
