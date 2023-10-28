@@ -1,7 +1,6 @@
 import random
 import pygame
 
-
 pygame.init()
 screenX = 960
 screenY = 720
@@ -9,8 +8,7 @@ gameX = 620
 size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
 font = pygame.sysfont.SysFont('Arial',24)
-#text = font.render("Hello, World!", True, (240, 240, 240))
-#screen.blit(text, (screenX/2 - text.get_width()/2, screenY/2 - text.get_height()/2))
+
 class UIasset():
     def __init__(self):
         self.framework = pygame.image.load("Picture/framework.png")
@@ -24,12 +22,15 @@ class UIasset():
         screen.blit(self.background, (10, 10))
     def drawAfter(self):
         screen.blit(self.framework, (0, 0))
-
+        fpstext = font.render(str("{0:.2f}".format(clock.get_fps())), True, (240, 240, 240))
+        screen.blit(fpstext, (570, 680))
+        pygame.draw.rect(screen, 'RED', (20, 20, 590*Baka.HP/Baka.maxHP, 10), 0)
+        for i in range(player_Character.HP):
+            screen.blit(UI.HP, (660+i*30, 200))
 class playerCharacter(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface([10, 10])
-        pygame.draw.circle(self.image,'WHITE',(5,5),5)
         self.image.set_colorkey('BLACK')
         self.rect = self.image.get_rect()
         self.rect.x = 455
@@ -45,7 +46,7 @@ class playerCharacter(pygame.sprite.Sprite):
         self.HP = 5
         self.Bomb = 3
         self.invincibleTime = 0
-
+        self.radius = 5
     def update(self):
         self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
         self.rect.y += (self.downspeed - self.upspeed) * self.slow
@@ -53,15 +54,19 @@ class playerCharacter(pygame.sprite.Sprite):
         self.rect.x=max(10,self.rect.x)
         self.rect.y=min(screenY - 50,self.rect.y)
         self.rect.y=max(10,self.rect.y)
-        list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
-        if list:
+        #list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
+        self.iscoll = False
+        for item in enemyBulletGroup:
+            if pygame.sprite.collide_circle(item,player_Character):
+                self.iscoll = item
+                break
+        if self.iscoll:
+            item.kill()
             if not self.invincibleTime:
                 self.invincibleTime = 120
                 self.clearradius = 10
                 self.diecenter = self.rect.center
-                for item in list:
-                    self.HP -= item.damage
-                    break
+                self.HP -= 1
         if self.invincibleTime > 0:
             self.invincibleTime -= 1
             if 0 < self.clearradius < 600:
@@ -77,7 +82,7 @@ class playerCharacter(pygame.sprite.Sprite):
                 return
             self.attackCoolDown = 0
             if self.slow == 0.5:
-                self.attackSpeed = 3               
+                self.attackSpeed = 3            
                 mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-40,10,1,False)
                 selfBulletGroup.add(mybullet)
                 mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-40,10,1,False)
@@ -221,6 +226,8 @@ def keydown(key):
         player_Character.shoot = True
     if key == pygame.K_LSHIFT:
         player_Character.slow = 0.5
+        pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
+        pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)   
         player_CharacterJadeRight.x = 18
         player_CharacterJadeRight.y = -23
         player_CharacterJadeLeft.x = -15
@@ -238,15 +245,11 @@ def keyup(key):
         player_Character.shoot = False
     if key == pygame.K_LSHIFT:
         player_Character.slow = 1
+        player_Character.image.fill('BLACK')
         player_CharacterJadeRight.x = 30
         player_CharacterJadeRight.y = 28
         player_CharacterJadeLeft.x = -24
-        player_CharacterJadeLeft.y = 28 
-
-def DrawUI():
-    pygame.draw.rect(screen, 'RED', (20, 20, 590*Baka.HP/Baka.maxHP, 10), 0)
-    for i in range(player_Character.HP):
-        screen.blit(UI.HP, (660+i*30, 200))
+        player_CharacterJadeLeft.y = 28
 
 selfGroup = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
@@ -267,7 +270,7 @@ clock = pygame.time.Clock()
 done = False
 
 while not done:
-    print(Baka.HP)
+    print(clock.get_fps())
     clock.tick(60)
     screen.fill((240, 240, 240))
     for event in pygame.event.get():
@@ -291,7 +294,6 @@ while not done:
     enemyBulletGroup.draw(screen)
     UI.drawAfter()
     #screen.blit(text, (screenX/2 - text.get_width()/2, screenY/2 - text.get_height()/2))
-    DrawUI()
     # 更新窗口
     pygame.display.update()
     # 控制游戏帧率
