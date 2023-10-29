@@ -7,7 +7,6 @@ screenY = 720
 gameX = 620
 size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
-font = pygame.sysfont.SysFont('Arial',24)
 
 class UIasset():
     def __init__(self):
@@ -18,15 +17,31 @@ class UIasset():
         self.framework.set_colorkey((255,255,255))
         self.bomb.set_colorkey((240,240,240))
         self.HP.set_colorkey((240,240,240))
+        self.fpsTimer = 0
     def drawBefore(self):
-        screen.blit(self.background, (10, 10))
+        screen.blit(self.background, (30, 20))
     def drawAfter(self):
+        #游戏UI背景
         screen.blit(self.framework, (0, 0))
-        fpstext = font.render(str("{0:.2f}".format(clock.get_fps())), True, (240, 240, 240))
-        screen.blit(fpstext, (570, 680))
-        pygame.draw.rect(screen, 'RED', (20, 20, 590*Baka.HP/Baka.maxHP, 10), 0)
+        #帧率显示
+        if not self.fpsTimer:
+            font = pygame.sysfont.SysFont('Arial',20)
+            self.fpstext = font.render(str("{0:.2f}".format(clock.get_fps())), True, (255, 255, 255))
+            self.fpsTimer = 60
+        screen.blit(self.fpstext, (900, 680))
+        self.fpsTimer -= 1
+        #敌机血量显示
+        pygame.draw.rect(screen, 'RED', (40, 30, 570*Baka.HP/Baka.maxHP, 10), 0)
+        #残机显示
+        font = pygame.sysfont.SysFont('SimSun',20)
+        screen.blit(font.render("剩余人数：",True, (240, 240, 240)),(630,200))
         for i in range(player_Character.HP):
-            screen.blit(UI.HP, (660+i*30, 200))
+            screen.blit(UI.HP, (730+i*25, 200))
+        #敌人位置显示
+        font = pygame.sysfont.SysFont('SimSun',16)
+        screen.blit(font.render("| ENEMY |",True, (255, 0, 0)),(Baka.rect.x,700))
+
+
 class playerCharacter(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -46,18 +61,17 @@ class playerCharacter(pygame.sprite.Sprite):
         self.HP = 5
         self.Bomb = 3
         self.invincibleTime = 0
-        self.radius = 5
     def update(self):
         self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
         self.rect.y += (self.downspeed - self.upspeed) * self.slow
-        self.rect.x=min(gameX - 20,self.rect.x)
-        self.rect.x=max(10,self.rect.x)
+        self.rect.x=min(gameX - 30,self.rect.x)
+        self.rect.x=max(40,self.rect.x)
         self.rect.y=min(screenY - 50,self.rect.y)
-        self.rect.y=max(10,self.rect.y)
+        self.rect.y=max(50,self.rect.y)
         #list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
         self.iscoll = False
         for item in enemyBulletGroup:
-            if pygame.sprite.collide_circle(item,player_Character):
+            if pygame.sprite.collide_circle_ratio(0.6)(item,player_Character):
                 self.iscoll = item
                 break
         if self.iscoll:
