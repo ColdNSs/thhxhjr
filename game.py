@@ -26,7 +26,7 @@ class UIasset():
         #帧率显示
         if not self.fpsTimer:
             font = pygame.sysfont.SysFont('Arial',20)
-            self.fpstext = font.render(str("{0:.2f}".format(clock.get_fps())), True, (255, 255, 255))
+            self.fpstext = font.render(str("{0:.2f}".format(clock.get_fps()/2 if powersaveMode else clock.get_fps())), True, (255, 255, 255))
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
@@ -37,6 +37,10 @@ class UIasset():
         screen.blit(font.render("剩余人数：",True, (240, 240, 240)),(630,200))
         for i in range(player_Character.HP):
             screen.blit(UI.HP, (730+i*25, 200))
+        #擦弹数量显示
+        font = pygame.sysfont.SysFont('SimSun',20)
+        screen.blit(font.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
+
         #敌人位置显示
         font = pygame.sysfont.SysFont('SimSun',16)
         screen.blit(font.render("| ENEMY |",True, (255, 0, 0)),(Baka.rect.x,700))
@@ -116,10 +120,16 @@ class playerCharacterImage(pygame.sprite.Sprite):
         self.image.set_colorkey((240,240,240))
         self.x = x
         self.y = y
+        self.graze = 0
     def update(self):
         self.rect = self.image.get_rect()
         width,height = self.image.get_size()
         self.rect.center = player_Character.rect.center
+        list = pygame.sprite.spritecollide(self,enemyBulletGroup,False)
+        for item in enemyBulletGroup:
+            if pygame.sprite.collide_circle_ratio(1.5)(item,player_Character) and not item.alreadyGraze:
+                self.graze += 1
+                item.alreadyGraze = True
 
 class playerJade(playerCharacterImage):
     def __init__(self,image,x,y):
@@ -163,6 +173,7 @@ class Bullet(pygame.sprite.Sprite):
         self.track = track
         self.width = width
         self.height = height
+        self.alreadyGraze = False
     def update(self):
         self.nextx += self.xspeed
         self.nexty += self.yspeed
@@ -282,10 +293,12 @@ Baka = Enemy(5000,5000,455,100)
 enemyGroup.add(Baka)
 clock = pygame.time.Clock()
 done = False
-
+tick = 0
+powersaveMode = True
 while not done:
-    print(clock.get_fps())
+    print(player_CharacterImage.graze)
     clock.tick(60)
+    tick += 1
     screen.fill((240, 240, 240))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -294,7 +307,6 @@ while not done:
             keydown(event.key)
         elif event.type == pygame.KEYUP:
             keyup(event.key)
-    UI.drawBefore()
     player_Character.update()
     player_CharacterImage.update()
     player_CharacterJadeLeft.update()
@@ -302,13 +314,15 @@ while not done:
     enemyGroup.update()
     enemyBulletGroup.update()
     selfBulletGroup.update()
-    selfGroup.draw(screen)
-    enemyGroup.draw(screen)
-    selfBulletGroup.draw(screen)
-    enemyBulletGroup.draw(screen)
-    UI.drawAfter()
+    if tick % 2 or not powersaveMode:
+        UI.drawBefore()
+        selfGroup.draw(screen)
+        enemyGroup.draw(screen)
+        selfBulletGroup.draw(screen)
+        enemyBulletGroup.draw(screen)
+        UI.drawAfter()
     #screen.blit(text, (screenX/2 - text.get_width()/2, screenY/2 - text.get_height()/2))
     # 更新窗口
-    pygame.display.update()
+        pygame.display.update()
     # 控制游戏帧率
 done = True
