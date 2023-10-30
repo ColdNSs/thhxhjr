@@ -35,9 +35,9 @@ class UIasset():
         #敌机血量显示
         pygame.draw.rect(screen, 'RED', (40, 30, 570*Baka.HP/Baka.maxHP, 10), 0)
         #残机显示
-        screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,160))
+        screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
-            screen.blit(UI.HP, (730+i*25, 160))
+            screen.blit(UI.HP, (730+i*25, 170))
         #符卡显示
         screen.blit(font_Simsun20.render("剩余符卡：",True, (240, 240, 240)),(630,200))
         for i in range(player_Character.Bomb):
@@ -74,7 +74,7 @@ class playerCharacter(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
         self.rect.y += (self.downspeed - self.upspeed) * self.slow
-        self.rect.x=min(gameX - 30,self.rect.x)
+        self.rect.x=min(gameX + 20,self.rect.x)
         self.rect.x=max(40,self.rect.x)
         self.rect.y=min(screenY - 50,self.rect.y)
         self.rect.y=max(50,self.rect.y)
@@ -303,7 +303,7 @@ enemyGroup.add(Baka)
 clock = pygame.time.Clock()
 done = False
 tick = 0
-powersaveMode = True
+powersaveMode = False
 while not done:
     print(player_CharacterImage.graze)
     clock.tick(60)
