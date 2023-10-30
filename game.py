@@ -4,10 +4,13 @@ import pygame
 pygame.init()
 screenX = 960
 screenY = 720
-gameX = 620
+gameX = 570
 size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
-
+font_Arial20 = pygame.sysfont.SysFont('Arial',20)
+font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
+font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
+        
 class UIasset():
     def __init__(self):
         self.framework = pygame.image.load("Picture/framework.png")
@@ -25,25 +28,26 @@ class UIasset():
         screen.blit(self.framework, (0, 0))
         #帧率显示
         if not self.fpsTimer:
-            font = pygame.sysfont.SysFont('Arial',20)
-            self.fpstext = font.render(str("{0:.2f}".format(clock.get_fps()/2 if powersaveMode else clock.get_fps())), True, (255, 255, 255))
+            self.fpstext = font_Arial20.render(str("{0:.2f}".format(clock.get_fps()/2 if powersaveMode else clock.get_fps())), True, (255, 255, 255))
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
         #敌机血量显示
         pygame.draw.rect(screen, 'RED', (40, 30, 570*Baka.HP/Baka.maxHP, 10), 0)
         #残机显示
-        font = pygame.sysfont.SysFont('SimSun',20)
-        screen.blit(font.render("剩余人数：",True, (240, 240, 240)),(630,200))
+        screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,160))
         for i in range(player_Character.HP):
-            screen.blit(UI.HP, (730+i*25, 200))
+            screen.blit(UI.HP, (730+i*25, 160))
+        #符卡显示
+        screen.blit(font_Simsun20.render("剩余符卡：",True, (240, 240, 240)),(630,200))
+        for i in range(player_Character.Bomb):
+            screen.blit(UI.bomb, (730+i*25, 200))
         #擦弹数量显示
         font = pygame.sysfont.SysFont('SimSun',20)
-        screen.blit(font.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
-
+        screen.blit(font_Simsun20.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
         #敌人位置显示
         font = pygame.sysfont.SysFont('SimSun',16)
-        screen.blit(font.render("| ENEMY |",True, (255, 0, 0)),(Baka.rect.x,700))
+        screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(Baka.rect.x,700))
 
 
 class playerCharacter(pygame.sprite.Sprite):
@@ -55,7 +59,7 @@ class playerCharacter(pygame.sprite.Sprite):
         self.rect.x = 455
         self.rect.y = 600
         self.attackSpeed = 3
-        self.attackCoolDown = 0
+        self.attackCoolDown = 0 
         self.leftspeed = 0
         self.rightspeed = 0
         self.upspeed = 0
@@ -65,6 +69,8 @@ class playerCharacter(pygame.sprite.Sprite):
         self.HP = 5
         self.Bomb = 3
         self.invincibleTime = 0
+        self.bombTrigger = False
+        self.isBombing = False
     def update(self):
         self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
         self.rect.y += (self.downspeed - self.upspeed) * self.slow
@@ -85,6 +91,7 @@ class playerCharacter(pygame.sprite.Sprite):
                 self.clearradius = 10
                 self.diecenter = self.rect.center
                 self.HP -= 1
+                self.Bomb = max(2,self.Bomb)
         if self.invincibleTime > 0:
             self.invincibleTime -= 1
             if 0 < self.clearradius < 600:
@@ -257,6 +264,8 @@ def keydown(key):
         player_CharacterJadeRight.y = -23
         player_CharacterJadeLeft.x = -15
         player_CharacterJadeLeft.y = -23
+    if key == pygame.K_x:
+        player_Character.bombTrigger = True
 def keyup(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 0
