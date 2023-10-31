@@ -7,6 +7,7 @@ screenY = 720
 gameX = 570
 size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
+chooseCharacter = "Reimu"
 font_Arial20 = pygame.sysfont.SysFont('Arial',20)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
@@ -130,9 +131,9 @@ class playerCharacterImage(pygame.sprite.Sprite):
         self.graze = 0
     def update(self):
         self.rect = self.image.get_rect()
-        width,height = self.image.get_size()
+        #width,height = self.image.get_size()
         self.rect.center = player_Character.rect.center
-        list = pygame.sprite.spritecollide(self,enemyBulletGroup,False)
+        #list = pygame.sprite.spritecollide(self,enemyBulletGroup,False)
         for item in enemyBulletGroup:
             if pygame.sprite.collide_circle_ratio(1.5)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
@@ -290,9 +291,12 @@ enemyGroup = pygame.sprite.Group()
 selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
 player_Character = playerCharacter()
-player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
-player_CharacterJadeRight = playerJade(pygame.image.load("Picture/jade.bmp").convert(),30,28)
-player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/jade.bmp").convert(),-24,28)
+if chooseCharacter == "Reimu":
+    player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
+    player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
+    player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
+if chooseCharacter == "Marisa":
+    pass
 selfGroup.add(player_CharacterImage)
 selfGroup.add(player_CharacterJadeRight)
 selfGroup.add(player_CharacterJadeLeft)
