@@ -66,12 +66,32 @@ class playerCharacter(pygame.sprite.Sprite):
         self.upspeed = 0
         self.downspeed = 0
         self.slow = 1
+        self.speedMultiplier = 0.5
         self.shoot = False
         self.HP = 5
         self.Bomb = 3
         self.invincibleTime = 0
         self.QTETime = 0
         self.status = "alive"
+        self.mode = 0
+    def setmode(self,mode):
+        if mode == 1:
+            player_Character.slow = self.speedMultiplier
+            pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
+            pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)   
+            player_CharacterJadeRight.x = 18
+            player_CharacterJadeRight.y = -23
+            player_CharacterJadeLeft.x = -15
+            player_CharacterJadeLeft.y = -23
+        if mode == 0:
+            player_Character.slow = 1
+            player_Character.image.fill('BLACK')
+            player_CharacterJadeRight.x = 30
+            player_CharacterJadeRight.y = 28
+            player_CharacterJadeLeft.x = -24
+            player_CharacterJadeLeft.y = 28
+        self.mode = mode
+
     def update(self):
         self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
         self.rect.y += (self.downspeed - self.upspeed) * self.slow
@@ -96,6 +116,15 @@ class playerCharacter(pygame.sprite.Sprite):
         if self.status == "invincible":
             self.missCheck()
             self.invincibleCheck()
+        if self.status == "usebomb":
+            self.Bomb -= 1
+            if self.QTETime:
+                self.QTETime = 0
+            self.status = "bombing"
+            self.bombingTime = 120
+        if self.status == "bombing":
+            self.missCheck()
+            self.bombingCheck()
         if self.shoot:
             if self.attackCoolDown - self.attackSpeed:
                 self.attackCoolDown += 1
@@ -114,8 +143,15 @@ class playerCharacter(pygame.sprite.Sprite):
                 mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-20,6,1,True)
                 selfBulletGroup.add(mybullet)
     
+    def bombingCheck(self):
+        self.bombingTime -= 1
+        if not self.bombingTime:
+            self.status = "alive"
+    
     def QTECheck(self):
         self.QTETime -= 1
+        if self.Bomb == 0:
+            self.QTETime = 0
         if not self.QTETime:
             self.status = "invincible"
             self.invincibleTime = 120
@@ -126,6 +162,8 @@ class playerCharacter(pygame.sprite.Sprite):
             self.Bomb = max(2,self.Bomb)
             pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
             pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)
+            self.setmode(mode=self.mode)
+
     def invincibleCheck(self):
         self.invincibleTime -= 1
         if 0 < self.clearradius < 600:
@@ -151,7 +189,6 @@ class playerCharacter(pygame.sprite.Sprite):
                 self.status = "dying"
                 pygame.draw.circle(player_Character.image,'RED',(5,5),5)
 
-        #list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
 class playerCharacterImage(pygame.sprite.Sprite):
     def __init__(self,image,x,y):
         super().__init__()
@@ -290,15 +327,9 @@ def keydown(key):
     if key == pygame.K_z:
         player_Character.shoot = True
     if key == pygame.K_LSHIFT:
-        player_Character.slow = 0.5
-        pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
-        pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)   
-        player_CharacterJadeRight.x = 18
-        player_CharacterJadeRight.y = -23
-        player_CharacterJadeLeft.x = -15
-        player_CharacterJadeLeft.y = -23
-    if key == pygame.K_x:
-        player_Character.bombTrigger = True
+        player_Character.setmode(mode=1)
+    if key == pygame.K_x and not player_Character.status == "bombing" and player_Character.Bomb > 0:
+        player_Character.status = "usebomb"
 def keyup(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 0
@@ -311,12 +342,7 @@ def keyup(key):
     if key == pygame.K_z:
         player_Character.shoot = False
     if key == pygame.K_LSHIFT:
-        player_Character.slow = 1
-        player_Character.image.fill('BLACK')
-        player_CharacterJadeRight.x = 30
-        player_CharacterJadeRight.y = 28
-        player_CharacterJadeLeft.x = -24
-        player_CharacterJadeLeft.y = 28
+        player_Character.setmode(mode=0)
 
 selfGroup = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
