@@ -70,38 +70,32 @@ class playerCharacter(pygame.sprite.Sprite):
         self.HP = 5
         self.Bomb = 3
         self.invincibleTime = 0
-        self.bombTrigger = False
-        self.isBombing = False
+        self.QTETime = 0
+        self.status = "alive"
     def update(self):
         self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
         self.rect.y += (self.downspeed - self.upspeed) * self.slow
-        self.rect.x=min(gameX + 20,self.rect.x)
-        self.rect.x=max(40,self.rect.x)
-        self.rect.y=min(screenY - 50,self.rect.y)
-        self.rect.y=max(50,self.rect.y)
-        #list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
-        self.iscoll = False
-        for item in enemyBulletGroup:
-            if pygame.sprite.collide_circle_ratio(0.6)(item,player_Character):
-                self.iscoll = item
-                break
-        if self.iscoll:
-            item.kill()
-            if not self.invincibleTime:
-                self.invincibleTime = 120
-                self.clearradius = 10
-                self.diecenter = self.rect.center
-                self.HP -= 1
-                self.Bomb = max(2,self.Bomb)
-        if self.invincibleTime > 0:
-            self.invincibleTime -= 1
-            if 0 < self.clearradius < 600:
-                self.clearradius += 25
-                for item in enemyBulletGroup:
-                    if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.clearradius**2:
-                        item.kill()
-            else:
-                self.clearradius = 0
+        self.rect.x = min(gameX + 20,self.rect.x)
+        self.rect.x = max(40,self.rect.x)
+        self.rect.y = min(screenY - 50,self.rect.y)
+        self.rect.y = max(50,self.rect.y)
+        '''
+        if self.bombTrigger and not self.isBombing:
+            self.isBombing , self.bombTrigger = self.bombTrigger , self.isBombing
+            pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
+            pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)   
+            self.Bomb -= 1
+            self.dying = False
+            #todo
+        '''
+        if self.status == "alive":
+            self.missCheck()
+        if self.status == "dying":
+            self.missCheck()
+            self.QTECheck()
+        if self.status == "invincible":
+            self.missCheck()
+            self.invincibleCheck()
         if self.shoot:
             if self.attackCoolDown - self.attackSpeed:
                 self.attackCoolDown += 1
@@ -119,7 +113,45 @@ class playerCharacter(pygame.sprite.Sprite):
                 selfBulletGroup.add(mybullet)
                 mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-20,6,1,True)
                 selfBulletGroup.add(mybullet)
+    
+    def QTECheck(self):
+        self.QTETime -= 1
+        if not self.QTETime:
+            self.status = "invincible"
+            self.invincibleTime = 120
+            self.HP -= 1
+            self.clearradius = 10
+            self.diecenter = self.rect.center
+            self.HP -= 1
+            self.Bomb = max(2,self.Bomb)
+            pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
+            pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)
+    def invincibleCheck(self):
+        self.invincibleTime -= 1
+        if 0 < self.clearradius < 600:
+            self.clearradius += 25
+            for item in enemyBulletGroup:
+                if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.clearradius**2:
+                    item.kill()
+        else:
+            self.clearradius = 0
+        if not self.invincibleTime:
+            self.status = "alive"
 
+    def missCheck(self):
+        self.iscoll = False
+        for item in enemyBulletGroup:
+            if pygame.sprite.collide_circle_ratio(0.6)(item,player_Character):
+                self.iscoll = item
+                break
+        if self.iscoll:
+            item.kill()
+            if self.status == "alive":
+                self.QTETime = 10 
+                self.status = "dying"
+                pygame.draw.circle(player_Character.image,'RED',(5,5),5)
+
+        #list = pygame.sprite.spritecollide(self,enemyBulletGroup, True)
 class playerCharacterImage(pygame.sprite.Sprite):
     def __init__(self,image,x,y):
         super().__init__()
