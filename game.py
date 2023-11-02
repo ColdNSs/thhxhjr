@@ -1,4 +1,5 @@
 import random
+from typing import Any
 import pygame
 
 pygame.init()
@@ -58,8 +59,8 @@ class playerCharacter(pygame.sprite.Sprite):
         self.image.set_colorkey('BLACK')
         self.rect = self.image.get_rect()
         self.posvec = pygame.math.Vector2(455,600)
-        self.rect.x = 455
-        self.rect.y = 600
+        self.rect.centerx = 455
+        self.rect.centery = 600
         self.attackSpeed = 3
         self.attackCoolDown = 0 
         self.speedvec = pygame.math.Vector2(0,0)
@@ -105,16 +106,8 @@ class playerCharacter(pygame.sprite.Sprite):
             self.posvec.x = max(40,self.posvec.x)
             self.posvec.y = min(screenY - 50,self.posvec.y)
             self.posvec.y = max(50,self.posvec.y)
-            self.rect.x , self.rect.y = self.posvec
-            '''
-        if self.bombTrigger and not self.isBombing:
-            self.isBombing , self.bombTrigger = self.bombTrigger , self.isBombing
-            pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
-            pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)   
-            self.Bomb -= 1
-            self.dying = False
-            #todo
-        '''
+            self.rect.centerx , self.rect.centery = self.posvec
+
         if self.status == "alive":
             self.missCheck()
         if self.status == "dying":
@@ -125,6 +118,8 @@ class playerCharacter(pygame.sprite.Sprite):
             self.invincibleCheck()
         if self.status == "usebomb":
             self.Bomb -= 1
+            mybomb = Bomb(player_bomb_red_picture,pygame.math.Vector2(self.rect.centerx,self.rect.centery + 30),pygame.math.Vector2(0,-1),20)
+            bombgroup.add(mybomb)
             if self.QTETime:
                 self.QTETime = 0
             self.status = "bombing"
@@ -139,9 +134,9 @@ class playerCharacter(pygame.sprite.Sprite):
             self.attackCoolDown = 0
             if self.slow == 0.5:
                 self.attackSpeed = 3            
-                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
+                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
                 selfBulletGroup.add(mybullet)
-                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
+                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
                 selfBulletGroup.add(mybullet)
             if self.slow == 1:
                 self.attackSpeed = 5
@@ -206,9 +201,7 @@ class playerCharacterImage(pygame.sprite.Sprite):
         self.graze = 0
     def update(self):
         self.rect = self.image.get_rect()
-        #width,height = self.image.get_size()
         self.rect.center = player_Character.rect.center
-        #list = pygame.sprite.spritecollide(self,enemyBulletGroup,False)
         for item in enemyBulletGroup:
             if pygame.sprite.collide_circle_ratio(1.5)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
@@ -246,7 +239,7 @@ class Bullet(pygame.sprite.Sprite):
         self.posvec = posvec
         self.speedvec = speedvec
         self.inputspeedvec = speedvec
-        self.rect.x , self.rect.y = posvec
+        self.rect.centerx , self.rect.centery = posvec
         self.damage = damage
         self.belong = belong
         self.track = track
@@ -256,18 +249,45 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
         self.posvec += self.speedvec
-        self.rect.x , self.rect.y = self.posvec
+        self.rect.centerx , self.rect.centery = self.posvec
         if self.track:
             directdistance = ((self.rect.x - baka.rect.x)**2 + (self.rect.y - baka.rect.y)**2)**0.5
             self.speedvec = baka.rect.center - self.posvec
             self.speedvec.scale_to_length(self.inputspeedvec.length())
-            '''
-            directdistance = Int(Sqr((playershapes(I).Left - baka.Left) ^ 2 + (playershapes(I).Top - baka.Top) ^ 2))
-            playerdanmakus(I).xspeed = -(playershapes(I).Left - baka.Left - baka.Width / 2) * 100 / directdistance
-            playerdanmakus(I).yspeed = -(playershapes(I).Top - baka.Top - baka.Height / 2) * 100 / directdistance
-            '''
         if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:
             self.kill()
+
+class Bomb(pygame.sprite.Sprite):
+    def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage):
+        super().__init__()
+        self.image = self.originimage = image
+        self.rect = self.image.get_rect()
+        self.posvec = posvec
+        self.speedvec = speedvec
+        self.inputspeedvec = speedvec
+        self.rect.centerx , self.rect.centery = posvec
+        self.damage = damage
+        self.lifetime = 180
+        self.angle = 0
+
+    def update(self):
+        self.image = pygame.transform.rotate(self.originimage,self.angle)
+        self.rect = self.image.get_rect(center = self.rect.center)
+        self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 
+        self.posvec += self.speedvec
+        self.rect.centerx , self.rect.centery = self.posvec
+        self.angle += 3
+        if self.angle > 360:
+            self.angle = 0
+        if pygame.sprite.collide_circle_ratio(0.8)(self,baka):
+            baka.HP -= self.damage
+        self.lifetime -= 1
+        self.speedvec.y -= 0.2
+        if not self.lifetime:
+            self.kill()
+        list = pygame.sprite.spritecollide(self,enemyBulletGroup,True)
+        for item in list:
+            item.kill()
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,maxHP,HP,posvec):
@@ -278,7 +298,7 @@ class Enemy(pygame.sprite.Sprite):
         self.HP = HP
         self.maxHP = maxHP
         self.posvec = posvec 
-        self.rect.x , self.rect.y = self.posvec
+        self.rect.centerx , self.rect.centery = self.posvec
         self.speedvec = pygame.math.Vector2(0,0)
         self.width = 59
         self.height = 74
@@ -303,10 +323,10 @@ class Enemy(pygame.sprite.Sprite):
             self.kill()
         self.posvec = self.posvec + self.speedvec
         self.posvec.x=min(gameX - 50,self.posvec.x)
-        self.posvec.x=max(0,self.posvec.x)
+        self.posvec.x=max(self.rect.width / 2,self.posvec.x)
         self.posvec.y=min(screenY - 50,self.posvec.y)
-        self.posvec.y=max(0,self.posvec.y)
-        self.rect.x , self.rect.y = self.posvec
+        self.posvec.y=max(self.rect.height / 2,self.posvec.y)
+        self.rect.centerx , self.rect.centery = self.posvec
     def shoot(self):
         while True:
             bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45)),pygame.math.Vector2(-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1),1,0,0)
@@ -346,11 +366,14 @@ self_group = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
 selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
+bombgroup = pygame.sprite.Group()
 player_Character = playerCharacter()
 if chooseCharacter == "Reimu":
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
+    player_bomb_red_picture = pygame.image.load("Picture/bigjade_red.bmp").convert()
+    player_bomb_red_picture.set_colorkey("BLACK")
 if chooseCharacter == "Marisa":
     pass
 self_group.add(player_CharacterImage)
@@ -386,6 +409,7 @@ while not done:
     tmp = pygame.time.get_ticks()
     enemyBulletGroup.update()
     selfBulletGroup.update()
+    bombgroup.update()
     print("bulletupdatetime:{0}".format(pygame.time.get_ticks()-tmp))
     if tick % 2 or not powersave_mode:
         tmp = pygame.time.get_ticks()
@@ -398,6 +422,7 @@ while not done:
         tmp = pygame.time.get_ticks()
         selfBulletGroup.draw(screen)
         enemyBulletGroup.draw(screen)
+        bombgroup.draw(screen)
         print("bullet:{0}".format(pygame.time.get_ticks()-tmp))
         tmp = pygame.time.get_ticks()
         UI.drawAfter()
