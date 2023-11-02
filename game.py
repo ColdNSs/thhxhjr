@@ -29,12 +29,12 @@ class UIasset():
         screen.blit(self.framework, (0, 0))
         #帧率显示
         if not self.fpsTimer:
-            self.fpstext = font_Arial20.render(str("{0:.2f}".format(clock.get_fps()/2 if powersaveMode else clock.get_fps())), True, (255, 255, 255))
+            self.fpstext = font_Arial20.render(str("{0:.2f}".format(clock.get_fps()/2 if powersave_mode else clock.get_fps())), True, (255, 255, 255))
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
         #敌机血量显示
-        pygame.draw.rect(screen, 'RED', (40, 30, 570*Baka.HP/Baka.maxHP, 10), 0)
+        pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.maxHP, 10), 0)
         #残机显示
         screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
@@ -48,7 +48,7 @@ class UIasset():
         screen.blit(font_Simsun20.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
         #敌人位置显示
         font = pygame.sysfont.SysFont('SimSun',16)
-        screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(Baka.rect.x,700))
+        screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(baka.rect.x,700))
 
 
 class playerCharacter(pygame.sprite.Sprite):
@@ -132,15 +132,15 @@ class playerCharacter(pygame.sprite.Sprite):
             self.attackCoolDown = 0
             if self.slow == 0.5:
                 self.attackSpeed = 3            
-                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-40,10,1,False)
+                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
                 selfBulletGroup.add(mybullet)
-                mybullet = Bullet(0,(255,0,0),10,30,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-40,10,1,False)
+                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
                 selfBulletGroup.add(mybullet)
             if self.slow == 1:
                 self.attackSpeed = 5
-                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-20,6,1,True)
+                mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,1,True)
                 selfBulletGroup.add(mybullet)
-                mybullet = Bullet(2,(255,255,255),10,10,player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10,0,-20,6,1,True)
+                mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,1,True)
                 selfBulletGroup.add(mybullet)
     
     def bombingCheck(self):
@@ -223,7 +223,7 @@ class playerJade(playerCharacterImage):
             self.angle = 0
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self,shape,color,width,height,x,y,xspeed,yspeed,damage,belong,track):
+    def __init__(self,shape,color,width,height,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,belong,track):
         super().__init__()
         self.image = pygame.Surface([width, height])
         if shape == 2:
@@ -237,14 +237,10 @@ class Bullet(pygame.sprite.Sprite):
         elif shape == 0:
             self.image.fill(color)
         self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.nextx = x + xspeed
-        self.nexty = y + yspeed
-        self.xspeed = xspeed
-        self.yspeed = yspeed
-        self.inputxspeed = xspeed
-        self.inputyspeed = yspeed
+        self.posvec = posvec
+        self.speedvec = speedvec
+        self.inputspeedvec = speedvec
+        self.rect.x , self.rect.y = posvec
         self.damage = damage
         self.belong = belong
         self.track = track
@@ -252,14 +248,13 @@ class Bullet(pygame.sprite.Sprite):
         self.height = height
         self.alreadyGraze = False
     def update(self):
-        self.nextx += self.xspeed
-        self.nexty += self.yspeed
-        self.rect.x = self.nextx
-        self.rect.y = self.nexty
+        self.posvec += self.speedvec
+        self.rect.x , self.rect.y = self.posvec
         if self.track:
-            directdistance = ((self.rect.x - Baka.rect.x)**2 + (self.rect.y - Baka.rect.y)**2)**0.5
-            self.xspeed = (self.rect.x - Baka.rect.x - Baka.width / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
-            self.yspeed = (self.rect.y - Baka.rect.y - Baka.height / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
+            directdistance = ((self.rect.x - baka.rect.x)**2 + (self.rect.y - baka.rect.y)**2)**0.5
+            self.speedvec = 
+            self.xspeed = (self.rect.x - baka.rect.x - baka.width / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
+            self.yspeed = (self.rect.y - baka.rect.y - baka.height / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
             '''
             directdistance = Int(Sqr((playershapes(I).Left - baka.Left) ^ 2 + (playershapes(I).Top - baka.Top) ^ 2))
             playerdanmakus(I).xspeed = -(playershapes(I).Left - baka.Left - baka.Width / 2) * 100 / directdistance
@@ -267,7 +262,7 @@ class Bullet(pygame.sprite.Sprite):
             '''
         if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:
             self.kill()
-    
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,maxHP,HP,x,y):
         super().__init__()
@@ -311,8 +306,8 @@ class Enemy(pygame.sprite.Sprite):
 
     def shoot(self):
         while True:
-            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45),-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1,1,0,0)
-            if not (abs(bullet.yspeed) < 1 and abs(bullet.xspeed) < 1):
+            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45)),pygame.math.Vector2(-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1),1,0,0)
+            if not (bullet.speedvec.length() < 1):
                 break
         enemyBulletGroup.add(bullet)
 def keydown(key):
@@ -344,7 +339,7 @@ def keyup(key):
     if key == pygame.K_LSHIFT:
         player_Character.setmode(mode=0)
 
-selfGroup = pygame.sprite.Group()
+self_group = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
 selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
@@ -355,17 +350,17 @@ if chooseCharacter == "Reimu":
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
 if chooseCharacter == "Marisa":
     pass
-selfGroup.add(player_CharacterImage)
-selfGroup.add(player_CharacterJadeRight)
-selfGroup.add(player_CharacterJadeLeft)
-selfGroup.add(player_Character)
+self_group.add(player_CharacterImage)
+self_group.add(player_CharacterJadeRight)
+self_group.add(player_CharacterJadeLeft)
+self_group.add(player_Character)
 UI = UIasset()
-Baka = Enemy(5000,5000,455,100)
-enemyGroup.add(Baka)
+baka = Enemy(5000,5000,455,100)
+enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
 tick = 0
-powersaveMode = False
+powersave_mode = False
 while not done:
     print(player_CharacterImage.graze)
     clock.tick(60)
@@ -389,12 +384,12 @@ while not done:
     enemyBulletGroup.update()
     selfBulletGroup.update()
     print("bulletupdatetime:{0}".format(pygame.time.get_ticks()-tmp))
-    if tick % 2 or not powersaveMode:
+    if tick % 2 or not powersave_mode:
         tmp = pygame.time.get_ticks()
         UI.drawBefore()
         print("UIbefore:{0}".format(pygame.time.get_ticks()-tmp))
         tmp = pygame.time.get_ticks()
-        selfGroup.draw(screen)
+        self_group.draw(screen)
         enemyGroup.draw(screen)
         print("character:{0}".format(pygame.time.get_ticks()-tmp))
         tmp = pygame.time.get_ticks()
