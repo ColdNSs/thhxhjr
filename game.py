@@ -97,7 +97,7 @@ class playerCharacter(pygame.sprite.Sprite):
 
     def update(self):
         self.speedvec.x = self.rightspeed - self.leftspeed
-        self.speedvec.y = self.upspeed - self.downspeed
+        self.speedvec.y = self.downspeed - self.upspeed
         if self.speedvec.length():
             self.speedvec.scale_to_length(self.speed * self.slow)
             self.posvec += self.speedvec 
@@ -105,7 +105,7 @@ class playerCharacter(pygame.sprite.Sprite):
             self.posvec.x = max(40,self.posvec.x)
             self.posvec.y = min(screenY - 50,self.posvec.y)
             self.posvec.y = max(50,self.posvec.y)
-            self.rect.x ,
+            self.rect.x , self.rect.y = self.posvec
             '''
         if self.bombTrigger and not self.isBombing:
             self.isBombing , self.bombTrigger = self.bombTrigger , self.isBombing
@@ -259,9 +259,8 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x , self.rect.y = self.posvec
         if self.track:
             directdistance = ((self.rect.x - baka.rect.x)**2 + (self.rect.y - baka.rect.y)**2)**0.5
-            self.speedvec = baka.posvec
-            self.xspeed = (self.rect.x - baka.rect.x - baka.width / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
-            self.yspeed = (self.rect.y - baka.rect.y - baka.height / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
+            self.speedvec = baka.rect.center - self.posvec
+            self.speedvec.scale_to_length(self.inputspeedvec.length())
             '''
             directdistance = Int(Sqr((playershapes(I).Left - baka.Left) ^ 2 + (playershapes(I).Top - baka.Top) ^ 2))
             playerdanmakus(I).xspeed = -(playershapes(I).Left - baka.Left - baka.Width / 2) * 100 / directdistance
@@ -271,20 +270,19 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self,maxHP,HP,x,y):
+    def __init__(self,maxHP,HP,posvec):
         super().__init__()
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
         self.rect = self.image.get_rect()
         self.HP = HP
         self.maxHP = maxHP
-        self.rect.x = x
-        self.rect.y = y
-        self.xspeed = 0
-        self.yspeed = 0
+        self.posvec = posvec 
+        self.rect.x , self.rect.y = self.posvec
+        self.speedvec = pygame.math.Vector2(0,0)
         self.width = 59
         self.height = 74
-        self.moveCoolDown = random.randint(120,600)
+        self.moveCoolDown = random.randint(300,600)
         self.moveCoolDownCount = 0
         self.shootCoolDown = 2
         self.shootCoolDownCount = 0
@@ -292,10 +290,9 @@ class Enemy(pygame.sprite.Sprite):
         self.moveCoolDownCount += 1
         self.shootCoolDownCount += 1
         if self.moveCoolDown == self.moveCoolDownCount:
-            self.moveCoolDown = random.randint(120,600)
+            self.moveCoolDown = random.randint(120,300)
             self.moveCoolDownCount = 0
-            self.xspeed = random.randint(-3,3)
-            self.yspeed = random.randint(-3,3)
+            self.speedvec.x = random.randint(-20,20) * 0.1
         if self.shootCoolDown == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
@@ -304,13 +301,12 @@ class Enemy(pygame.sprite.Sprite):
             self.HP -= item.damage
         if self.HP == 0:
             self.kill()
-        self.rect.x += self.xspeed
-        self.rect.y += self.yspeed
-        self.rect.x=min(gameX - 50,self.rect.x)
-        self.rect.x=max(0,self.rect.x)
-        self.rect.y=min(screenY - 50,self.rect.y)
-        self.rect.y=max(0,self.rect.y)
-
+        self.posvec = self.posvec + self.speedvec
+        self.posvec.x=min(gameX - 50,self.posvec.x)
+        self.posvec.x=max(0,self.posvec.x)
+        self.posvec.y=min(screenY - 50,self.posvec.y)
+        self.posvec.y=max(0,self.posvec.y)
+        self.rect.x , self.rect.y = self.posvec
     def shoot(self):
         while True:
             bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45)),pygame.math.Vector2(-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1),1,0,0)
@@ -319,7 +315,7 @@ class Enemy(pygame.sprite.Sprite):
         enemyBulletGroup.add(bullet)
 def keydown(key):
     if key == pygame.K_LEFT:
-        player_Character.moveleft = 1
+        player_Character.leftspeed = 1
     if key == pygame.K_RIGHT:
         player_Character.rightspeed = 1
     if key == pygame.K_UP:
@@ -362,7 +358,7 @@ self_group.add(player_CharacterJadeRight)
 self_group.add(player_CharacterJadeLeft)
 self_group.add(player_Character)
 UI = UIasset()
-baka = Enemy(5000,5000,455,100)
+baka = Enemy(5000,5000,pygame.math.Vector2(455,100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
