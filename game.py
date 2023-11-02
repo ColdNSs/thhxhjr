@@ -57,14 +57,13 @@ class playerCharacter(pygame.sprite.Sprite):
         self.image = pygame.Surface([10, 10])
         self.image.set_colorkey('BLACK')
         self.rect = self.image.get_rect()
+        self.posvec = pygame.math.Vector2(0,0)
         self.rect.x = 455
         self.rect.y = 600
         self.attackSpeed = 3
         self.attackCoolDown = 0 
-        self.leftspeed = 0
-        self.rightspeed = 0
-        self.upspeed = 0
-        self.downspeed = 0
+        self.speedvec = pygame.math.Vector2(0,0)
+        self.speed = 8
         self.slow = 1
         self.speedMultiplier = 0.5
         self.shoot = False
@@ -93,8 +92,7 @@ class playerCharacter(pygame.sprite.Sprite):
         self.mode = mode
 
     def update(self):
-        self.rect.x += (self.rightspeed - self.leftspeed) * self.slow
-        self.rect.y += (self.downspeed - self.upspeed) * self.slow
+        self.posvec += self.speedvec.normalize_ip() * self.speed * self.slow
         self.rect.x = min(gameX + 20,self.rect.x)
         self.rect.x = max(40,self.rect.x)
         self.rect.y = min(screenY - 50,self.rect.y)
@@ -252,7 +250,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x , self.rect.y = self.posvec
         if self.track:
             directdistance = ((self.rect.x - baka.rect.x)**2 + (self.rect.y - baka.rect.y)**2)**0.5
-            self.speedvec = 
+            self.speedvec = baka.posvec
             self.xspeed = (self.rect.x - baka.rect.x - baka.width / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
             self.yspeed = (self.rect.y - baka.rect.y - baka.height / 2) * -((self.inputxspeed**2)+(self.inputyspeed**2))**0.5 / directdistance
             '''
