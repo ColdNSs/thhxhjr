@@ -57,7 +57,7 @@ class playerCharacter(pygame.sprite.Sprite):
         self.image = pygame.Surface([10, 10])
         self.image.set_colorkey('BLACK')
         self.rect = self.image.get_rect()
-        self.posvec = pygame.math.Vector2(0,0)
+        self.posvec = pygame.math.Vector2(455,600)
         self.rect.x = 455
         self.rect.y = 600
         self.attackSpeed = 3
@@ -69,6 +69,10 @@ class playerCharacter(pygame.sprite.Sprite):
         self.shoot = False
         self.HP = 5
         self.Bomb = 3
+        self.leftspeed = 0
+        self.rightspeed = 0
+        self.upspeed = 0
+        self.downspeed = 0
         self.invincibleTime = 0
         self.QTETime = 0
         self.status = "alive"
@@ -92,12 +96,17 @@ class playerCharacter(pygame.sprite.Sprite):
         self.mode = mode
 
     def update(self):
-        self.posvec += self.speedvec.normalize_ip() * self.speed * self.slow
-        self.rect.x = min(gameX + 20,self.rect.x)
-        self.rect.x = max(40,self.rect.x)
-        self.rect.y = min(screenY - 50,self.rect.y)
-        self.rect.y = max(50,self.rect.y)
-        '''
+        self.speedvec.x = self.rightspeed - self.leftspeed
+        self.speedvec.y = self.upspeed - self.downspeed
+        if self.speedvec.length():
+            self.speedvec.scale_to_length(self.speed * self.slow)
+            self.posvec += self.speedvec 
+            self.posvec.x = min(gameX + 20,self.posvec.x)
+            self.posvec.x = max(40,self.posvec.x)
+            self.posvec.y = min(screenY - 50,self.posvec.y)
+            self.posvec.y = max(50,self.posvec.y)
+            self.rect.x ,
+            '''
         if self.bombTrigger and not self.isBombing:
             self.isBombing , self.bombTrigger = self.bombTrigger , self.isBombing
             pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
@@ -156,7 +165,6 @@ class playerCharacter(pygame.sprite.Sprite):
             self.HP -= 1
             self.clearradius = 10
             self.diecenter = self.rect.center
-            self.HP -= 1
             self.Bomb = max(2,self.Bomb)
             pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
             pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)
@@ -245,6 +253,7 @@ class Bullet(pygame.sprite.Sprite):
         self.width = width
         self.height = height
         self.alreadyGraze = False
+
     def update(self):
         self.posvec += self.speedvec
         self.rect.x , self.rect.y = self.posvec
@@ -310,13 +319,13 @@ class Enemy(pygame.sprite.Sprite):
         enemyBulletGroup.add(bullet)
 def keydown(key):
     if key == pygame.K_LEFT:
-        player_Character.leftspeed = 8
+        player_Character.moveleft = 1
     if key == pygame.K_RIGHT:
-        player_Character.rightspeed = 8
+        player_Character.rightspeed = 1
     if key == pygame.K_UP:
-        player_Character.upspeed = 8
+        player_Character.upspeed = 1
     if key == pygame.K_DOWN:
-        player_Character.downspeed = 8
+        player_Character.downspeed = 1
     if key == pygame.K_z:
         player_Character.shoot = True
     if key == pygame.K_LSHIFT:
