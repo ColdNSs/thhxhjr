@@ -118,22 +118,22 @@ class playerCharacter(pygame.sprite.Sprite):
             self.invincibleCheck()
         if self.status == "usebomb":
             self.Bomb -= 1
-            mybomb = Bomb(player_bomb_red_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery + 150),pygame.math.Vector2(0,-1),180,20)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_orange_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery + 150),pygame.math.Vector2(0,-1),190,20)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_yellow_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery - 150),pygame.math.Vector2(0,-1),200,20)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_green_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery - 150),pygame.math.Vector2(0,-1),210,20)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_blue_picture,pygame.math.Vector2(self.rect.centerx - 150,self.rect.centery),pygame.math.Vector2(0,-1),220,20)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_purple_picture,pygame.math.Vector2(self.rect.centerx + 150,self.rect.centery),pygame.math.Vector2(0,-1),230,20)
-            bombgroup.add(mybomb)
             if self.QTETime:
                 self.QTETime = 0
             self.status = "bombing"
-            self.bombingTime = 120
+            mybomb = Bomb(player_bomb_green_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery - 150),pygame.math.Vector2(0,-0.1),210,2)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_yellow_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery - 150),pygame.math.Vector2(0,-0.1),215,2)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_purple_picture,pygame.math.Vector2(self.rect.centerx + 150,self.rect.centery),pygame.math.Vector2(0,-0.1),220,2)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_orange_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery + 150),pygame.math.Vector2(0,-0.1),225,2)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_red_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery + 150),pygame.math.Vector2(0,-0.1),230,2)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_blue_picture,pygame.math.Vector2(self.rect.centerx - 150,self.rect.centery),pygame.math.Vector2(0,-0.1),235,2)
+            bombgroup.add(mybomb)
+            self.bombingTime = 180
         if self.status == "bombing":
             self.missCheck()
             self.bombingCheck()
@@ -267,7 +267,9 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:
             self.kill()
 
-def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): #返回从Sprite1指向Sprite2的单位向量
+def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): #返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
+    if (sprite2.rect.centerx - sprite1.rect.centerx) == 0 and (sprite2.rect.centery - sprite1.rect.centery) == 0:  
+        return pygame.math.Vector2(0.0000001*random.randint(0,1000),0.0000001*random.randint(0,1000))
     return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx ,sprite2.rect.centery - sprite1.rect.centery).normalize()
 
 class Bomb(pygame.sprite.Sprite):
@@ -280,25 +282,38 @@ class Bomb(pygame.sprite.Sprite):
         self.inputspeedvec = speedvec
         self.rect.centerx , self.rect.centery = posvec
         self.damage = damage
-        self.lifetime = lifetime
-        self.tracktime = 180
+        self.inputlifetime = self.lifetime = lifetime
+        self.tracktime = 160
         self.angle = 0
+        self.trigger = False
+        self.image.set_alpha(0)
 
     def update(self):
-        self.angle += 3
-        if self.angle > 360:
-            self.angle = 0
+        if 20 > self.lifetime - self.tracktime > 0:
+            self.image = self.originimage
+            self.image.set_alpha(255 - (self.lifetime - self.tracktime) / 20 * 255) 
         if self.tracktime > self.lifetime:
-            self.speedvec = (self.speedvec + relative_direction(self,baka)).normalize() * self.inputspeedvec.length()
+            self.angle += 3
+            if self.angle > 360:
+                self.angle = 0
             self.image = pygame.transform.rotate(self.originimage,self.angle)
+            self.speedvec = (self.speedvec + relative_direction(self,baka)*3).normalize() * (self.inputspeedvec.length() + 0.08 * (self.tracktime - self.lifetime))
             self.rect = self.image.get_rect(center = self.rect.center)
             self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 
             self.posvec += self.speedvec
             self.rect.centerx , self.rect.centery = self.posvec
         if pygame.sprite.collide_circle_ratio(0.8)(self,baka):
             baka.HP -= self.damage
+            if not self.trigger:
+                self.trigger = 1
         self.lifetime -= 1
-        self.speedvec.y -= 0.2
+        if self.trigger:
+            self.image = pygame.transform.scale(self.image, (self.image.get_width() ** (1 + 0.003 * self.trigger), self.image.get_height() ** (1 + 0.003 * self.trigger)))
+            self.trigger += 1
+            self.image.set_alpha(255 - self.trigger * 4) 
+        if self.trigger > 63:
+            baka.HP -= 50
+            self.kill()
         if not self.lifetime:
             self.kill()
         list = pygame.sprite.spritecollide(self,enemyBulletGroup,True)
@@ -339,9 +354,9 @@ class Enemy(pygame.sprite.Sprite):
             self.kill()
         self.posvec = self.posvec + self.speedvec
         self.posvec.x=min(gameX - 50,self.posvec.x)
-        self.posvec.x=max(self.rect.width / 2,self.posvec.x)
+        self.posvec.x=max(self.rect.width,self.posvec.x)
         self.posvec.y=min(screenY - 50,self.posvec.y)
-        self.posvec.y=max(self.rect.height / 2,self.posvec.y)
+        self.posvec.y=max(self.rect.height,self.posvec.y)
         self.rect.centerx , self.rect.centery = self.posvec
     def shoot(self):
         while True:
@@ -364,6 +379,7 @@ def keydown(key):
         player_Character.setmode(mode=1)
     if key == pygame.K_x and not player_Character.status == "bombing" and player_Character.Bomb > 0:
         player_Character.status = "usebomb"
+
 def keyup(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 0
