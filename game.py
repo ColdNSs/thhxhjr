@@ -118,7 +118,17 @@ class playerCharacter(pygame.sprite.Sprite):
             self.invincibleCheck()
         if self.status == "usebomb":
             self.Bomb -= 1
-            mybomb = Bomb(player_bomb_red_picture,pygame.math.Vector2(self.rect.centerx,self.rect.centery + 30),pygame.math.Vector2(0,-1),20)
+            mybomb = Bomb(player_bomb_red_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery + 150),pygame.math.Vector2(0,-1),180,20)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_orange_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery + 150),pygame.math.Vector2(0,-1),190,20)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_yellow_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery - 150),pygame.math.Vector2(0,-1),200,20)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_green_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery - 150),pygame.math.Vector2(0,-1),210,20)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_blue_picture,pygame.math.Vector2(self.rect.centerx - 150,self.rect.centery),pygame.math.Vector2(0,-1),220,20)
+            bombgroup.add(mybomb)
+            mybomb = Bomb(player_bomb_purple_picture,pygame.math.Vector2(self.rect.centerx + 150,self.rect.centery),pygame.math.Vector2(0,-1),230,20)
             bombgroup.add(mybomb)
             if self.QTETime:
                 self.QTETime = 0
@@ -252,33 +262,39 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.centerx , self.rect.centery = self.posvec
         if self.track:
             directdistance = ((self.rect.x - baka.rect.x)**2 + (self.rect.y - baka.rect.y)**2)**0.5
-            self.speedvec = baka.rect.center - self.posvec
+            self.speedvec = relative_direction(self,baka)
             self.speedvec.scale_to_length(self.inputspeedvec.length())
         if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:
             self.kill()
 
+def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): #返回从Sprite1指向Sprite2的单位向量
+    return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx ,sprite2.rect.centery - sprite1.rect.centery).normalize()
+
 class Bomb(pygame.sprite.Sprite):
-    def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage):
+    def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,lifetime,damage):
         super().__init__()
         self.image = self.originimage = image
         self.rect = self.image.get_rect()
         self.posvec = posvec
-        self.speedvec = speedvec
+        self.inputvec = self.speedvec = speedvec
         self.inputspeedvec = speedvec
         self.rect.centerx , self.rect.centery = posvec
         self.damage = damage
-        self.lifetime = 180
+        self.lifetime = lifetime
+        self.tracktime = 180
         self.angle = 0
 
     def update(self):
-        self.image = pygame.transform.rotate(self.originimage,self.angle)
-        self.rect = self.image.get_rect(center = self.rect.center)
-        self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 
-        self.posvec += self.speedvec
-        self.rect.centerx , self.rect.centery = self.posvec
         self.angle += 3
         if self.angle > 360:
             self.angle = 0
+        if self.tracktime > self.lifetime:
+            self.speedvec = (self.speedvec + relative_direction(self,baka)).normalize() * self.inputspeedvec.length()
+            self.image = pygame.transform.rotate(self.originimage,self.angle)
+            self.rect = self.image.get_rect(center = self.rect.center)
+            self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 
+            self.posvec += self.speedvec
+            self.rect.centerx , self.rect.centery = self.posvec
         if pygame.sprite.collide_circle_ratio(0.8)(self,baka):
             baka.HP -= self.damage
         self.lifetime -= 1
@@ -373,7 +389,17 @@ if chooseCharacter == "Reimu":
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
     player_bomb_red_picture = pygame.image.load("Picture/bigjade_red.bmp").convert()
+    player_bomb_orange_picture = pygame.image.load("Picture/bigjade_orange.bmp").convert()
+    player_bomb_yellow_picture = pygame.image.load("Picture/bigjade_yellow.bmp").convert()
+    player_bomb_green_picture = pygame.image.load("Picture/bigjade_green.bmp").convert()
+    player_bomb_blue_picture = pygame.image.load("Picture/bigjade_blue.bmp").convert()
+    player_bomb_purple_picture = pygame.image.load("Picture/bigjade_purple.bmp").convert()
     player_bomb_red_picture.set_colorkey("BLACK")
+    player_bomb_orange_picture.set_colorkey("BLACK")
+    player_bomb_yellow_picture.set_colorkey("BLACK")
+    player_bomb_green_picture.set_colorkey("BLACK")
+    player_bomb_blue_picture.set_colorkey("BLACK")
+    player_bomb_purple_picture.set_colorkey("BLACK")
 if chooseCharacter == "Marisa":
     pass
 self_group.add(player_CharacterImage)
