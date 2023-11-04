@@ -26,47 +26,49 @@ class UIasset():
     def drawBefore(self):
         screen.blit(self.background, (30, 20))
     def drawAfter(self):
-        #游戏UI背景
+        # 游戏UI背景
         screen.blit(self.framework, (0, 0))
-        #帧率显示
+        # 帧率显示
         if not self.fpsTimer:
             self.fpstext = font_Arial20.render(str("{0:.2f}".format(clock.get_fps()/2 if powersave_mode else clock.get_fps())), True, (255, 255, 255))
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
-        #敌机血量显示
+        # 敌机血量显示
         pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.maxHP, 10), 0)
-        #残机显示
+        # 残机显示
         screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
             screen.blit(UI.HP, (730+i*25, 170))
-        #符卡显示
+        # 符卡显示
         screen.blit(font_Simsun20.render("剩余符卡：",True, (240, 240, 240)),(630,200))
         for i in range(player_Character.Bomb):
             screen.blit(UI.bomb, (730+i*25, 200))
-        #擦弹数量显示
+        # 擦弹数量显示
         font = pygame.sysfont.SysFont('SimSun',20)
         screen.blit(font_Simsun20.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
-        #敌人位置显示
+        # 敌人位置显示
         font = pygame.sysfont.SysFont('SimSun',16)
         screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(baka.rect.x,700))
 
-
-class playerCharacter(pygame.sprite.Sprite):
-    def __init__(self):
+# posvec：位置向量 speedvec：速度向量
+class playerCharacter(pygame.sprite.Sprite): #判定点类 
+    def __init__(self,radius,speed,speedMultiplier,QTElimit,attackspeed,slowattackspeed):
         super().__init__()
-        self.image = pygame.Surface([10, 10])
+        self.image = pygame.Surface([radius * 2, radius * 2])
         self.image.set_colorkey('BLACK')
         self.rect = self.image.get_rect()
         self.posvec = pygame.math.Vector2(455,600)
+        self.radius = radius
         self.rect.centerx = 455
         self.rect.centery = 600
-        self.attackSpeed = 3
+        self.nowattackspeed = self.attackSpeed = attackspeed
+        self.slowattackSpeed = slowattackspeed
         self.attackCoolDown = 0 
         self.speedvec = pygame.math.Vector2(0,0)
-        self.speed = 8
+        self.speed = speed
         self.slow = 1
-        self.speedMultiplier = 0.5
+        self.speedMultiplier = speedMultiplier
         self.shoot = False
         self.HP = 5
         self.Bomb = 3
@@ -76,13 +78,14 @@ class playerCharacter(pygame.sprite.Sprite):
         self.downspeed = 0
         self.invincibleTime = 0
         self.QTETime = 0
+        self.QTElimit = QTElimit
         self.status = "alive"
         self.mode = 0
-    def setmode(self,mode):
+    def setmode(self,mode): #设置子机位置
         if mode == 1:
             player_Character.slow = self.speedMultiplier
-            pygame.draw.circle(player_Character.image,'WHITE',(5,5),5)
-            pygame.draw.circle(player_Character.image,'RED',(5,5),5,1)   
+            pygame.draw.circle(player_Character.image,'WHITE',(self.radius,self.radius),self.radius)
+            pygame.draw.circle(player_Character.image,'RED',(self.radius,self.radius),self.radius,1)   
             player_CharacterJadeRight.x = 18
             player_CharacterJadeRight.y = -23
             player_CharacterJadeLeft.x = -15
@@ -100,14 +103,14 @@ class playerCharacter(pygame.sprite.Sprite):
         self.speedvec.x = self.rightspeed - self.leftspeed
         self.speedvec.y = self.downspeed - self.upspeed
         if self.speedvec.length():
-            self.speedvec.scale_to_length(self.speed * self.slow)
-            self.posvec += self.speedvec 
+            self.speedvec.scale_to_length(self.speed * self.slow) #算出速度方向并乘以速度标量
+            self.posvec += self.speedvec
             self.posvec.x = min(gameX + 20,self.posvec.x)
             self.posvec.x = max(40,self.posvec.x)
             self.posvec.y = min(screenY - 50,self.posvec.y)
             self.posvec.y = max(50,self.posvec.y)
             self.rect.centerx , self.rect.centery = self.posvec
-
+        # 伪状态机
         if self.status == "alive":
             self.missCheck()
         if self.status == "dying":
@@ -118,38 +121,40 @@ class playerCharacter(pygame.sprite.Sprite):
             self.invincibleCheck()
         if self.status == "usebomb":
             self.Bomb -= 1
-            if self.QTETime:
+            if self.QTETime: # 决死
                 self.QTETime = 0
             self.status = "bombing"
-            mybomb = Bomb(player_bomb_green_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery - 150),pygame.math.Vector2(0,-0.1),210,2)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_yellow_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery - 150),pygame.math.Vector2(0,-0.1),215,2)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_purple_picture,pygame.math.Vector2(self.rect.centerx + 150,self.rect.centery),pygame.math.Vector2(0,-0.1),220,2)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_orange_picture,pygame.math.Vector2(self.rect.centerx + 80,self.rect.centery + 150),pygame.math.Vector2(0,-0.1),225,2)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_red_picture,pygame.math.Vector2(self.rect.centerx - 80,self.rect.centery + 150),pygame.math.Vector2(0,-0.1),230,2)
-            bombgroup.add(mybomb)
-            mybomb = Bomb(player_bomb_blue_picture,pygame.math.Vector2(self.rect.centerx - 150,self.rect.centery),pygame.math.Vector2(0,-0.1),235,2)
-            bombgroup.add(mybomb)
+            # 下面这段是Bing AI优化的
+            # 创建一个列表，包含不同颜色的图片对象
+            pictures = [player_bomb_pictures[color] for color in ["red", "orange", "yellow", "green", "blue", "purple"]]
+            # 创建一个列表，包含不同的位置和参数
+            positions = [(self.rect.centerx - 80, self.rect.centery - 150, 210),
+             (self.rect.centerx + 80, self.rect.centery - 150, 215),
+             (self.rect.centerx + 150, self.rect.centery, 220),
+             (self.rect.centerx + 80, self.rect.centery + 150, 225),
+             (self.rect.centerx - 80, self.rect.centery + 150, 230),
+             (self.rect.centerx - 150, self.rect.centery, 235)]
+            # 遍历两个列表，创建和添加每个bomb对象
+            for picture, position in zip(pictures, positions):
+                mybomb = Bomb(picture, pygame.math.Vector2(*position[:2]), pygame.math.Vector2(0, -0.1), position[2], 2)
+                bombgroup.add(mybomb)
             self.bombingTime = 180
         if self.status == "bombing":
             self.missCheck()
             self.bombingCheck()
         if self.shoot:
-            if self.attackCoolDown - self.attackSpeed:
+            if self.attackCoolDown - self.nowattackspeed: # 射击冷却计算
                 self.attackCoolDown += 1
                 return
             self.attackCoolDown = 0
-            if self.slow == 0.5:
-                self.attackSpeed = 3            
+            if self.slow == self.speedMultiplier: # 高低速不同类型的子弹
+                self.nowattackspeed = self.attackSpeed            
                 mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
                 selfBulletGroup.add(mybullet)
                 mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
                 selfBulletGroup.add(mybullet)
             if self.slow == 1:
-                self.attackSpeed = 5
+                self.nowattackspeed = self.slowattackSpeed
                 mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,1,True)
                 selfBulletGroup.add(mybullet)
                 mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,1,True)
@@ -160,9 +165,9 @@ class playerCharacter(pygame.sprite.Sprite):
         if not self.bombingTime:
             self.status = "alive"
     
-    def QTECheck(self):
+    def QTECheck(self): 
         self.QTETime -= 1
-        if self.Bomb == 0:
+        if self.Bomb == 0: #没B直接寄
             self.QTETime = 0
         if not self.QTETime:
             self.status = "invincible"
@@ -177,7 +182,7 @@ class playerCharacter(pygame.sprite.Sprite):
 
     def invincibleCheck(self):
         self.invincibleTime -= 1
-        if 0 < self.clearradius < 600:
+        if 0 < self.clearradius < 600: #创造出一个以死亡点为圆心的扩大消弹的圆
             self.clearradius += 25
             for item in enemyBulletGroup:
                 if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.clearradius**2:
@@ -195,12 +200,12 @@ class playerCharacter(pygame.sprite.Sprite):
                 break
         if self.iscoll:
             item.kill()
-            if self.status == "alive":
+            if self.status == "alive": #活着被弹转移到决死反应时间
                 self.QTETime = 10 
                 self.status = "dying"
                 pygame.draw.circle(player_Character.image,'RED',(5,5),5)
 
-class playerCharacterImage(pygame.sprite.Sprite):
+class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 只有擦弹相关实现在里面
     def __init__(self,image,x,y):
         super().__init__()
         self.image = image
@@ -215,9 +220,9 @@ class playerCharacterImage(pygame.sprite.Sprite):
         for item in enemyBulletGroup:
             if pygame.sprite.collide_circle_ratio(1.5)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
-                item.alreadyGraze = True
+                item.alreadyGraze = True # 擦过的弹不能再擦
 
-class playerJade(playerCharacterImage):
+class playerJade(playerCharacterImage): # 子机类
     def __init__(self,image,x,y):
         super(playerJade,self).__init__(image,x,y)
         self.angle = 0
@@ -226,15 +231,15 @@ class playerJade(playerCharacterImage):
         width,height = self.image.get_size()
         self.rect.x , self.rect.y = (-width / 2 + player_Character.rect.x + self.x,-height / 2 + player_Character.rect.y + self.y)
         self.image = pygame.transform.rotate(self.originimage,self.angle+1)
-        self.rect = self.image.get_rect(center = self.rect.center)
+        self.rect = self.image.get_rect(center = self.rect.center) # 重新获取中心 避免转动问题
         self.angle += 1
         if self.angle > 360:
             self.angle = 0
 
-class Bullet(pygame.sprite.Sprite):
+class Bullet(pygame.sprite.Sprite): # 子弹类
     def __init__(self,shape,color,width,height,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,belong,track):
         super().__init__()
-        self.image = pygame.Surface([width, height])
+        self.image = pygame.Surface([width, height]) # 控制子弹类型 但是目前看来这样写下去会更加屎山
         if shape == 2:
             pygame.draw.circle(self.image,color,(width/2,height/2),width/2)
             self.image.set_colorkey('BLACK')
@@ -259,17 +264,16 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
         self.posvec += self.speedvec
-        self.rect.centerx , self.rect.centery = self.posvec
-        if self.track:
-            directdistance = ((self.rect.x - baka.rect.x)**2 + (self.rect.y - baka.rect.y)**2)**0.5
+        self.rect.centerx , self.rect.centery = self.posvec # 这行及上行实现非整数坐标
+        if self.track: # 诱导弹
             self.speedvec = relative_direction(self,baka)
-            self.speedvec.scale_to_length(self.inputspeedvec.length())
-        if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:
+            self.speedvec.scale_to_length(self.inputspeedvec.length()) #速度向量转化为长度与输入速度一致
+        if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50: # 出界判定
             self.kill()
 
-def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): #返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
+def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): # 返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
     if (sprite2.rect.centerx - sprite1.rect.centerx) == 0 and (sprite2.rect.centery - sprite1.rect.centery) == 0:  
-        return pygame.math.Vector2(0.0000001*random.randint(0,1000),0.0000001*random.randint(0,1000))
+        return pygame.math.Vector2(0.0000001*random.randint(-1000,1000),0.0000001*random.randint(-1000,1000))
     return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx ,sprite2.rect.centery - sprite1.rect.centery).normalize()
 
 class Bomb(pygame.sprite.Sprite):
@@ -283,19 +287,19 @@ class Bomb(pygame.sprite.Sprite):
         self.rect.centerx , self.rect.centery = posvec
         self.damage = damage
         self.inputlifetime = self.lifetime = lifetime
-        self.tracktime = 160
+        self.tracktime = 200
         self.angle = 0
         self.trigger = False
         self.image.set_alpha(0)
 
     def update(self):
-        if 20 > self.lifetime - self.tracktime > 0:
+        if 10 > self.lifetime - self.tracktime > 0: # 10帧的逐渐出现效果
             self.image = self.originimage
-            self.image.set_alpha(255 - (self.lifetime - self.tracktime) / 20 * 255) 
+            self.image.set_alpha(255 - (self.lifetime - self.tracktime) / 10 * 255)  #
         if self.tracktime > self.lifetime:
             self.angle += 3
             if self.angle > 360:
-                self.angle = 0
+                self.angle = 0 # 使我的阴阳玉旋转
             self.image = pygame.transform.rotate(self.originimage,self.angle)
             self.speedvec = (self.speedvec + relative_direction(self,baka)*3).normalize() * (self.inputspeedvec.length() + 0.08 * (self.tracktime - self.lifetime))
             self.rect = self.image.get_rect(center = self.rect.center)
@@ -305,19 +309,19 @@ class Bomb(pygame.sprite.Sprite):
         if pygame.sprite.collide_circle_ratio(0.8)(self,baka):
             baka.HP -= self.damage
             if not self.trigger:
-                self.trigger = 1
+                self.trigger = 1 # 击中则被触发
         self.lifetime -= 1
-        if self.trigger:
-            self.image = pygame.transform.scale(self.image, (self.image.get_width() ** (1 + 0.003 * self.trigger), self.image.get_height() ** (1 + 0.003 * self.trigger)))
+        if self.trigger: # 逐渐变大消失
+            self.image = pygame.transform.scale(self.image, (self.image.get_width() * (1 + 0.03 * self.trigger), self.image.get_height() * (1 + 0.03 * self.trigger)))
             self.trigger += 1
             self.image.set_alpha(255 - self.trigger * 4) 
         if self.trigger > 63:
             baka.HP -= 50
             self.kill()
-        if not self.lifetime:
+        if not self.lifetime: # 超过生命周期也消失
             self.kill()
         list = pygame.sprite.spritecollide(self,enemyBulletGroup,True)
-        for item in list:
+        for item in list: # 消弹
             item.kill()
 
 class Enemy(pygame.sprite.Sprite):
@@ -361,9 +365,10 @@ class Enemy(pygame.sprite.Sprite):
     def shoot(self):
         while True:
             bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45)),pygame.math.Vector2(-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1),1,0,0)
-            if not (bullet.speedvec.length() < 1):
+            if not (bullet.speedvec.length() < 1): # 避免出现太慢的弹幕
                 break
         enemyBulletGroup.add(bullet)
+
 def keydown(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 1
@@ -399,25 +404,33 @@ enemyGroup = pygame.sprite.Group()
 selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
 bombgroup = pygame.sprite.Group()
-player_Character = playerCharacter()
 if chooseCharacter == "Reimu":
+    player_Character = playerCharacter(5,8,0.5,8,3,5)
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
-    player_bomb_red_picture = pygame.image.load("Picture/bigjade_red.bmp").convert()
-    player_bomb_orange_picture = pygame.image.load("Picture/bigjade_orange.bmp").convert()
-    player_bomb_yellow_picture = pygame.image.load("Picture/bigjade_yellow.bmp").convert()
-    player_bomb_green_picture = pygame.image.load("Picture/bigjade_green.bmp").convert()
-    player_bomb_blue_picture = pygame.image.load("Picture/bigjade_blue.bmp").convert()
-    player_bomb_purple_picture = pygame.image.load("Picture/bigjade_purple.bmp").convert()
-    player_bomb_red_picture.set_colorkey("BLACK")
-    player_bomb_orange_picture.set_colorkey("BLACK")
-    player_bomb_yellow_picture.set_colorkey("BLACK")
-    player_bomb_green_picture.set_colorkey("BLACK")
-    player_bomb_blue_picture.set_colorkey("BLACK")
-    player_bomb_purple_picture.set_colorkey("BLACK")
+    #这段也是Bing AI优化的
+    colors = ["red", "orange", "yellow", "green", "blue", "purple"]
+    player_bomb_pictures = {}
+    for color in colors:
+        filename = "Picture/bigjade_" + color + ".bmp"
+        picture = pygame.image.load(filename).convert()
+        picture.set_colorkey("BLACK")
+        player_bomb_pictures[color] = picture
+    
 if chooseCharacter == "Marisa":
-    pass
+    player_Character = playerCharacter(6,9,0.4,9,4,6)
+    player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/marisa.bmp").convert(),5,3)
+    player_CharacterJadeRight = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),30,28)
+    player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),-24,28)
+    colors = ["red", "yellow", "green"]
+    player_bomb_pictures = {}
+    for color in colors:
+        filename = "Picture/bigstar_" + color + ".bmp"
+        picture = pygame.image.load(filename).convert()
+        picture.set_colorkey("BLACK")
+        player_bomb_pictures[color] = picture
+
 self_group.add(player_CharacterImage)
 self_group.add(player_CharacterJadeRight)
 self_group.add(player_CharacterJadeLeft)
@@ -469,8 +482,5 @@ while not done:
         tmp = pygame.time.get_ticks()
         UI.drawAfter()
         print("UIAfter:{0}".format(pygame.time.get_ticks()-tmp))
-    #screen.blit(text, (screenX/2 - text.get_width()/2, screenY/2 - text.get_height()/2))
-    # 更新窗口
         pygame.display.flip()
-    # 控制游戏帧率
 done = True
