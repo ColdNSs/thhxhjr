@@ -1,14 +1,15 @@
 import random
-from typing import Any
+#from typing import Any
 import pygame
 
 pygame.init()
+powersave_mode = True
 screenX = 960
 screenY = 720
 gameX = 570
 size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Reimu"
+chooseCharacter = "Marisa"
 font_Arial20 = pygame.sysfont.SysFont('Arial',20)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
@@ -100,6 +101,11 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
         self.mode = mode
 
     def update(self):
+        if chooseCharacter == "Marisa":
+            for item in bombgroup:
+                item.angle += 3
+                if item.angle > 360:
+                    item.angle = 0
         self.speedvec.x = self.rightspeed - self.leftspeed
         self.speedvec.y = self.downspeed - self.upspeed
         if self.speedvec.length():
@@ -124,20 +130,21 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             if self.QTETime: # 决死
                 self.QTETime = 0
             self.status = "bombing"
-            # 下面这段是Bing AI优化的
-            # 创建一个列表，包含不同颜色的图片对象
-            pictures = [player_bomb_pictures[color] for color in ["red", "orange", "yellow", "green", "blue", "purple"]]
-            # 创建一个列表，包含不同的位置和参数
-            positions = [(self.rect.centerx - 80, self.rect.centery - 150, 210),
-             (self.rect.centerx + 80, self.rect.centery - 150, 215),
-             (self.rect.centerx + 150, self.rect.centery, 220),
-             (self.rect.centerx + 80, self.rect.centery + 150, 225),
-             (self.rect.centerx - 80, self.rect.centery + 150, 230),
-             (self.rect.centerx - 150, self.rect.centery, 235)]
-            # 遍历两个列表，创建和添加每个bomb对象
-            for picture, position in zip(pictures, positions):
-                mybomb = Bomb(picture, pygame.math.Vector2(*position[:2]), pygame.math.Vector2(0, -0.1), position[2], 2)
-                bombgroup.add(mybomb)
+            if chooseCharacter == "Reimu":
+                # 下面这段是Bing AI优化的
+                # 创建一个列表，包含不同颜色的图片对象
+                pictures = [player_bomb_pictures[color] for color in ["red", "orange", "yellow", "green", "blue", "purple"]]
+                # 创建一个列表，包含不同的位置和参数
+                positions = [(self.rect.centerx - 80, self.rect.centery - 150, 210),
+                (self.rect.centerx + 80, self.rect.centery - 150, 215),
+                (self.rect.centerx + 150, self.rect.centery, 220),
+                (self.rect.centerx + 80, self.rect.centery + 150, 225),
+                (self.rect.centerx - 80, self.rect.centery + 150, 230),
+                (self.rect.centerx - 150, self.rect.centery, 235)]
+                # 遍历两个列表，创建和添加每个bomb对象
+                for picture, position in zip(pictures, positions):
+                    mybomb = Bomb(picture, pygame.math.Vector2(*position[:2]), pygame.math.Vector2(0, -0.1), position[2], 2)
+                    bombgroup.add(mybomb)
             self.bombingTime = 180
         if self.status == "bombing":
             self.missCheck()
@@ -149,19 +156,33 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             self.attackCoolDown = 0
             if self.slow == self.speedMultiplier: # 高低速不同类型的子弹
                 self.nowattackspeed = self.attackSpeed            
-                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
-                selfBulletGroup.add(mybullet)
-                mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,1,False)
-                selfBulletGroup.add(mybullet)
+                if chooseCharacter == "Reimu": # 为什么是全局变量 因为懒
+                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    selfBulletGroup.add(mybullet)
+                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    selfBulletGroup.add(mybullet)
+                elif chooseCharacter == "Marisa":
+                    mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-120),1,player_CharacterJadeLeft,False,pygame.math.Vector2(0,0))
+                    selfBulletGroup.add(mybullet)
+                    mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-120),1,player_CharacterJadeRight,False,pygame.math.Vector2(0,0))
+                    selfBulletGroup.add(mybullet)
             if self.slow == 1:
                 self.nowattackspeed = self.slowattackSpeed
-                mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,1,True)
-                selfBulletGroup.add(mybullet)
-                mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,1,True)
-                selfBulletGroup.add(mybullet)
-    
+                if chooseCharacter == "Reimu":
+                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,0,True,pygame.math.Vector2(0,0))
+                    selfBulletGroup.add(mybullet)
+                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,0,True,pygame.math.Vector2(0,0))
+                    selfBulletGroup.add(mybullet)
+                elif chooseCharacter == "Marisa":
+                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),15,0,False,pygame.math.Vector2(0,-0.5))
+                    selfBulletGroup.add(mybullet)
+                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),15,0,False,pygame.math.Vector2(0,-0.5))
+                    selfBulletGroup.add(mybullet)
     def bombingCheck(self):
         self.bombingTime -= 1
+        if chooseCharacter == "Marisa":
+            mybomb = Bullet(player_bomb_pictures[random.choice(["red","yellow","green"])],(255,255,128),10,300,pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery + 30),pygame.math.Vector2(random.uniform(-3,3),random.uniform(-3,-4)),10,0,False,pygame.math.Vector2(0,0))
+            bombgroup.add(mybomb)
         if not self.bombingTime:
             self.status = "alive"
     
@@ -237,26 +258,30 @@ class playerJade(playerCharacterImage): # 子机类
             self.angle = 0
 
 class Bullet(pygame.sprite.Sprite): # 子弹类
-    def __init__(self,shape,color,width,height,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,belong,track):
+    def __init__(self,shape,color,width,height,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,free,track,accvec:pygame.math.Vector2):
         super().__init__()
+        self.shape = shape
+        self.accvec = accvec
         self.image = pygame.Surface([width, height]) # 控制子弹类型 但是目前看来这样写下去会更加屎山
         if shape == 2:
             pygame.draw.circle(self.image,color,(width/2,height/2),width/2)
             self.image.set_colorkey('BLACK')
-        if shape == 1:
+        elif shape == 1:
             pygame.draw.circle(self.image,color,(width/2,height/2),width/2)
             pygame.draw.circle(self.image,(color[0]+14,color[1]+14,color[2]+14),(width/2,height/2),width/3)
             pygame.draw.circle(self.image,'WHITE',(width/2,height/2),width/2-2,1)
             self.image.set_colorkey('BLACK')
         elif shape == 0:
             self.image.fill(color)
+        else: 
+            self.image = self.shape
         self.rect = self.image.get_rect()
         self.posvec = posvec
         self.speedvec = speedvec
         self.inputspeedvec = speedvec
         self.rect.centerx , self.rect.centery = posvec
         self.damage = damage
-        self.belong = belong
+        self.free = free # 0产生跟随子机y轴移动的激光
         self.track = track
         self.width = width
         self.height = height
@@ -264,16 +289,18 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
 
     def update(self):
         self.posvec += self.speedvec
+        self.speedvec += self.accvec
         self.rect.centerx , self.rect.centery = self.posvec # 这行及上行实现非整数坐标
         if self.track: # 诱导弹
             self.speedvec = relative_direction(self,baka)
             self.speedvec.scale_to_length(self.inputspeedvec.length()) #速度向量转化为长度与输入速度一致
-        if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50: # 出界判定
+        if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50  or self.rect.y + self.height < -50: # 出界判定
             self.kill()
-
+        if self.free:
+            self.rect.centerx = self.posvec.x = self.free.rect.centerx
 def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): # 返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
     if (sprite2.rect.centerx - sprite1.rect.centerx) == 0 and (sprite2.rect.centery - sprite1.rect.centery) == 0:  
-        return pygame.math.Vector2(0.0000001*random.randint(-1000,1000),0.0000001*random.randint(-1000,1000))
+        return pygame.math.Vector2(random.uniform(-0.001,0.001),random.uniform(0.001,-0.001))
     return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx ,sprite2.rect.centery - sprite1.rect.centery).normalize()
 
 class Bomb(pygame.sprite.Sprite):
@@ -351,10 +378,12 @@ class Enemy(pygame.sprite.Sprite):
         if self.shootCoolDown == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
-        list = pygame.sprite.spritecollide(self,selfBulletGroup,True)
+        list = pygame.sprite.spritecollide(self,selfBulletGroup,False)
         for item in list:
             self.HP -= item.damage
-        if self.HP == 0:
+            if not item.free:
+                item.kill()
+        if self.HP < 0:
             self.kill()
         self.posvec = self.posvec + self.speedvec
         self.posvec.x=min(gameX - 50,self.posvec.x)
@@ -364,7 +393,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.centerx , self.rect.centery = self.posvec
     def shoot(self):
         while True:
-            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.randint(0,45),self.rect.y-10+random.randint(0,45)),pygame.math.Vector2(-2+random.randint(0,40)*0.1,-1+random.randint(0,60)*0.1),1,0,0)
+            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.uniform(0,45),self.rect.y-10+random.uniform(0,45)),pygame.math.Vector2(random.randint(-2,4),+random.randint(-1,6)),1,0,0,pygame.math.Vector2(0,0))
             if not (bullet.speedvec.length() < 1): # 避免出现太慢的弹幕
                 break
         enemyBulletGroup.add(bullet)
@@ -419,7 +448,11 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
     
 if chooseCharacter == "Marisa":
-    player_Character = playerCharacter(6,9,0.4,9,4,6)
+    
+    player_Character = playerCharacter(6,9,0.4,9,0,8)
+    player_Character.bulletimage = pygame.image.load("Picture/grass.bmp")
+    player_Character.bulletimage.convert()
+    player_Character.bulletimage.set_colorkey((240,240,240))
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/marisa.bmp").convert(),5,3)
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),-24,28)
@@ -428,7 +461,7 @@ if chooseCharacter == "Marisa":
     for color in colors:
         filename = "Picture/bigstar_" + color + ".bmp"
         picture = pygame.image.load(filename).convert()
-        picture.set_colorkey("BLACK")
+        picture.set_colorkey((240,240,240))
         player_bomb_pictures[color] = picture
 
 self_group.add(player_CharacterImage)
@@ -441,7 +474,6 @@ enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
 tick = 0
-powersave_mode = False
 while not done:
     print(player_CharacterImage.graze)
     clock.tick(60)
