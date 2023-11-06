@@ -3,7 +3,7 @@ import random
 import pygame
 
 pygame.init()
-powersave_mode = True
+powersave_mode = False
 screenX = 960
 screenY = 720
 gameX = 570
@@ -143,7 +143,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                 (self.rect.centerx - 150, self.rect.centery, 235)]
                 # 遍历两个列表，创建和添加每个bomb对象
                 for picture, position in zip(pictures, positions):
-                    mybomb = Bomb(picture, pygame.math.Vector2(*position[:2]), pygame.math.Vector2(0, -0.1), position[2], 2)
+                    mybomb = ReimuBomb(picture, pygame.math.Vector2(*position[:2]), pygame.math.Vector2(0, -0.1), position[2], 2)
                     bombgroup.add(mybomb)
             self.bombingTime = 180
         if self.status == "bombing":
@@ -162,9 +162,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                     mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
-                    mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-120),1,player_CharacterJadeLeft,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y - 10),pygame.math.Vector2(0,-120),1,player_CharacterJadeLeft,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-120),1,player_CharacterJadeRight,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y - 10),pygame.math.Vector2(0,-120),1,player_CharacterJadeRight,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
             if self.slow == 1:
                 self.nowattackspeed = self.slowattackSpeed
@@ -181,7 +181,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
     def bombingCheck(self):
         self.bombingTime -= 1
         if chooseCharacter == "Marisa":
-            mybomb = Bullet(player_bomb_pictures[random.choice(["red","yellow","green"])],(255,255,128),10,300,pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery + 30),pygame.math.Vector2(random.uniform(-3,3),random.uniform(-3,-4)),10,0,False,pygame.math.Vector2(0,0))
+            mybomb = MarisaBomb(player_bomb_pictures[random.choice(["red","yellow","green"])],pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery - 40),pygame.math.Vector2(random.uniform(-1.5,1.5),random.uniform(-3.5,-5.5)),10)
             bombgroup.add(mybomb)
         if not self.bombingTime:
             self.status = "alive"
@@ -290,7 +290,7 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
     def update(self):
         self.posvec += self.speedvec
         self.speedvec += self.accvec
-        self.rect.centerx , self.rect.centery = self.posvec # 这行及上行实现非整数坐标
+        self.rect.centerx , self.rect.centery = self.posvec # 这行及上两行实现非整数坐标
         if self.track: # 诱导弹
             self.speedvec = relative_direction(self,baka)
             self.speedvec.scale_to_length(self.inputspeedvec.length()) #速度向量转化为长度与输入速度一致
@@ -298,12 +298,52 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
             self.kill()
         if self.free:
             self.rect.centerx = self.posvec.x = self.free.rect.centerx
+
 def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): # 返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
     if (sprite2.rect.centerx - sprite1.rect.centerx) == 0 and (sprite2.rect.centery - sprite1.rect.centery) == 0:  
         return pygame.math.Vector2(random.uniform(-0.001,0.001),random.uniform(0.001,-0.001))
     return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx ,sprite2.rect.centery - sprite1.rect.centery).normalize()
 
-class Bomb(pygame.sprite.Sprite):
+class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为什么不复用 问就是懒和不会
+    def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage):
+        super().__init__()
+        self.image = self.originimage = image
+        self.rect = self.image.get_rect()
+        self.posvec = posvec
+        self.rect.centerx , self.rect.centery = posvec
+        self.speedvec = speedvec
+        self.damage = damage
+        self.trigger = 0
+        self.angle = 0
+        self.lifetime = 180
+
+    def update(self):
+        self.angle += 3
+        if self.angle > 360:
+            self.angle = 0 # 使我的星星旋转
+        self.image = pygame.transform.rotate(self.originimage,self.angle)
+        self.rect = self.image.get_rect(center = self.rect.center)
+        #self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 没这行有问题 有这行更有问题
+        self.posvec += self.speedvec
+        self.rect.centerx , self.rect.centery = self.posvec
+        if not self.trigger:
+            if pygame.sprite.collide_circle_ratio(0.7)(self,baka):
+                self.trigger = 1 # 击中则被触发
+                baka.HP -= self.damage
+            if not self.lifetime:
+                self.trigger = 1
+        if self.trigger: # 逐渐变大消失
+            self.image = pygame.transform.scale(self.image, (self.image.get_width() * (1 + 0.04 * self.trigger), self.image.get_height() * (1 + 0.04 * self.trigger)))
+            self.trigger += 1
+            self.image.set_alpha(255 - self.trigger * 10) 
+        if self.trigger > 25:
+            self.kill()
+        list = pygame.sprite.spritecollide(self,enemyBulletGroup,True)
+        for item in list: # 消弹
+            item.kill()
+        self.lifetime -= 1
+
+class ReimuBomb(pygame.sprite.Sprite):
     def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,lifetime,damage):
         super().__init__()
         self.image = self.originimage = image
@@ -322,7 +362,7 @@ class Bomb(pygame.sprite.Sprite):
     def update(self):
         if 10 > self.lifetime - self.tracktime > 0: # 10帧的逐渐出现效果
             self.image = self.originimage
-            self.image.set_alpha(255 - (self.lifetime - self.tracktime) / 10 * 255)  #
+            self.image.set_alpha(255 - (self.lifetime - self.tracktime) / 10 * 255)  
         if self.tracktime > self.lifetime:
             self.angle += 3
             if self.angle > 360:
