@@ -3,7 +3,7 @@ import random
 import pygame
 
 pygame.init()
-powersave_mode = False
+powersave_mode = True
 screenX = 960
 screenY = 720
 gameX = 570
@@ -36,7 +36,7 @@ class UIasset():
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
         # 敌机血量显示
-        pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.maxHP, 10), 0)
+        pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.HPlist[baka.spell - 1], 10), 0)
         # 残机显示
         screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
@@ -394,10 +394,13 @@ class ReimuBomb(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,maxHP,HP,posvec):
         super().__init__()
+        self.shootCoolDown = (2,10,2,1,1,1,1,1)
+        self.HPlist = (1000,1000,1000)
+        self.spell = 1
+        self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
         self.rect = self.image.get_rect()
-        self.HP = HP
         self.maxHP = maxHP
         self.posvec = posvec 
         self.rect.centerx , self.rect.centery = self.posvec
@@ -406,16 +409,18 @@ class Enemy(pygame.sprite.Sprite):
         self.height = 74
         self.moveCoolDown = random.randint(300,600)
         self.moveCoolDownCount = 0
-        self.shootCoolDown = 2
         self.shootCoolDownCount = 0
+        self.spellcount = 3
+        self.spelltick = 0
     def update(self):
+        self.spelltick += 1
         self.moveCoolDownCount += 1
         self.shootCoolDownCount += 1
         if self.moveCoolDown == self.moveCoolDownCount:
             self.moveCoolDown = random.randint(120,300)
             self.moveCoolDownCount = 0
-            self.speedvec.x = random.randint(-20,20) * 0.1
-        if self.shootCoolDown == self.shootCoolDownCount:
+            self.speedvec.x = random.uniform(-2,2)
+        if self.shootCoolDown[self.spell - 1] == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
         list = pygame.sprite.spritecollide(self,selfBulletGroup,False)
@@ -424,20 +429,39 @@ class Enemy(pygame.sprite.Sprite):
             if not item.free:
                 item.kill()
         if self.HP < 0:
-            self.kill()
+            if self.spell > self.spellcount:
+                self.kill()
+                return
+            self.shootCoolDownCount = 0
+            self.spell += 1
+            self.spelltick = 0
+            self.HP = self.HPlist[self.spell - 1]
         self.posvec = self.posvec + self.speedvec
         self.posvec.x=min(gameX - 50,self.posvec.x)
         self.posvec.x=max(self.rect.width,self.posvec.x)
         self.posvec.y=min(screenY - 50,self.posvec.y)
         self.posvec.y=max(self.rect.height,self.posvec.y)
         self.rect.centerx , self.rect.centery = self.posvec
-    def shoot(self):
-        while True:
-            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.uniform(0,45),self.rect.y-10+random.uniform(0,45)),pygame.math.Vector2(random.randint(-2,4),+random.randint(-1,6)),1,0,0,pygame.math.Vector2(0,0))
-            if not (bullet.speedvec.length() < 1): # 避免出现太慢的弹幕
-                break
-        enemyBulletGroup.add(bullet)
 
+    def shoot(self):
+        if self.spell == 1:
+            while True:
+                bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.x-10+random.uniform(0,45),self.rect.y-10+random.uniform(0,45)),pygame.math.Vector2(random.randint(-2,4),+random.randint(-1,6)),1,0,0,pygame.math.Vector2(0,0))
+                if not (bullet.speedvec.length() < 1): # 避免出现太慢的弹幕
+                    break
+            enemyBulletGroup.add(bullet)
+        if self.spell == 2:
+            if not self.spelltick % 300 == 0: 
+                for i in range(-2,3,1):
+                    bullet = Bullet(1,(100,128,240),20,20,pygame.math.Vector2(self.rect.centerx,self.rect.centery),pygame.math.Vector2(i,2),1,0,0,pygame.math.Vector2(0,0))
+                    enemyBulletGroup.add(bullet)
+            if self.spelltick / 10 % 2 == 1: 
+                for i in range(10):
+                    bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.rect.centerx,self.rect.centery),pygame.math.Vector2(random.uniform(3,-3),3),1,0,0,pygame.math.Vector2(0,0))
+                    enemyBulletGroup.add(bullet)
+        if self.spell == 3:
+            bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(random.uniform(10,600),self.rect.centery - 50),pygame.math.Vector2(0,1),1,0,0,pygame.math.Vector2(0,0.01))
+            enemyBulletGroup.add(bullet)
 def keydown(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 1
