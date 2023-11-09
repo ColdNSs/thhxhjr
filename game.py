@@ -1,9 +1,9 @@
 import random
 #from typing import Any
 import pygame
-
+import copy
 pygame.init()
-powersave_mode = True
+powersave_mode = False
 screenX = 960
 screenY = 720
 gameX = 570
@@ -11,18 +11,22 @@ size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
 chooseCharacter = "Marisa"
 font_Arial20 = pygame.sysfont.SysFont('Arial',20)
+font_Arial24 = pygame.sysfont.SysFont('Arial',24)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
         
 class UIasset():
     def __init__(self):
+        self.enemy_hp_bar = pygame.image.load("Picture/hp_bar.bmp").convert()
         self.framework = pygame.image.load("Picture/framework.png").convert()
         self.background = pygame.image.load("Picture/background.png").convert()
         self.bomb = pygame.image.load("Picture/star_green.bmp").convert()
         self.HP = pygame.image.load("Picture/star_red.bmp").convert()
+        self.time_panel = pygame.image.load("Picture/time_panel.bmp").convert()
         self.framework.set_colorkey((255,255,255))
         self.bomb.set_colorkey((240,240,240))
         self.HP.set_colorkey((240,240,240))
+        self.time_panel.set_colorkey("BLACK")
         self.fpsTimer = 0
     def drawBefore(self):
         screen.blit(self.background, (30, 20))
@@ -36,7 +40,9 @@ class UIasset():
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
         # 敌机血量显示
-        pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.HPlist[baka.spell - 1], 10), 0)
+        #pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.HPlist[baka.spell - 1], 10), 0)
+        screen.blit(pygame.transform.scale(UI.enemy_hp_bar,(max(500*baka.HP/baka.HPlist[baka.spell - 1],0),20)),(90,35))
+        screen.blit(UI.time_panel,(50,22))
         # 残机显示
         screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
@@ -46,12 +52,15 @@ class UIasset():
         for i in range(player_Character.Bomb):
             screen.blit(UI.bomb, (730+i*25, 200))
         # 擦弹数量显示
-        font = pygame.sysfont.SysFont('SimSun',20)
         screen.blit(font_Simsun20.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
         # 敌人位置显示
-        font = pygame.sysfont.SysFont('SimSun',16)
         screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(baka.rect.x,700))
-
+        # 剩余时间显示
+        self.lefttime = int((baka.spellTimeLimitList[baka.spell - 1] - baka.spelltick) / 60)
+        if self.lefttime > 9:
+            screen.blit(font_Arial24.render(str(self.lefttime),True,"BLACK"),(63,31))
+        else:
+            screen.blit(font_Arial24.render("0" + str(self.lefttime),True,"RED"),(63,31))
 # posvec：位置向量 speedvec：速度向量
 class playerCharacter(pygame.sprite.Sprite): #判定点类 
     def __init__(self,radius,speed,speedMultiplier,QTElimit,attackspeed,slowattackspeed):
@@ -155,11 +164,11 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                 return
             self.attackCoolDown = 0
             if self.slow == self.speedMultiplier: # 高低速不同类型的子弹
-                self.nowattackspeed = self.attackSpeed            
+                self.nowattackspeed = self.attackSpeed    
                 if chooseCharacter == "Reimu": # 为什么是全局变量 因为懒
-                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),8,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),8,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
                     mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y - 10),pygame.math.Vector2(0,-120),1,player_CharacterJadeLeft,False,pygame.math.Vector2(0,0))
@@ -169,15 +178,16 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             if self.slow == 1:
                 self.nowattackspeed = self.slowattackSpeed
                 if chooseCharacter == "Reimu":
-                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,0,True,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),8,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),6,0,True,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),8,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
-                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),15,0,False,pygame.math.Vector2(0,-0.5))
+                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),25,0,False,pygame.math.Vector2(0,-0.5))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),15,0,False,pygame.math.Vector2(0,-0.5))
+                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),25,0,False,pygame.math.Vector2(0,-0.5))
                     selfBulletGroup.add(mybullet)
+    
     def bombingCheck(self):
         self.bombingTime -= 1
         if chooseCharacter == "Marisa":
@@ -207,7 +217,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             self.clearradius += 25
             for item in enemyBulletGroup:
                 if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.clearradius**2:
-                    sprite_disappear(item,15)
+                    sprite_disappear(item,8)
         else:
             self.clearradius = 0
         if not self.invincibleTime:
@@ -393,8 +403,9 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1)
-        self.HPlist = (5000,5000,5000,5000,5000,5000,5000,5000)
-        self.spell = 6
+        self.HPlist = (3000,3000,3000,3000,3000,3000,3000,3000)
+        self.spellTimeLimitList = (2000,2000,2000,2000,2000,2000,2000,2000)
+        self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -410,7 +421,8 @@ class Enemy(pygame.sprite.Sprite):
         self.shootCoolDownCount = 0
         self.spellcount = 10
         self.spelltick = 0
-        self.enter_spell6 = False
+        self.enter_spell6 = False # 屎
+        self.stand = False
     def update(self):
         self.spelltick += 1
         self.moveCoolDownCount += 1
@@ -427,7 +439,7 @@ class Enemy(pygame.sprite.Sprite):
             self.HP -= item.damage
             if not item.free:
                 item.kill()
-        if self.HP < 0:
+        if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
             for item in enemyBulletGroup:
                 sprite_disappear(item,15)
             if self.spell > self.spellcount:
@@ -437,12 +449,13 @@ class Enemy(pygame.sprite.Sprite):
             self.spell += 1
             self.spelltick = 0
             self.HP = self.HPlist[self.spell - 1]
-        self.posvec = self.posvec + self.speedvec
-        self.posvec.x=min(gameX - 50,self.posvec.x)
-        self.posvec.x=max(self.rect.width,self.posvec.x)
-        self.posvec.y=min(screenY - 50,self.posvec.y)
-        self.posvec.y=max(self.rect.height,self.posvec.y)
-        self.rect.centerx , self.rect.centery = self.posvec
+        if not self.stand:
+            self.posvec = self.posvec + self.speedvec
+            self.posvec.x=min(gameX - 50,self.posvec.x)
+            self.posvec.x=max(self.rect.width,self.posvec.x)
+            self.posvec.y=min(screenY - 50,self.posvec.y)
+            self.posvec.y=max(self.rect.height,self.posvec.y)
+            self.rect.centerx , self.rect.centery = self.posvec
 
     def shoot(self):
         if self.spell == 1:
@@ -469,7 +482,7 @@ class Enemy(pygame.sprite.Sprite):
                 enemyBulletGroup.add(bullet)
         
         if self.spell == 3: # 大冰棱子
-            bullet = Bullet(self.ice_cone_image,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),40,40,pygame.math.Vector2(random.uniform(10,600),self.rect.centery - 50),pygame.math.Vector2(0,1.5),1,0,0,pygame.math.Vector2(0,0.01))
+            bullet = Bullet(self.ice_cone_image.copy(),((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),40,40,pygame.math.Vector2(random.uniform(10,600),self.rect.centery - 50),pygame.math.Vector2(0,1.5),1,0,0,pygame.math.Vector2(0,0.01))
             enemyBulletGroup.add(bullet)
             if self.spelltick % 90 == 0: # 屎山偶数弹
                 bullet = Bullet(1,(240,240,240),60,60,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character).rotate(10)*8,1,0,0,pygame.math.Vector2(0,0))
@@ -531,8 +544,20 @@ class Enemy(pygame.sprite.Sprite):
                     item.speedvec.rotate_ip(-2)
         
         if self.spell == 6: # 转圈弹
-            bullet = Bullet(1,(0,100,240),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y),pygame.math.Vector2(0,2).rotate(self.spelltick * 17),1,0,0,pygame.math.Vector2(0,0))    
+            if not self.enter_spell6:
+                self.speedvec = (pygame.math.Vector2(350,350) - self.posvec) / 60 # 60帧内移动到屏幕中心
+                self.enter_spell6 = True
+                return
+            if self.spelltick < 60:
+                return
+            self.stand = True
+            bullet = Bullet(1,(0,100,240),15,15,pygame.math.Vector2(self.posvec.x,self.posvec.y),pygame.math.Vector2(0,2).rotate(self.spelltick * 18),1,0,0,pygame.math.Vector2(0,0))    
             enemyBulletGroup.add(bullet)
+            bullet = Bullet(1,(0,100,240),15,15,pygame.math.Vector2(self.posvec.x,self.posvec.y),pygame.math.Vector2(0,2).rotate(self.spelltick * 9),1,0,0,pygame.math.Vector2(0,0))    
+            enemyBulletGroup.add(bullet)
+            if self.spelltick % 90 == 0: # 1颗自机狙
+                bullet = Bullet(1,(240,240,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character)*4,1,0,0,pygame.math.Vector2(0,0))
+                enemyBulletGroup.add(bullet)
 def keydown(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 1
@@ -569,8 +594,9 @@ def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite
     return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx ,sprite2.rect.centery - sprite1.rect.centery).normalize()
 
 def sprite_disappear(sprite:pygame.sprite.Sprite,disappeartime:int): # 令sprite在disappeartime里逐渐消失
-    sprite.disappeartime = sprite.nowdisappeartime = disappeartime
-    disappear_group.add(sprite)
+    if not sprite in disappear_group:
+        sprite.disappeartime = sprite.nowdisappeartime = disappeartime
+        disappear_group.add(sprite)
 
 disappear_group = pygame.sprite.Group()
 self_group = pygame.sprite.Group()
@@ -583,6 +609,8 @@ if chooseCharacter == "Reimu":
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
+    player_bullet_picture = pygame.image.load("Picture/reimu_needle.bmp").convert()
+    player_bullet_picture.set_colorkey("BLACK")
     #这段也是Bing AI优化的
     colors = ["red", "orange", "yellow", "green", "blue", "purple"]
     player_bomb_pictures = {}
@@ -601,6 +629,8 @@ if chooseCharacter == "Marisa":
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/marisa.bmp").convert(),5,3)
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),-24,28)
+    player_bullet_picture = pygame.image.load("Picture/marisa_missile.bmp").convert()
+    player_bullet_picture.set_colorkey("BLACK")
     colors = ["red", "yellow", "green"]
     player_bomb_pictures = {}
     for color in colors:
@@ -625,7 +655,7 @@ while not done:
     tick += 1
     screen.fill((240, 240, 240))
     for item in disappear_group:
-        if item.nowdisappeartime == 0:
+        if item.nowdisappeartime <= 0:
             item.kill()
             continue
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
