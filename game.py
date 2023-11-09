@@ -3,7 +3,7 @@ import random
 import pygame
 
 pygame.init()
-powersave_mode = False
+powersave_mode = True
 screenX = 960
 screenY = 720
 gameX = 570
@@ -398,7 +398,7 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1)
-        self.HPlist = (5000,5000,5000,5000)
+        self.HPlist = (5000,5000,5000,5000,5000)
         self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
@@ -413,7 +413,7 @@ class Enemy(pygame.sprite.Sprite):
         self.moveCoolDown = random.randint(300,600)
         self.moveCoolDownCount = 0
         self.shootCoolDownCount = 0
-        self.spellcount = 4
+        self.spellcount = 5
         self.spelltick = 0
     def update(self):
         self.spelltick += 1
@@ -475,14 +475,10 @@ class Enemy(pygame.sprite.Sprite):
         if self.spell == 3: # 大冰棱子
             bullet = Bullet(self.ice_cone_image,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),40,40,pygame.math.Vector2(random.uniform(10,600),self.rect.centery - 50),pygame.math.Vector2(0,1.5),1,0,0,pygame.math.Vector2(0,0.01))
             enemyBulletGroup.add(bullet)
-            tmp_vec1 = relative_direction(self,player_Character)*8 # 屎山偶数弹
-            tmp_vec2 = relative_direction(self,player_Character)*8
-            if self.spelltick % 90 == 0:
-                tmp_vec1.rotate_ip(10)
-                bullet = Bullet(1,(240,240,240),60,60,pygame.math.Vector2(self.rect.centerx,self.rect.centery),tmp_vec1,1,0,0,pygame.math.Vector2(0,0))
+            if self.spelltick % 90 == 0: # 屎山偶数弹
+                bullet = Bullet(1,(240,240,240),60,60,pygame.math.Vector2(self.rect.centerx,self.rect.centery),relative_direction(self,player_Character).rotate(10)*8,1,0,0,pygame.math.Vector2(0,0))
                 enemyBulletGroup.add(bullet)
-                tmp_vec2.rotate_ip(-10)
-                bullet = Bullet(1,(240,240,240),60,60,pygame.math.Vector2(self.rect.centerx,self.rect.centery),tmp_vec2,1,0,0,pygame.math.Vector2(0,0))
+                bullet = Bullet(1,(240,240,240),60,60,pygame.math.Vector2(self.rect.centerx,self.rect.centery),relative_direction(self,player_Character).rotate(-10)*8,1,0,0,pygame.math.Vector2(0,0))
                 enemyBulletGroup.add(bullet)
 
         if self.spell == 4:
@@ -503,13 +499,9 @@ class Enemy(pygame.sprite.Sprite):
                 enemyBulletGroup.add(bullet)
             else:
                 if self.spelltick % 10 == 0 and 410 < self.spelltick % 600 < 500: # 2*⑨ = 18颗偶数弹
-                    tmp_vec1 = relative_direction(self,player_Character)*8 
-                    tmp_vec2 = relative_direction(self,player_Character)*8
-                    tmp_vec1.rotate_ip(random.uniform(5,20))
-                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.rect.centerx,self.rect.centery),tmp_vec1,1,0,0,pygame.math.Vector2(0,0))
+                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.rect.centerx,self.rect.centery),relative_direction(self,player_Character).rotate(random.uniform(5,20))*8,1,0,0,pygame.math.Vector2(0,0))
                     enemyBulletGroup.add(bullet)
-                    tmp_vec2.rotate_ip(random.uniform(-5,-20))
-                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.rect.centerx,self.rect.centery),tmp_vec2,1,0,0,pygame.math.Vector2(0,0))
+                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.rect.centerx,self.rect.centery),relative_direction(self,player_Character).rotate(random.uniform(-5,-20))*8,1,0,0,pygame.math.Vector2(0,0))
                     enemyBulletGroup.add(bullet)
                 if not self.isfreeze:  # Perfect Freeze!
                     self.isfreeze = True
@@ -518,6 +510,30 @@ class Enemy(pygame.sprite.Sprite):
                         pygame.draw.circle(item.image,"WHITE",(item.width/2,item.height/2),item.width/3)
                         pygame.draw.circle(item.image,'WHITE',(item.width/2,item.height/2),item.width/2-2,1)
                         item.speedvec = pygame.math.Vector2(0,0)
+
+        if self.spell == 5:
+            if self.posvec.y > 100: 
+                self.speedvec.y = -5
+                return
+            if self.spelltick % 30 == 0:
+                for i in range(60):
+                    bullet = Bullet(1,(0,100,240),20,20,pygame.math.Vector2(i * 60,0),pygame.math.Vector2(0,2),1,0,0,pygame.math.Vector2(0,0))    
+                    bullet.tracktime = 181
+                    enemyBulletGroup.add(bullet)
+            if self.spelltick % 30 == 0: # 一定时间内的诱导弹
+                bullet = Bullet(1,(240,240,240),40,40,pygame.math.Vector2(self.rect.centerx,self.rect.centery),relative_direction(self,player_Character) * 2,1,0,0,pygame.math.Vector2(0,0))
+                bullet.tracktime = 0
+                enemyBulletGroup.add(bullet)
+            for item in enemyBulletGroup:
+                if item.tracktime > 180: # 超过时间就停止追踪
+                    continue
+                item.tracktime += 1
+                directvec = relative_direction(item,player_Character)
+                if 0 < item.speedvec.angle_to(directvec) < 180:
+                    item.speedvec.rotate_ip(2)
+                else:
+                    item.speedvec.rotate_ip(-2)
+                
 def keydown(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 1
