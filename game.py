@@ -1,9 +1,8 @@
 import random
 #from typing import Any
 import pygame
-import copy
 pygame.init()
-powersave_mode = False
+powersave_mode = True
 screenX = 960
 screenY = 720
 gameX = 570
@@ -56,11 +55,15 @@ class UIasset():
         # 敌人位置显示
         screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(baka.rect.x,700))
         # 剩余时间显示
-        self.lefttime = int((baka.spellTimeLimitList[baka.spell - 1] - baka.spelltick) / 60)
-        if self.lefttime > 9:
-            screen.blit(font_Arial24.render(str(self.lefttime),True,"BLACK"),(63,31))
+        self.lefttime = int((baka.spellTimeLimitList[baka.spell - 1] - baka.spelltick) / 6)
+        if self.lefttime > 99:
+            screen.blit(font_Arial24.render(str(int(self.lefttime / 10)),True,"BLACK"),(52,31))
+            screen.blit((font_Arial24.render(".",True,"BLACK")),(79,31))
+            screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"BLACK"),(83,35))
         else:
-            screen.blit(font_Arial24.render("0" + str(self.lefttime),True,"RED"),(63,31))
+            screen.blit(font_Arial24.render(str(int(self.lefttime / 10)),True,"RED"),(52,31))
+            screen.blit((font_Arial24.render(".",True,"RED")),(79,31))
+            screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"RED"),(83,35))
 # posvec：位置向量 speedvec：速度向量
 class playerCharacter(pygame.sprite.Sprite): #判定点类 
     def __init__(self,radius,speed,speedMultiplier,QTElimit,attackspeed,slowattackspeed):
@@ -534,7 +537,7 @@ class Enemy(pygame.sprite.Sprite):
                 bullet.tracktime = 0
                 enemyBulletGroup.add(bullet)
             for item in enemyBulletGroup:
-                if item.tracktime > 180: # 超过时间就停止追踪
+                if item.tracktime > 150: # 超过时间就停止追踪
                     continue
                 item.tracktime += 1
                 directvec = relative_direction(item,player_Character)
