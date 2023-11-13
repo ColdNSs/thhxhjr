@@ -61,7 +61,7 @@ class UIasset():
             screen.blit((font_Arial24.render(".",True,"BLACK")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"BLACK"),(83,35))
         else:
-            screen.blit(font_Arial24.render(str(int(self.lefttime / 10)),True,"RED"),(52,31))
+            screen.blit(font_Arial24.render("0"+str(int(self.lefttime / 10)),True,"RED"),(52,31))
             screen.blit((font_Arial24.render(".",True,"RED")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"RED"),(83,35))
 # posvec：位置向量 speedvec：速度向量
@@ -403,12 +403,13 @@ class ReimuBomb(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,maxHP,HP,posvec):
         super().__init__()
+        self.enter_spell7 = False
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1)
         self.HPlist = (3000,3000,3000,3000,3000,3000,3000,3000)
         self.spellTimeLimitList = (2000,2000,2000,2000,2000,2000,2000,2000)
-        self.spell = 1
+        self.spell = 7
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -427,13 +428,8 @@ class Enemy(pygame.sprite.Sprite):
         self.enter_spell6 = False # 屎
         self.stand = False
     def update(self):
-        self.spelltick += 1
-        self.moveCoolDownCount += 1
         self.shootCoolDownCount += 1
-        if self.moveCoolDown == self.moveCoolDownCount:
-            self.moveCoolDown = random.randint(120,300)
-            self.moveCoolDownCount = 0
-            self.speedvec.x = random.uniform(-2,2)
+        self.spelltick += 1
         if self.shootCoolDown[self.spell - 1] == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
@@ -453,6 +449,11 @@ class Enemy(pygame.sprite.Sprite):
             self.spelltick = 0
             self.HP = self.HPlist[self.spell - 1]
         if not self.stand:
+            self.moveCoolDownCount += 1
+            if self.moveCoolDown == self.moveCoolDownCount:
+                self.moveCoolDown = random.randint(120,300)
+                self.moveCoolDownCount = 0
+                self.speedvec.x = random.uniform(-2,2)
             self.posvec = self.posvec + self.speedvec
             self.posvec.x=min(gameX - 50,self.posvec.x)
             self.posvec.x=max(self.rect.width,self.posvec.x)
@@ -561,6 +562,43 @@ class Enemy(pygame.sprite.Sprite):
             if self.spelltick % 90 == 0: # 1颗自机狙
                 bullet = Bullet(1,(240,240,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character)*4,1,0,0,pygame.math.Vector2(0,0))
                 enemyBulletGroup.add(bullet)
+
+        if self.spell == 7:
+            if not self.enter_spell7:
+                self.spell7_bulletrotate = -5
+                self.stand = False
+                self.speedvec = (pygame.math.Vector2(350,100) - self.posvec) / 60 # 60帧内移动回上方
+                self.enter_spell7 = True
+                return
+            if self.spelltick < 60:
+                return
+            self.stand = True
+            if self.spelltick % 2 == 0:
+                self.posvec = pygame.math.Vector2(self.rect.centerx,self.rect.centery)
+                self.speedvec = pygame.math.Vector2(0,0) # 防止弹幕修改笨蛋位置只能每帧锁定速度了
+                bullet = Bullet(1,(0,100,240),20,20,baka.posvec,pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * random.uniform(4,5),1,0,0,pygame.math.Vector2(0,0))     
+                bullet.tracktime = 0
+                enemyBulletGroup.add(bullet)
+            if self.spelltick % 2 == 1:
+                self.posvec = pygame.math.Vector2(self.rect.centerx,self.rect.centery)
+                bullet = Bullet(1,(0,240,100),20,20,baka.posvec,pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * random.uniform(3,4),1,0,0,pygame.math.Vector2(0,0))     
+                bullet.tracktime = 0
+                enemyBulletGroup.add(bullet)
+                self.posvec = pygame.math.Vector2(self.rect.centerx,self.rect.centery)
+                bullet = Bullet(1,(240,240,240),20,20,baka.posvec,pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * random.uniform(2,3),1,0,0,pygame.math.Vector2(0,0))     
+                bullet.tracktime = 0
+                enemyBulletGroup.add(bullet)
+            for item in enemyBulletGroup:
+                if item.tracktime > 180: # 超过时间就停止旋转
+                    continue
+                item.tracktime += 1
+                item.speedvec.rotate_ip(self.spell7_bulletrotate)
+            if self.spelltick % 480 == 0:
+                self.spell7_bulletrotate = -self.spell7_bulletrotate
+                for item in enemyBulletGroup:
+                    item.tracktime = 999
+
+
 def keydown(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 1
