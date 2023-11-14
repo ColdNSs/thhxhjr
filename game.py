@@ -2,7 +2,7 @@ import random
 #from typing import Any
 import pygame
 pygame.init()
-powersave_mode = True
+powersave_mode = False
 screenX = 960
 screenY = 720
 gameX = 570
@@ -57,11 +57,11 @@ class UIasset():
         # 剩余时间显示
         self.lefttime = int((baka.spellTimeLimitList[baka.spell - 1] - baka.spelltick) / 6)
         if self.lefttime > 99:
-            screen.blit(font_Arial24.render(str(int(self.lefttime / 10)),True,"BLACK"),(52,31))
+            screen.blit(font_Arial24.render(str(int(self.lefttime / 10)),True,"BLACK"),(55,31))
             screen.blit((font_Arial24.render(".",True,"BLACK")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"BLACK"),(83,35))
         else:
-            screen.blit(font_Arial24.render("0"+str(int(self.lefttime / 10)),True,"RED"),(52,31))
+            screen.blit(font_Arial24.render("0"+str(int(self.lefttime / 10)),True,"RED"),(55,31))
             screen.blit((font_Arial24.render(".",True,"RED")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"RED"),(83,35))
 # posvec：位置向量 speedvec：速度向量
@@ -407,9 +407,9 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1)
-        self.HPlist = (3000,3000,3000,3000,3000,3000,3000,3000,3000)
-        self.spellTimeLimitList = (2000,2000,2000,2000,2000,2000,2000,2000,2000)
-        self.spell = 8
+        self.HPlist = (5000,3000,5000,9000,3000,8000,10000,5000,5000)
+        self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000)
+        self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -597,7 +597,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.spell7_bulletrotate = -self.spell7_bulletrotate
                 for item in enemyBulletGroup:
                     item.tracktime = 999
-
+            self.posvec = pygame.math.Vector2(self.rect.centerx,self.rect.centery)
         if self.spell == 8:
             self.stand = True
             for i in range(60):
