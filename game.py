@@ -406,10 +406,10 @@ class Enemy(pygame.sprite.Sprite):
         self.enter_spell7 = False
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
-        self.shootCoolDown = (1,10,4,1,1,1,1,1)
-        self.HPlist = (3000,3000,3000,3000,3000,3000,3000,3000)
-        self.spellTimeLimitList = (2000,2000,2000,2000,2000,2000,2000,2000)
-        self.spell = 7
+        self.shootCoolDown = (1,10,4,1,1,1,1,1,1)
+        self.HPlist = (3000,3000,3000,3000,3000,3000,3000,3000,3000)
+        self.spellTimeLimitList = (2000,2000,2000,2000,2000,2000,2000,2000,2000)
+        self.spell = 8
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -598,7 +598,21 @@ class Enemy(pygame.sprite.Sprite):
                 for item in enemyBulletGroup:
                     item.tracktime = 999
 
-
+        if self.spell == 8:
+            self.stand = True
+            for i in range(60):
+                if self.spelltick % 15 == i: #开花旋转加速弹（?
+                    tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.02)     
+                    enemyBulletGroup.add(bullet)
+                if (self.spelltick + 5) % 15 == i:
+                    tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.04)     
+                    enemyBulletGroup.add(bullet)
+                if (self.spelltick + 10) % 15 == i:
+                    tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.06)     
+                    enemyBulletGroup.add(bullet)
 def keydown(key):
     if key == pygame.K_LEFT:
         player_Character.leftspeed = 1
