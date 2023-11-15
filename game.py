@@ -16,14 +16,8 @@ font_Arial24 = pygame.sysfont.SysFont('Arial',24)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
 
-test = False
 seed = random.uniform(0,1) # 下面在为replay做准备
 random.seed(114514) 
-this_tick_input_key = 0 
-this_tick_input_key_event = 0
-key_list = [0,pygame.K_UP,pygame.K_DOWN,pygame.K_LEFT,pygame.K_RIGHT,pygame.K_z,pygame.K_x,pygame.K_LSHIFT] # 上下左右zx减速
-key_event_list = [0,pygame.KEYDOWN,pygame.KEYUP] 
-input_key_list = [[]]
 input_event_list = [[]]
 class UIasset():
     def __init__(self):
@@ -642,57 +636,38 @@ class Enemy(pygame.sprite.Sprite):
                     bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.06)     
                     enemyBulletGroup.add(bullet)
 def keydown(key):
-    input_event_list[tick].append(1) # 事件类型
-    tmp_key = 0 # 按别的键索引为0
     if key == pygame.K_UP:
-        tmp_key = 1
         player_Character.upspeed = 1
     if key == pygame.K_DOWN:
-        tmp_key = 2
         player_Character.downspeed = 1
     if key == pygame.K_LEFT:
-        tmp_key = 3
         player_Character.leftspeed = 1
     if key == pygame.K_RIGHT:
-        tmp_key = 4
         player_Character.rightspeed = 1
     if key == pygame.K_z:
-        tmp_key = 5
         player_Character.shoot = True
     if key == pygame.K_x:
-        tmp_key = 6
         if not player_Character.status == "bombing" and player_Character.Bomb > 0:
             player_Character.status = "usebomb"
     if key == pygame.K_LSHIFT:
-        tmp_key = 7
         player_Character.setmode(mode=1)
-    input_key_list.append(tmp_key)
     if key == pygame.K_ESCAPE:
         global done
         done = True
     
 def keyup(key):
-    input_event_list.append(2) # 事件类型
-    tmp_key = 0 # 按别的键索引为0
     if key == pygame.K_UP:
-        tmp_key = 1
         player_Character.upspeed = 0
     if key == pygame.K_DOWN:
-        tmp_key = 2
         player_Character.downspeed = 0
     if key == pygame.K_LEFT:
-        tmp_key = 3
         player_Character.leftspeed = 0
     if key == pygame.K_RIGHT:
-        tmp_key = 4
         player_Character.rightspeed = 0
     if key == pygame.K_z:
-        tmp_key = 5
         player_Character.shoot = False
     if key == pygame.K_LSHIFT:
-        tmp_key = 7
         player_Character.setmode(mode=0)
-    input_key_list.append(tmp_key)
 
 def relative_direction(sprite1:pygame.sprite.Sprite,sprite2:pygame.sprite.Sprite): # 返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
     if (sprite2.rect.centerx - sprite1.rect.centerx) == 0 and (sprite2.rect.centery - sprite1.rect.centery) == 0:  
@@ -755,12 +730,14 @@ enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
 tick = 0
+if replay_mode == True:
+    with open('rep_backup.json') as f:
+        load_event_list = json.load(f,strict=False)
 while not done:
-    if test:
-        break
     print(player_CharacterImage.graze)
     clock.tick(60)
     tick += 1
+    input_event_list.append([])
     screen.fill((240, 240, 240))
     for item in disappear_group:
         if item.nowdisappeartime <= 0:
@@ -768,13 +745,29 @@ while not done:
             continue
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
         item.nowdisappeartime -= 1
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            done = True
-        elif event.type == pygame.KEYDOWN:
-            keydown(tick,event.key)
-        elif event.type == pygame.KEYUP:
-            keyup(tick,event.key)
+    if not replay_mode:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
+            elif event.type == pygame.KEYDOWN:
+                keydown(event.key)
+                input_event_list[tick].append({"tick":tick,"type":event.type,"key":event.key})
+            elif event.type == pygame.KEYUP:
+                keyup(event.key)
+                input_event_list[tick].append({"tick":tick,"type":event.type,"key":event.key})
+    else:
+        item = load_event_list[0]
+        for event in item:
+            if event["tick"] == tick:
+                for event in load_event_list[0]:
+                    if event["type"] == pygame.QUIT:
+                        done = True
+                    elif event["type"] == pygame.KEYDOWN:
+                        keydown(event["key"])
+                    elif event["type"] == pygame.KEYUP:
+                        keyup(event["key"])
+                del load_event_list[0]
+
     tmp = pygame.time.get_ticks()
     player_Character.update()
     player_CharacterImage.update()
@@ -805,9 +798,7 @@ while not done:
         print("UIAfter:{0}".format(pygame.time.get_ticks()-tmp))
         pygame.display.flip()
 done = True
-replay_list = [[],[]]
-replay_list[0] = input_key_list
-replay_list[1] = input_event_list
-replay_json = json.dumps(replay_list)
+input_event_list = [x for x in input_event_list if x != []]
+replay_json = json.dumps(input_event_list)
 with open("rep.json", "w") as file:
     file.write(replay_json)
