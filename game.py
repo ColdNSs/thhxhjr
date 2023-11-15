@@ -3,7 +3,7 @@ import random
 import pygame
 import json
 pygame.init()
-powersave_mode = False
+powersave_mode = True
 replay_mode = True
 screenX = 960
 screenY = 720
@@ -15,10 +15,27 @@ font_Arial20 = pygame.sysfont.SysFont('Arial',20)
 font_Arial24 = pygame.sysfont.SysFont('Arial',24)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
-
-seed = random.uniform(0,1) # 下面在为replay做准备
-random.seed(114514) 
-input_event_list = [[]]
+if replay_mode == True:
+    with open('rep.json') as f:
+        load_event_list = json.load(f,strict=False)
+    seed = load_event_list[0][0]
+    type_replace_dict = {"0":768,"1":769}
+    key_replace_dict = {"0":1073741906,"1":1073741905,"2":1073741904,"3":1073741903,"4":122,"5":120,"6":1073742049}
+    for sublist in load_event_list[1:]:
+        for item in sublist:
+            type_value = str(item["type"])
+            key_value = str(item["key"])
+            if type_value in type_replace_dict:
+                item["type"] = type_replace_dict[type_value]
+            if key_value in key_replace_dict:
+                item["key"] = key_replace_dict[key_value]
+    replay_json = json.dumps(load_event_list)
+    with open("rep_c.json", "w") as file:
+        file.write(replay_json)
+else:
+    seed = random.randint(1000000000,9999999999) # 下面在为replay做准备 
+    input_event_list = [[seed]]
+random.seed(seed)
 class UIasset():
     def __init__(self):
         self.enemy_hp_bar = pygame.image.load("Picture/hp_bar.bmp").convert()
@@ -730,14 +747,10 @@ enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
 tick = 0
-if replay_mode == True:
-    with open('rep_backup.json') as f:
-        load_event_list = json.load(f,strict=False)
 while not done:
     print(player_CharacterImage.graze)
     clock.tick(60)
     tick += 1
-    input_event_list.append([])
     screen.fill((240, 240, 240))
     for item in disappear_group:
         if item.nowdisappeartime <= 0:
@@ -746,27 +759,28 @@ while not done:
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
         item.nowdisappeartime -= 1
     if not replay_mode:
+        input_event_list.append([])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.KEYDOWN:
                 keydown(event.key)
-                input_event_list[tick].append({"tick":tick,"type":event.type,"key":event.key})
+                input_event_list[tick].append({"t":tick,"type":event.type,"key":event.key})
             elif event.type == pygame.KEYUP:
                 keyup(event.key)
-                input_event_list[tick].append({"tick":tick,"type":event.type,"key":event.key})
+                input_event_list[tick].append({"t":tick,"type":event.type,"key":event.key})
     else:
-        item = load_event_list[0]
+        item = load_event_list[1]
         for event in item:
-            if event["tick"] == tick:
-                for event in load_event_list[0]:
+            if event["t"] == tick:
+                for event in load_event_list[1]:
                     if event["type"] == pygame.QUIT:
                         done = True
                     elif event["type"] == pygame.KEYDOWN:
                         keydown(event["key"])
                     elif event["type"] == pygame.KEYUP:
                         keyup(event["key"])
-                del load_event_list[0]
+                del load_event_list[1]
 
     tmp = pygame.time.get_ticks()
     player_Character.update()
@@ -798,7 +812,18 @@ while not done:
         print("UIAfter:{0}".format(pygame.time.get_ticks()-tmp))
         pygame.display.flip()
 done = True
-input_event_list = [x for x in input_event_list if x != []]
-replay_json = json.dumps(input_event_list)
-with open("rep.json", "w") as file:
-    file.write(replay_json)
+if not replay_mode:
+    input_event_list = [x for x in input_event_list if x != []] # 清除所有空项
+    type_replace_dict = {"768":"0","769":"1"}
+    key_replace_dict = {"1073741906":"0","1073741905":"1","1073741904":"2","1073741903":"3","122":"4","120":"5","1073742049":"6"}
+    for sublist in input_event_list[1:]:
+        for item in sublist:
+            type_value = str(item["type"])
+            key_value = str(item["key"])
+            if type_value in type_replace_dict:
+                item["type"] = type_replace_dict[type_value]
+            if key_value in key_replace_dict:
+                item["key"] = key_replace_dict[key_value]
+    replay_json = json.dumps(input_event_list)
+    with open("rep.json", "w") as file:
+        file.write(replay_json)
