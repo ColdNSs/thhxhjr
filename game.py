@@ -89,6 +89,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
         self.QTElimit = QTElimit
         self.status = "alive"
         self.mode = 0
+        self.missinthisspell = False
     def setmode(self,mode): #设置子机位置
         if mode == 1:
             player_Character.slow = self.speedMultiplier
@@ -134,6 +135,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             self.invincibleCheck()
         if self.status == "usebomb":
             self.Bomb -= 1
+            self.missinthisspell = True
             if self.QTETime: # 决死
                 self.QTETime = 0
             self.status = "bombing"
@@ -202,6 +204,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             self.status = "invincible"
             self.invincibleTime = 120
             self.HP -= 1
+            self.missinthisspell = True
             self.clearradius = 10
             self.diecenter = self.rect.center
             self.Bomb = max(2,self.Bomb)
@@ -406,7 +409,7 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1)
-        self.HPlist = (4000,2500,4000,7000,3000,6000,8000,4000,4000)
+        self.HPlist = (4,2500,4000,7000,3000,6000,8000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000)
         self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
@@ -426,8 +429,10 @@ class Enemy(pygame.sprite.Sprite):
         self.spelltick = 0
         self.enter_spell6 = False # 屎
         self.stand = False
+
     def update(self):
         global score
+        global showspellfailedtime
         self.shootCoolDownCount += 1
         self.spelltick += 1
         if self.shootCoolDown[self.spell - 1] == self.shootCoolDownCount:
@@ -439,10 +444,14 @@ class Enemy(pygame.sprite.Sprite):
             if not item.free:
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
-            spellscore = (self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
-            score += spellscore
-            showspellscoredata["score"] = spellscore
-            showspellscoredata["time"] = 120 
+            if not player_Character.missinthisspell: # 符卡收取判定
+                spellscore = (self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
+                score += spellscore
+                showspellscoredata["score"] = spellscore
+                showspellscoredata["time"] = 150
+            else:
+                player_Character.missinthisspell = False
+                showspellfailedtime = 150
             for item in enemyBulletGroup:
                 sprite_disappear(item,15)
             if self.spell > self.spellcount:
@@ -679,11 +688,16 @@ def sprite_disappear(sprite:pygame.sprite.Sprite,disappeartime:int): # 令sprite
         disappear_group.add(sprite)
 
 def showspellscore():
+    global showspellfailedtime
     if showspellscoredata["time"]:
-        screen.blit(font_Arial24.render("Get Spell Bonus:",True, (255, 255, 255)),(200,150))
-        screen.blit(font_Arial36.render(str(showspellscoredata["score"]).rjust(8,"0"),True, (240, 0, 0)),(200,180))
+        char_count = int((150 - showspellscoredata["time"]) / 6)
+        screen.blit(font_Arial36.render("Get Spell Bonus!!",True, (255, 255, 255)),(210,250))
+        screen.blit(font_Arial24.render(str(showspellscoredata["score"]).rjust(8,"0")[:char_count],True, (255, 0, 0)),(290,290))
         showspellscoredata["time"] -= 1
-    
+    if showspellfailedtime:
+        screen.blit(font_Arial36.render("Bonus Failed...",True, (235, 235, 235)),(246,250))
+        showspellfailedtime -= 1
+
 def create_setting(): # 生成配置文件
     settings = {"powersave":True,"replay":False}
     with open("settings.json", "w") as file:
@@ -699,6 +713,7 @@ except FileNotFoundError:
     create_setting()
 score = 0
 showspellscoredata = {"score":0,"time":0}
+showspellfailedtime = 0
 screenX = 960
 screenY = 720
 gameX = 570
