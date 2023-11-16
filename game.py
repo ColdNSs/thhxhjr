@@ -1,46 +1,7 @@
 import random
-#from typing import Any
 import pygame
 import json
 pygame.init()
-score = 0
-showspellscoredata = {"score":0,"time":0}
-powersave_mode = False
-replay_mode = False
-screenX = 960
-screenY = 720
-gameX = 570
-size = (screenX,screenY)
-screen = pygame.display.set_mode(size)
-chooseCharacter = "Marisa"
-font_Arial20 = pygame.sysfont.SysFont('Arial',20)
-font_Arial24 = pygame.sysfont.SysFont('Arial',24)
-font_Arial36 = pygame.sysfont.SysFont('Arial',36)
-font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
-font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
-if replay_mode == True:
-    with open('rep.json') as f:
-        load_event_list = json.load(f,strict=False)
-    seed = load_event_list[0][0]
-    type_replace_dict = {"0":768,"1":769}
-    key_replace_dict = {"0":1073741906,"1":1073741905,"2":1073741904,"3":1073741903,"4":122,"5":120,"6":1073742049}
-    for sublist in load_event_list[1:]:
-        for item in sublist:
-            type_value = str(item["type"])
-            key_value = str(item["key"])
-            if type_value in type_replace_dict:
-                item["type"] = type_replace_dict[type_value]
-            if key_value in key_replace_dict:
-                item["key"] = key_replace_dict[key_value]
-    '''
-    replay_json = json.dumps(load_event_list)
-    with open("rep_c.json", "w") as file:
-        file.write(replay_json)
-    '''
-else:
-    seed = random.randint(1000000000,9999999999) # 下面在为replay做准备 
-    input_event_list = [[seed]]
-random.seed(seed)
 class UIasset():
     def __init__(self):
         self.enemy_hp_bar = pygame.image.load("Picture/hp_bar.bmp").convert()
@@ -66,7 +27,7 @@ class UIasset():
                 fpscolor = (255,255,255)
             else:
                 fpscolor = (255,0,0) 
-            self.fpstext = font_Arial20.render(str("{0:.2f}".format(nowfps/2 if powersave_mode else nowfps)), True, fpscolor)
+            self.fpstext = font_Arial20.render(str("{0:.2f}".format(nowfps/2 if settings["powersave"] else nowfps)), True, fpscolor)
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
@@ -74,7 +35,7 @@ class UIasset():
         screen.blit(pygame.transform.scale(UI.enemy_hp_bar,(max(500*baka.HP/baka.HPlist[baka.spell - 1],0),20)),(90,35))
         screen.blit(UI.time_panel,(50,22))
         # 分数显示
-        screen.blit(font_Simsun20.render("     Score:{0:0>10}".format(score),True, (240, 240, 240)),(630,140))
+        screen.blit(font_Simsun20.render("   Score：{0:0>10}".format(score),True, (240, 240, 240)),(630,140))
         # 残机显示
         screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
@@ -203,9 +164,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             if self.slow == self.speedMultiplier: # 高低速不同类型的子弹
                 self.nowattackspeed = self.attackSpeed    
                 if chooseCharacter == "Reimu": # 为什么是全局变量 因为懒
-                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),8,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),8,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
                     mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y - 10),pygame.math.Vector2(0,-120),1,player_CharacterJadeLeft,False,pygame.math.Vector2(0,0))
@@ -215,20 +176,20 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             if self.slow == 1:
                 self.nowattackspeed = self.slowattackSpeed
                 if chooseCharacter == "Reimu":
-                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),8,0,True,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),8,0,True,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
-                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),25,0,False,pygame.math.Vector2(0,-0.5))
+                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),30,0,False,pygame.math.Vector2(0,-0.5))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),25,0,False,pygame.math.Vector2(0,-0.5))
+                    mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),30,0,False,pygame.math.Vector2(0,-0.5))
                     selfBulletGroup.add(mybullet)
     
     def bombingCheck(self):
         self.bombingTime -= 1
         if chooseCharacter == "Marisa":
-            mybomb = MarisaBomb(player_bomb_pictures[random.choice(["red","yellow","green"])],pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery - 40),pygame.math.Vector2(random.uniform(-1.5,1.5),random.uniform(-3.5,-5.5)),10)
+            mybomb = MarisaBomb(player_bomb_pictures[random.choice(["red","yellow","green"])],pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery - 40),pygame.math.Vector2(random.uniform(-1.5,1.5),random.uniform(-3.5,-5.5)),8)
             bombgroup.add(mybomb)
         if not self.bombingTime:
             self.status = "alive"
@@ -360,7 +321,8 @@ class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为
         self.damage = damage
         self.trigger = 0
         self.angle = 0
-        self.lifetime = 180
+        self.lifetime = 240
+        self.radius = 24
 
     def update(self):
         self.angle += 3
@@ -372,7 +334,7 @@ class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为
         self.posvec += self.speedvec
         self.rect.centerx , self.rect.centery = self.posvec
         if not self.trigger:
-            if pygame.sprite.collide_circle_ratio(0.7)(self,baka):
+            if pygame.sprite.collide_circle(self,baka):
                 self.trigger = 1 # 击中则被触发
                 baka.HP -= self.damage
             if not self.lifetime:
@@ -383,10 +345,11 @@ class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为
             self.image.set_alpha(255 - self.trigger * 10) 
         if self.trigger > 25:
             self.kill()
-        list = pygame.sprite.spritecollide(self,enemyBulletGroup,True)
-        for item in list: # 消弹
-            sprite_disappear(item,5)
-        self.lifetime -= 1
+        if not self.lifetime: # 超过生命周期也消失
+            self.kill()
+        for item in enemyBulletGroup:
+            if pygame.sprite.collide_circle(self,item):
+                sprite_disappear(item,5)
 
 class ReimuBomb(pygame.sprite.Sprite):
     def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,lifetime,damage):
@@ -403,7 +366,7 @@ class ReimuBomb(pygame.sprite.Sprite):
         self.angle = 0
         self.trigger = False
         self.image.set_alpha(0)
-
+        self.radius = 63
     def update(self):
         if 10 > self.lifetime - self.tracktime > 0: # 10帧的逐渐出现效果
             self.image = self.originimage
@@ -432,9 +395,9 @@ class ReimuBomb(pygame.sprite.Sprite):
             self.kill()
         if not self.lifetime: # 超过生命周期也消失
             self.kill()
-        list = pygame.sprite.spritecollide(self,enemyBulletGroup,True)
-        for item in list: # 消弹
-            sprite_disappear(item,5)
+        for item in enemyBulletGroup:
+            if pygame.sprite.collide_circle(self,item):
+                sprite_disappear(item,5)
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,maxHP,HP,posvec):
@@ -443,7 +406,7 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1)
-        self.HPlist = (5000,3000,5000,9000,3000,8000,10000,5000,5000)
+        self.HPlist = (4000,2500,4000,7000,3000,6000,8000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000)
         self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
@@ -546,7 +509,7 @@ class Enemy(pygame.sprite.Sprite):
                 if self.isfreeze:
                     self.isfreeze = False
                     for item in enemyBulletGroup:
-                        item.speedvec = pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * random.uniform(1.5,2.5) # 解冻之后随机弹道
+                        item.accvec = pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * random.uniform(0.1) # 解冻之后随机弹道
                 # 全向随机弹
                 tmp_vec1 = pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize()
                 bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y),tmp_vec1 * random.uniform(1.5,2.5),1,0,0,pygame.math.Vector2(0,0))
@@ -720,7 +683,56 @@ def showspellscore():
         screen.blit(font_Arial24.render("Get Spell Bonus:",True, (255, 255, 255)),(200,150))
         screen.blit(font_Arial36.render(str(showspellscoredata["score"]).rjust(8,"0"),True, (240, 0, 0)),(200,180))
         showspellscoredata["time"] -= 1
+    
+def create_setting(): # 生成配置文件
+    settings = {"powersave":True,"replay":False}
+    with open("settings.json", "w") as file:
+        file.write(json.dumps(settings))
 
+try:
+    with open('settings.json') as f:
+        try:    
+            settings = json.load(f,strict=False)
+        except json.JSONDecodeError:
+            raise FileNotFoundError
+except FileNotFoundError:
+    create_setting()
+score = 0
+showspellscoredata = {"score":0,"time":0}
+screenX = 960
+screenY = 720
+gameX = 570
+size = (screenX,screenY)
+screen = pygame.display.set_mode(size)
+chooseCharacter = "Marisa"
+font_Arial20 = pygame.sysfont.SysFont('Arial',20)
+font_Arial24 = pygame.sysfont.SysFont('Arial',24)
+font_Arial36 = pygame.sysfont.SysFont('Arial',36)
+font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
+font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
+if settings["replay"] == True:
+    with open('rep.json') as f:
+        load_event_list = json.load(f,strict=False)
+    seed = load_event_list[0][0]
+    type_replace_dict = {"0":768,"1":769}
+    key_replace_dict = {"0":1073741906,"1":1073741905,"2":1073741904,"3":1073741903,"4":122,"5":120,"6":1073742049}
+    for sublist in load_event_list[1:]:
+        for item in sublist:
+            type_value = str(item["type"])
+            key_value = str(item["key"])
+            if type_value in type_replace_dict:
+                item["type"] = type_replace_dict[type_value]
+            if key_value in key_replace_dict:
+                item["key"] = key_replace_dict[key_value]
+    '''
+    replay_json = json.dumps(load_event_list)
+    with open("rep_c.json", "w") as file:
+        file.write(replay_json)
+    '''
+else:
+    seed = random.randint(1000000000,9999999999) # 下面在为replay做准备 
+    input_event_list = [[seed]]
+random.seed(seed)
 disappear_group = pygame.sprite.Group()
 self_group = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
@@ -782,7 +794,7 @@ while not done:
             continue
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
         item.nowdisappeartime -= 1
-    if not replay_mode:
+    if not settings["replay"]:
         input_event_list.append([])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -793,10 +805,10 @@ while not done:
             elif event.type == pygame.KEYUP:
                 keyup(event.key)
                 input_event_list[tick].append({"t":tick,"type":event.type,"key":event.key})
-    else:
+    else: # 播放录像
         item = load_event_list[1]
-        for event in item:
-            if event["t"] == tick:
+        if item[0]["t"] == tick:
+            for event in item:
                 for event in load_event_list[1]:
                     if event["type"] == pygame.QUIT:
                         done = True
@@ -804,8 +816,10 @@ while not done:
                         keydown(event["key"])
                     elif event["type"] == pygame.KEYUP:
                         keyup(event["key"])
-                del load_event_list[1]
-
+            del load_event_list[1]
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
     tmp = pygame.time.get_ticks()
     player_Character.update()
     player_CharacterImage.update()
@@ -818,7 +832,7 @@ while not done:
     selfBulletGroup.update()
     bombgroup.update()
     print("bulletupdatetime:{0}".format(pygame.time.get_ticks()-tmp))
-    if tick % 2 or not powersave_mode:
+    if tick % 2 or not settings["powersave"]:
         tmp = pygame.time.get_ticks()
         UI.drawBefore()
         print("UIbefore:{0}".format(pygame.time.get_ticks()-tmp))
@@ -836,7 +850,7 @@ while not done:
         print("UIAfter:{0}".format(pygame.time.get_ticks()-tmp))
         pygame.display.flip()
 done = True
-if not replay_mode:
+if not settings["replay"]:
     input_event_list = [x for x in input_event_list if x != []] # 清除所有空项
     type_replace_dict = {"768":"0","769":"1"}
     key_replace_dict = {"1073741906":"0","1073741905":"1","1073741904":"2","1073741903":"3","122":"4","120":"5","1073742049":"6"}
