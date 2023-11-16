@@ -3,8 +3,10 @@ import random
 import pygame
 import json
 pygame.init()
-powersave_mode = True
-replay_mode = True
+score = 0
+showspellscoredata = {"score":0,"time":0}
+powersave_mode = False
+replay_mode = False
 screenX = 960
 screenY = 720
 gameX = 570
@@ -13,6 +15,7 @@ screen = pygame.display.set_mode(size)
 chooseCharacter = "Marisa"
 font_Arial20 = pygame.sysfont.SysFont('Arial',20)
 font_Arial24 = pygame.sysfont.SysFont('Arial',24)
+font_Arial36 = pygame.sysfont.SysFont('Arial',36)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
 if replay_mode == True:
@@ -29,9 +32,11 @@ if replay_mode == True:
                 item["type"] = type_replace_dict[type_value]
             if key_value in key_replace_dict:
                 item["key"] = key_replace_dict[key_value]
+    '''
     replay_json = json.dumps(load_event_list)
     with open("rep_c.json", "w") as file:
         file.write(replay_json)
+    '''
 else:
     seed = random.randint(1000000000,9999999999) # 下面在为replay做准备 
     input_event_list = [[seed]]
@@ -56,14 +61,20 @@ class UIasset():
         screen.blit(self.framework, (0, 0))
         # 帧率显示
         if not self.fpsTimer:
-            self.fpstext = font_Arial20.render(str("{0:.2f}".format(clock.get_fps()/2 if powersave_mode else clock.get_fps())), True, (255, 255, 255))
+            nowfps = clock.get_fps()
+            if nowfps > 57:
+                fpscolor = (255,255,255)
+            else:
+                fpscolor = (255,0,0) 
+            self.fpstext = font_Arial20.render(str("{0:.2f}".format(nowfps/2 if powersave_mode else nowfps)), True, fpscolor)
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         self.fpsTimer -= 1
         # 敌机血量显示
-        #pygame.draw.rect(screen, 'RED', (40, 30, 570*baka.HP/baka.HPlist[baka.spell - 1], 10), 0)
         screen.blit(pygame.transform.scale(UI.enemy_hp_bar,(max(500*baka.HP/baka.HPlist[baka.spell - 1],0),20)),(90,35))
         screen.blit(UI.time_panel,(50,22))
+        # 分数显示
+        screen.blit(font_Simsun20.render("     Score:{0:0>10}".format(score),True, (240, 240, 240)),(630,140))
         # 残机显示
         screen.blit(font_Simsun20.render("剩余人数：",True, (240, 240, 240)),(630,170))
         for i in range(player_Character.HP):
@@ -86,7 +97,8 @@ class UIasset():
             screen.blit(font_Arial24.render("0"+str(int(self.lefttime / 10)),True,"RED"),(55,31))
             screen.blit((font_Arial24.render(".",True,"RED")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"RED"),(83,35))
-# posvec：位置向量 speedvec：速度向量
+        showspellscore()
+            # posvec：位置向量 speedvec：速度向量
 class playerCharacter(pygame.sprite.Sprite): #判定点类 
     def __init__(self,radius,speed,speedMultiplier,QTElimit,attackspeed,slowattackspeed):
         super().__init__()
@@ -271,11 +283,13 @@ class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 只有擦弹�
         self.y = y
         self.graze = 0
     def update(self):
+        global score
         self.rect = self.image.get_rect()
         self.rect.center = player_Character.rect.center
         for item in enemyBulletGroup:
             if pygame.sprite.collide_circle_ratio(2)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
+                score += 2000
                 item.alreadyGraze = True # 擦过的弹不能再擦
 
 class playerJade(playerCharacterImage): # 子机类
@@ -450,6 +464,7 @@ class Enemy(pygame.sprite.Sprite):
         self.enter_spell6 = False # 屎
         self.stand = False
     def update(self):
+        global score
         self.shootCoolDownCount += 1
         self.spelltick += 1
         if self.shootCoolDown[self.spell - 1] == self.shootCoolDownCount:
@@ -461,6 +476,10 @@ class Enemy(pygame.sprite.Sprite):
             if not item.free:
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
+            spellscore = (self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
+            score += spellscore
+            showspellscoredata["score"] = spellscore
+            showspellscoredata["time"] = 120 
             for item in enemyBulletGroup:
                 sprite_disappear(item,15)
             if self.spell > self.spellcount:
@@ -696,6 +715,12 @@ def sprite_disappear(sprite:pygame.sprite.Sprite,disappeartime:int): # 令sprite
         sprite.disappeartime = sprite.nowdisappeartime = disappeartime
         disappear_group.add(sprite)
 
+def showspellscore():
+    if showspellscoredata["time"]:
+        screen.blit(font_Arial24.render("Get Spell Bonus:",True, (255, 255, 255)),(200,150))
+        screen.blit(font_Arial36.render(str(showspellscoredata["score"]).rjust(8,"0"),True, (240, 0, 0)),(200,180))
+        showspellscoredata["time"] -= 1
+
 disappear_group = pygame.sprite.Group()
 self_group = pygame.sprite.Group()
 enemyGroup = pygame.sprite.Group()
@@ -719,7 +744,6 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
     
 if chooseCharacter == "Marisa":
-    
     player_Character = playerCharacter(6,9,0.4,9,0,8)
     player_Character.bulletimage = pygame.image.load("Picture/grass.bmp")
     player_Character.bulletimage.convert()
