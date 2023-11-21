@@ -411,7 +411,7 @@ class Enemy(pygame.sprite.Sprite):
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1)
         self.HPlist = (4,2500,4000,7000,3000,6000,8000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000)
-        self.spell = 1
+        self.spell = 9
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -643,6 +643,39 @@ class Enemy(pygame.sprite.Sprite):
                     tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
                     bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.06)     
                     enemyBulletGroup.add(bullet)
+        
+        if self.spell == 9:
+            if self.spelltick % 30 == 0:
+                for i in range(20): # 白色奇数弹
+                    tmpspeed_vec = (relative_direction(self,player_Character)*4).rotate(i * 18)
+                    bullet = Bullet(1,(240,240,240),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y) + tmpspeed_vec,tmpspeed_vec,1,0,0,pygame.math.Vector2(0,0))
+                    enemyBulletGroup.add(bullet)
+            if self.spelltick % 30 == 15:
+                for i in range(20): # 蓝色偶数弹
+                    tmpspeed_vec = (relative_direction(self,player_Character)*4).rotate(i * 18 + 9)
+                    bullet = Bullet(1,(0,120,240),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y) + tmpspeed_vec,tmpspeed_vec,1,0,0,pygame.math.Vector2(0,0))
+                    enemyBulletGroup.add(bullet)
+            if not self.spelltick % 180: # 创建变大弹幕
+                self.stand = True
+                bullet = Bullet(1,(0,0,0),10,10,pygame.math.Vector2(self.posvec.x,self.posvec.y) + pygame.math.Vector2(0,10),(0,0),1,0,0,pygame.math.Vector2(0,0))
+                bullet.specialtag_1 = True
+                enemyBulletGroup.add(bullet)
+            if 0 < self.spelltick % 180 < 60: # 不断变大变炫彩
+                tmp_tick = self.spelltick % 180
+                for item in enemyBulletGroup:
+                    if hasattr(item,"specialtag_1") and item.specialtag_1 == True:
+                        enemyBulletGroup.remove(item)
+                        bullet = Bullet(1,(min(12*tmp_tick,240),min(max(12*(tmp_tick-20),0),240),min(max(12*(tmp_tick-40),0),240)),10 + tmp_tick * 3,10 + tmp_tick * 3,pygame.math.Vector2(self.posvec.x,self.posvec.y) + pygame.math.Vector2(0,10 - tmp_tick),pygame.math.Vector2(0,0),1,0,0,pygame.math.Vector2(0,0))
+                        bullet.specialtag_1 = True
+                        enemyBulletGroup.add(bullet)
+            if self.spelltick % 180 == 60: # 丢出去
+                self.stand = False
+                for item in enemyBulletGroup:
+                    if hasattr(item,"specialtag_1") and item.specialtag_1 == True:
+                        item.specialtag_1 = False
+                        item.speedvec = relative_direction(self,player_Character)*5
+
+
 def keydown(key):
     if key == pygame.K_UP:
         player_Character.upspeed = 1
