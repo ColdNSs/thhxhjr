@@ -231,6 +231,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             global score
             if pygame.sprite.collide_circle_ratio(2)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
+                effect = Bullet(2,(240,240,240),10,10,pygame.math.Vector2(self.rect.centerx,self.rect.centery),pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize()*3,0,0,False,pygame.math.Vector2(0,0))
+                effectgroup.add(effect)
+                sprite_disappear(effect,30)
                 score += 2000
                 item.alreadyGraze = True # 擦过的弹不能再擦
             if pygame.sprite.collide_circle_ratio(0.5)(item,player_Character):
@@ -245,7 +248,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
     
     
 
-class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 只有擦弹相关实现在里面
+class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 
     def __init__(self,image,x,y):
         super().__init__()
         self.image = image
@@ -791,6 +794,8 @@ enemyGroup = pygame.sprite.Group()
 selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
 bombgroup = pygame.sprite.Group()
+effectgroup = pygame.sprite.Group()
+
 if chooseCharacter == "Reimu":
     player_Character = playerCharacter(5,8,0.5,10,3,5)
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
@@ -883,6 +888,7 @@ while not done:
     enemyBulletGroup.update()
     selfBulletGroup.update()
     bombgroup.update()
+    effectgroup.update()
     print("bulletupdatetime:{0}".format(pygame.time.get_ticks()-tmp))
     if tick % 2 or not settings["powersave"]:
         tmp = pygame.time.get_ticks()
@@ -896,6 +902,7 @@ while not done:
         selfBulletGroup.draw(screen)
         enemyBulletGroup.draw(screen)
         bombgroup.draw(screen)
+        effectgroup.draw(screen)
         print("bullet:{0}".format(pygame.time.get_ticks()-tmp))
         tmp = pygame.time.get_ticks()
         UI.drawAfter()
