@@ -45,7 +45,7 @@ class UIasset():
         for i in range(player_Character.Bomb):
             screen.blit(UI.bomb, (730+i*25, 200))
         # 擦弹数量显示
-        screen.blit(font_Simsun20.render("擦弹数：{0}".format(player_CharacterImage.graze),True, (240, 240, 240)),(630,230))
+        screen.blit(font_Simsun20.render("擦弹数：{0}".format(player_Character.graze),True, (240, 240, 240)),(630,230))
         # 敌人位置显示
         screen.blit(font_Simsun16.render("| ENEMY |",True, (255, 0, 0)),(baka.rect.x,700))
         # 剩余时间显示
@@ -90,6 +90,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
         self.status = "alive"
         self.mode = 0
         self.missinthisspell = False
+        self.graze = 0
     def setmode(self,mode): #设置子机位置
         if mode == 1:
             player_Character.slow = self.speedMultiplier
@@ -227,6 +228,11 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
     def missCheck(self):
         self.iscoll = False
         for item in enemyBulletGroup:
+            global score
+            if pygame.sprite.collide_circle_ratio(2)(item,player_Character) and not item.alreadyGraze:
+                self.graze += 1
+                score += 2000
+                item.alreadyGraze = True # 擦过的弹不能再擦
             if pygame.sprite.collide_circle_ratio(0.5)(item,player_Character):
                 self.iscoll = item
                 break
@@ -236,6 +242,8 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                 self.QTETime = 10 
                 self.status = "dying"
                 pygame.draw.circle(player_Character.image,'RED',(5,5),5)
+    
+    
 
 class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 只有擦弹相关实现在里面
     def __init__(self,image,x,y):
@@ -245,16 +253,10 @@ class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 只有擦弹�
         self.image.set_colorkey((240,240,240))
         self.x = x
         self.y = y
-        self.graze = 0
     def update(self):
-        global score
         self.rect = self.image.get_rect()
         self.rect.center = player_Character.rect.center
-        for item in enemyBulletGroup:
-            if pygame.sprite.collide_circle_ratio(2)(item,player_Character) and not item.alreadyGraze:
-                self.graze += 1
-                score += 2000
-                item.alreadyGraze = True # 擦过的弹不能再擦
+
 
 class playerJade(playerCharacterImage): # 子机类
     def __init__(self,image,x,y):
@@ -408,9 +410,9 @@ class Enemy(pygame.sprite.Sprite):
         self.enter_spell7 = False
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
-        self.shootCoolDown = (1,10,4,1,1,1,1,1,1)
-        self.HPlist = (4,2500,4000,7000,3000,6000,8000,4000,4000)
-        self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000)
+        self.shootCoolDown = (1,10,4,1,1,1,1,1,1,1)
+        self.HPlist = (4,2500,4000,7000,3000,6000,8000,4000,4000,4000)
+        self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000,4000)
         self.spell = 9
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
@@ -646,26 +648,27 @@ class Enemy(pygame.sprite.Sprite):
         
         if self.spell == 9:
             if self.spelltick % 30 == 0:
-                for i in range(20): # 白色奇数弹
-                    tmpspeed_vec = (relative_direction(self,player_Character)*4).rotate(i * 18)
+                for i in range(30): # 白色奇数弹
+                    tmpspeed_vec = (relative_direction(self,player_Character)*4).rotate(i * 12)
                     bullet = Bullet(1,(240,240,240),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y) + tmpspeed_vec,tmpspeed_vec,1,0,0,pygame.math.Vector2(0,0))
                     enemyBulletGroup.add(bullet)
             if self.spelltick % 30 == 15:
-                for i in range(20): # 蓝色偶数弹
-                    tmpspeed_vec = (relative_direction(self,player_Character)*4).rotate(i * 18 + 9)
+                for i in range(30): # 蓝色偶数弹
+                    tmpspeed_vec = (relative_direction(self,player_Character)*4).rotate(i * 12 + 96)
                     bullet = Bullet(1,(0,120,240),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y) + tmpspeed_vec,tmpspeed_vec,1,0,0,pygame.math.Vector2(0,0))
                     enemyBulletGroup.add(bullet)
             if not self.spelltick % 180: # 创建变大弹幕
+                self.color_list = [min(80 - 2*i, 2*i)* 6 for i in range(40)] + [0 for i in range(20)] # 懒 直接生成局部变量
                 self.stand = True
                 bullet = Bullet(1,(0,0,0),10,10,pygame.math.Vector2(self.posvec.x,self.posvec.y) + pygame.math.Vector2(0,10),(0,0),1,0,0,pygame.math.Vector2(0,0))
                 bullet.specialtag_1 = True
                 enemyBulletGroup.add(bullet)
             if 0 < self.spelltick % 180 < 60: # 不断变大变炫彩
-                tmp_tick = self.spelltick % 180
+                tmp_tick = self.spelltick % 60
                 for item in enemyBulletGroup:
                     if hasattr(item,"specialtag_1") and item.specialtag_1 == True:
                         enemyBulletGroup.remove(item)
-                        bullet = Bullet(1,(min(12*tmp_tick,240),min(max(12*(tmp_tick-20),0),240),min(max(12*(tmp_tick-40),0),240)),10 + tmp_tick * 3,10 + tmp_tick * 3,pygame.math.Vector2(self.posvec.x,self.posvec.y) + pygame.math.Vector2(0,10 - tmp_tick),pygame.math.Vector2(0,0),1,0,0,pygame.math.Vector2(0,0))
+                        bullet = Bullet(1,(self.color_list[tmp_tick],self.color_list[tmp_tick - 20],self.color_list[tmp_tick - 40]),10 + tmp_tick * 3,10 + tmp_tick * 3,pygame.math.Vector2(self.posvec.x,self.posvec.y) + pygame.math.Vector2(0,10 - tmp_tick),pygame.math.Vector2(0,0),1,0,0,pygame.math.Vector2(0,0))
                         bullet.specialtag_1 = True
                         enemyBulletGroup.add(bullet)
             if self.spelltick % 180 == 60: # 丢出去
@@ -673,7 +676,8 @@ class Enemy(pygame.sprite.Sprite):
                 for item in enemyBulletGroup:
                     if hasattr(item,"specialtag_1") and item.specialtag_1 == True:
                         item.specialtag_1 = False
-                        item.speedvec = relative_direction(self,player_Character)*5
+                        item.speedvec = relative_direction(self,player_Character)*4
+                        item.accvec = relative_direction(self,player_Character)*0.1
 
 
 def keydown(key):
@@ -832,7 +836,7 @@ clock = pygame.time.Clock()
 done = False
 tick = 0
 while not done:
-    print(player_CharacterImage.graze)
+    print(player_Character.graze)
     clock.tick(60)
     tick += 1
     screen.fill((240, 240, 240))
