@@ -192,7 +192,8 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
     def bombingCheck(self):
         self.bombingTime -= 1
         if chooseCharacter == "Marisa":
-            mybomb = MarisaBomb(player_bomb_pictures[random.choice(["red","yellow","green"])],pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery - 40),pygame.math.Vector2(random.uniform(-1.5,1.5),random.uniform(-3.5,-5.5)),8)
+            color = random.choice(["red","green","yellow"])
+            mybomb = MarisaBomb(player_bomb_pictures[color][0],pygame.math.Vector2(player_Character.rect.centerx,player_Character.rect.centery - 40),pygame.math.Vector2(random.uniform(-1.5,1.5),random.uniform(-3.5,-5.5)),8,color)
             bombgroup.add(mybomb)
         if not self.bombingTime:
             self.status = "alive"
@@ -319,7 +320,7 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
             self.rect.centerx = self.posvec.x = self.free.rect.centerx
 
 class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为什么不复用 问就是懒和不会
-    def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage):
+    def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,color):
         super().__init__()
         self.image = self.originimage = image
         self.rect = self.image.get_rect()
@@ -331,12 +332,14 @@ class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为
         self.angle = 0
         self.lifetime = 240
         self.radius = 24
+        self.color = color
 
     def update(self):
+        self.lifetime -= 1
         self.angle += 3
         if self.angle > 360:
             self.angle = 0 # 使我的星星旋转
-        self.image = pygame.transform.rotate(self.originimage,self.angle)
+        self.image = player_bomb_pictures[self.color][int(self.angle/3)]
         self.rect = self.image.get_rect(center = self.rect.center)
         #self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 没这行有问题 有这行更有问题
         self.posvec += self.speedvec
@@ -414,9 +417,9 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1,1)
-        self.HPlist = (4,2500,4000,7000,3000,6000,8000,4000,4000,4000)
+        self.HPlist = (4000,2500,4000,7000,3000,6000,8000,4000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000,4000)
-        self.spell = 9
+        self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -822,13 +825,15 @@ if chooseCharacter == "Marisa":
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/marisa_option.bmp").convert(),-24,28)
     player_bullet_picture = pygame.image.load("Picture/marisa_missile.bmp").convert()
     player_bullet_picture.set_colorkey("BLACK")
-    colors = ["red", "yellow", "green"]
-    player_bomb_pictures = {}
+    colors = ["red", "green", "yellow"]
+    player_bomb_pictures = {"red":[], "yellow":[], "green":[]}
     for color in colors:
         filename = "Picture/bigstar_" + color + ".bmp"
         picture = pygame.image.load(filename).convert()
         picture.set_colorkey((240,240,240))
-        player_bomb_pictures[color] = picture
+        for i in range(121):
+            player_bomb_pictures[color].append(pygame.transform.rotate(picture,i*3).convert())
+    
 
 self_group.add(player_CharacterImage)
 self_group.add(player_CharacterJadeRight)
