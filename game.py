@@ -232,9 +232,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             global score
             if pygame.sprite.collide_circle_ratio(2)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
-                effect = Bullet(2,(240,240,240),10,10,pygame.math.Vector2(self.rect.centerx,self.rect.centery),pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize()*3,0,0,False,pygame.math.Vector2(0,0))
+                effect = Bullet(2,(240,240,240),8,8,pygame.math.Vector2(self.rect.centerx,self.rect.centery),pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize()*4,0,0,False,pygame.math.Vector2(0,0))
                 effectgroup.add(effect)
-                sprite_disappear(effect,30)
+                sprite_disappear(effect,20)
                 score += 2000
                 item.alreadyGraze = True # 擦过的弹不能再擦
             if pygame.sprite.collide_circle_ratio(0.5)(item,player_Character):
@@ -419,7 +419,7 @@ class Enemy(pygame.sprite.Sprite):
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1,1)
         self.HPlist = (4000,2500,4000,7000,3000,6000,8000,4000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000,4000)
-        self.spell = 1
+        self.spell = 4
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -516,7 +516,7 @@ class Enemy(pygame.sprite.Sprite):
                 enemyBulletGroup.add(bullet)
 
         if self.spell == 4:
-            if self.posvec.y <= 350: # 笨蛋下压中 
+            if self.posvec.y <= 250: # 笨蛋下压中 
                 self.speedvec.y = 5
                 self.isfreeze = True
                 return
@@ -526,16 +526,17 @@ class Enemy(pygame.sprite.Sprite):
                 if self.isfreeze:
                     self.isfreeze = False
                     for item in enemyBulletGroup:
-                        item.accvec = pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * random.uniform(0.1) # 解冻之后随机弹道
+                        item.accvec = pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize() * 0.02
+                        sprite_disappear(item,120)
                 # 全向随机弹
                 tmp_vec1 = pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize()
                 bullet = Bullet(1,((random.randint(0,240)),(random.randint(0,240)),(random.randint(0,240))),20,20,pygame.math.Vector2(self.posvec.x,self.posvec.y),tmp_vec1 * random.uniform(1.5,2.5),1,0,0,pygame.math.Vector2(0,0))
                 enemyBulletGroup.add(bullet)
             else:
                 if self.spelltick % 10 == 0 and 410 < self.spelltick % 600 < 500: # 2*⑨ = 18颗偶数弹
-                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character).rotate(random.uniform(5,20))*8,1,0,0,pygame.math.Vector2(0,0))
+                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character).rotate(random.uniform(5,15))*8,1,0,0,pygame.math.Vector2(0,0))
                     enemyBulletGroup.add(bullet)
-                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character).rotate(random.uniform(-5,-20))*8,1,0,0,pygame.math.Vector2(0,0))
+                    bullet = Bullet(1,(20,100,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character).rotate(random.uniform(-5,-15))*8,1,0,0,pygame.math.Vector2(0,0))
                     enemyBulletGroup.add(bullet)
                 if not self.isfreeze:  # Perfect Freeze!
                     self.isfreeze = True
@@ -559,14 +560,15 @@ class Enemy(pygame.sprite.Sprite):
                 bullet.tracktime = 0
                 enemyBulletGroup.add(bullet)
             for item in enemyBulletGroup:
-                if item.tracktime > 150: # 超过时间就停止追踪
-                    continue
-                item.tracktime += 1
-                directvec = relative_direction(item,player_Character)
-                if 0 < item.speedvec.angle_to(directvec) < 180:
-                    item.speedvec.rotate_ip(2)
-                else:
-                    item.speedvec.rotate_ip(-2)
+                if hasattr(item, "tracktime"):
+                    if item.tracktime > 150: # 超过时间就停止追踪
+                        continue
+                    item.tracktime += 1
+                    directvec = relative_direction(item,player_Character)
+                    if 0 < item.speedvec.angle_to(directvec) < 180:
+                        item.speedvec.rotate_ip(2)
+                    else:
+                        item.speedvec.rotate_ip(-2)
         
         if self.spell == 6: # 转圈弹
             if not self.enter_spell6:
