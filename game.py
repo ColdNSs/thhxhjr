@@ -1,9 +1,32 @@
 import random
 import pygame
 import json
+
 pygame.init()
+class SEasset():
+    def __init__(self):
+        self.soundasset = {}
+        self.soundasset["damage"] = pygame.mixer.Sound("SE/damage.wav")
+        self.soundasset["destory"] = pygame.mixer.Sound("SE/destory.wav")
+        self.soundasset["graze"]= pygame.mixer.Sound("SE/graze.wav")
+        self.soundasset["item"] = pygame.mixer.Sound("SE/item.wav")
+        self.soundasset["miss"] = pygame.mixer.Sound("SE/miss.wav")
+        self.soundasset["pause"] = pygame.mixer.Sound("SE/pause.wav")
+        self.soundasset["timeout"] = pygame.mixer.Sound("SE/timeout.wav")
+        self.soundasset["shoot"] = pygame.mixer.Sound("SE/shoot.wav")
+        self.soundasset["bomb"] = pygame.mixer.Sound("SE/bomb.wav")
+        self.setvolume(0.2)
+
+    def play(self,effect):
+        self.soundasset[effect].play()
+
+    def setvolume(self,volume):
+        for sound in self.soundasset:
+            self.soundasset[sound].set_volume(volume)
+
 class UIasset():
     def __init__(self):
+        self.scoreitem = pygame.image.load("Picture/scoreitem.bmp").convert()
         self.enemy_hp_bar = pygame.image.load("Picture/hp_bar.bmp").convert()
         self.framework = pygame.image.load("Picture/framework.png").convert()
         self.background = pygame.image.load("Picture/background.png").convert()
@@ -55,6 +78,8 @@ class UIasset():
             screen.blit((font_Arial24.render(".",True,"BLACK")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"BLACK"),(83,35))
         else:
+            if self.lefttime % 10 == 9:
+                se.play("timeout")
             screen.blit(font_Arial24.render("0"+str(int(self.lefttime / 10)),True,"RED"),(55,31))
             screen.blit((font_Arial24.render(".",True,"RED")),(79,31))
             screen.blit(font_Arial20.render(str(int(self.lefttime - int(self.lefttime / 10) * 10)),True,"RED"),(83,35))
@@ -136,6 +161,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             self.invincibleCheck()
         if self.status == "usebomb":
             self.Bomb -= 1
+            se.play("bomb")
             self.missinthisspell = True
             if self.QTETime: # 决死
                 self.QTETime = 0
@@ -167,11 +193,13 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             if self.slow == self.speedMultiplier: # 高低速不同类型的子弹
                 self.nowattackspeed = self.attackSpeed    
                 if chooseCharacter == "Reimu": # 为什么是全局变量 因为懒
-                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    se.play("shoot")
+                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(0,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
+                    se.play("shoot")
                     mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y - 10),pygame.math.Vector2(0,-120),1,player_CharacterJadeLeft,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                     mybullet = Bullet(0,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y - 10),pygame.math.Vector2(0,-120),1,player_CharacterJadeRight,False,pygame.math.Vector2(0,0))
@@ -179,11 +207,13 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             if self.slow == 1:
                 self.nowattackspeed = self.slowattackSpeed
                 if chooseCharacter == "Reimu":
+                    se.play("shoot")
                     mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                     mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
+                    se.play("shoot")
                     mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),30,0,False,pygame.math.Vector2(0,-0.5))
                     selfBulletGroup.add(mybullet)
                     mybullet = Bullet(self.bulletimage,(255,255,128),10,300,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y),pygame.math.Vector2(0,-1),30,0,False,pygame.math.Vector2(0,-0.5))
@@ -232,6 +262,7 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
             global score
             if pygame.sprite.collide_circle_ratio(2)(item,player_Character) and not item.alreadyGraze:
                 self.graze += 1
+                se.play("graze")
                 effect = Bullet(2,(240,240,240),8,8,pygame.math.Vector2(self.rect.centerx,self.rect.centery),pygame.math.Vector2(random.uniform(-1,1),random.uniform(-1,1)).normalize()*4,0,0,False,pygame.math.Vector2(0,0))
                 effectgroup.add(effect)
                 sprite_disappear(effect,20)
@@ -243,12 +274,11 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
         if self.iscoll:
             item.kill()
             if self.status == "alive": #活着被弹转移到决死反应时间
+                se.play("miss")
                 self.QTETime = 10 
                 self.status = "dying"
                 pygame.draw.circle(player_Character.image,'RED',(5,5),5)
     
-    
-
 class playerCharacterImage(pygame.sprite.Sprite): #自机点阵图 
     def __init__(self,image,x,y):
         super().__init__()
@@ -275,6 +305,22 @@ class playerJade(playerCharacterImage): # 子机类
         self.angle += 1
         if self.angle > 360:
             self.angle = 0
+
+class Scoreitem(pygame.sprite.Sprite):
+    def __init__(self,posvec:pygame.math.Vector2):
+        super().__init__()
+        self.image = UI.scoreitem
+        self.rect = self.image.get_rect()
+        self.posvec = posvec
+
+    def update(self):
+        self.speedvec = relative_direction(self,player_Character).normalize()*20
+        self.posvec = self.speedvec + self.posvec
+        self.rect.center = self.posvec
+        if pygame.sprite.collide_circle(self,player_Character):
+            se.play("shoot")
+            score += 100
+            self.kill()
 
 class Bullet(pygame.sprite.Sprite): # 子弹类
     def __init__(self,shape,color,width,height,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,free,track,accvec:pygame.math.Vector2):
@@ -318,6 +364,10 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
             self.kill()
         if self.free:
             self.rect.centerx = self.posvec.x = self.free.rect.centerx
+    
+    def toscoreitem(self):
+        itemGroup.add(Scoreitem(self.posvec))
+        self.kill()
 
 class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为什么不复用 问就是懒和不会
     def __init__(self,image,posvec:pygame.math.Vector2,speedvec:pygame.math.Vector2,damage,color):
@@ -417,9 +467,9 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1,1)
-        self.HPlist = (4000,2500,4000,7000,3000,6000,8000,4000,4000,4000)
+        self.HPlist = (400,2500,4000,7000,3000,6000,8000,4000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000,4000)
-        self.spell = 4
+        self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
         self.image = pygame.image.load("Picture/cirno.bmp").convert()
         self.image.set_colorkey((240,240,240))
@@ -446,12 +496,15 @@ class Enemy(pygame.sprite.Sprite):
         if self.shootCoolDown[self.spell - 1] == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
-        list = pygame.sprite.spritecollide(self,selfBulletGroup,False)
+        list = pygame.sprite.spritecollide(self,selfBulletGroup,False) # 伤害判定
         for item in list:
+            if baka.HP/baka.HPlist[baka.spell - 1] < 0.1:
+                se.play("damage")
             self.HP -= item.damage
             if not item.free:
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
+            se.play("destory")
             if not player_Character.missinthisspell: # 符卡收取判定
                 spellscore = (self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
                 score += spellscore
@@ -461,7 +514,7 @@ class Enemy(pygame.sprite.Sprite):
                 player_Character.missinthisspell = False
                 showspellfailedtime = 150
             for item in enemyBulletGroup:
-                sprite_disappear(item,15)
+                item.toscoreitem()
             if self.spell > self.spellcount:
                 self.kill()
                 return
@@ -764,12 +817,13 @@ screenY = 720
 gameX = 570
 size = (screenX,screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Marisa"
+chooseCharacter = "Reimu"
 font_Arial20 = pygame.sysfont.SysFont('Arial',20)
 font_Arial24 = pygame.sysfont.SysFont('Arial',24)
 font_Arial36 = pygame.sysfont.SysFont('Arial',36)
 font_Simsun20 = pygame.sysfont.SysFont('SimSun',20)
 font_Simsun16 = pygame.sysfont.SysFont('SimSun',16)
+
 if settings["replay"] == True:
     with open('rep.json') as f:
         load_event_list = json.load(f,strict=False)
@@ -800,12 +854,14 @@ selfBulletGroup = pygame.sprite.Group()
 enemyBulletGroup = pygame.sprite.Group()
 bombgroup = pygame.sprite.Group()
 effectgroup = pygame.sprite.Group()
+itemGroup = pygame.sprite.Group()
 
 if chooseCharacter == "Reimu":
     player_Character = playerCharacter(5,8,0.5,10,3,5)
     player_CharacterImage = playerCharacterImage(pygame.image.load("Picture/reimu.bmp").convert(),5,3)
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
+    player_Character.spell_image = pygame.image.load("Picture/reimu_spell.bmp").convert()
     player_bullet_picture = pygame.image.load("Picture/reimu_needle.bmp").convert()
     player_bullet_picture.set_colorkey("BLACK")
     #这段也是Bing AI优化的
@@ -842,6 +898,7 @@ self_group.add(player_CharacterJadeRight)
 self_group.add(player_CharacterJadeLeft)
 self_group.add(player_Character)
 UI = UIasset()
+se = SEasset()
 baka = Enemy(5000,5000,pygame.math.Vector2(355,100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
@@ -896,6 +953,7 @@ while not done:
     selfBulletGroup.update()
     bombgroup.update()
     effectgroup.update()
+    itemGroup.update()
     print("bulletupdatetime:{0}".format(pygame.time.get_ticks()-tmp))
     if tick % 2 or not settings["powersave"]:
         tmp = pygame.time.get_ticks()
@@ -910,6 +968,7 @@ while not done:
         enemyBulletGroup.draw(screen)
         bombgroup.draw(screen)
         effectgroup.draw(screen)
+        itemGroup.draw(screen)
         print("bullet:{0}".format(pygame.time.get_ticks()-tmp))
         tmp = pygame.time.get_ticks()
         UI.drawAfter()
