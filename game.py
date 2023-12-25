@@ -196,9 +196,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                 self.nowattackspeed = self.attackSpeed    
                 if chooseCharacter == "Reimu": # 为什么是全局变量 因为懒
                     se.play("shoot")
-                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),100,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_image,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),100,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),100,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_image,(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),100,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
                     se.play("shoot")
@@ -210,9 +210,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                 self.nowattackspeed = self.slowattackSpeed
                 if chooseCharacter == "Reimu":
                     se.play("shoot")
-                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_blue_image,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(2,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_blue_image,(255,255,255),10,10,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 10,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-20),10,0,True,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
                     se.play("shoot")
@@ -343,7 +343,7 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
         elif shape == 0:
             self.image.fill(color)
         else: 
-            self.image = self.shape
+            self.originimage = self.image = self.shape
         self.rect = self.image.get_rect()
         self.posvec = posvec
         self.speedvec = speedvec
@@ -363,6 +363,8 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
         if self.track: # 诱导弹
             self.speedvec = relative_direction(self,baka)
             self.speedvec.scale_to_length(self.inputspeedvec.length()) #速度向量转化为长度与输入速度一致
+            self.image = pygame.transform.rotate(self.originimage,-pygame.math.Vector2(0,-1).angle_to(self.speedvec))
+            self.rect = self.image.get_rect(center = self.rect.center) # 重新获取中心 避免转动问题
         if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50  or self.rect.y + self.height < -50: # 出界判定
             self.kill()
         if self.free:
@@ -866,6 +868,10 @@ if chooseCharacter == "Reimu":
     player_CharacterJadeRight = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),30,28)
     player_CharacterJadeLeft = playerJade(pygame.image.load("Picture/reimu_option.bmp").convert(),-24,28)
     player_Character.spell_image = pygame.image.load("Picture/reimu_spell.bmp").convert()
+    player_Character.spell_purple_image = pygame.image.load("Picture/reimu_spell_purple.bmp").convert()
+    player_Character.spell_purple_image.set_colorkey("BLACK")
+    player_Character.spell_blue_image = pygame.image.load("Picture/reimu_spell_blue.bmp").convert()
+    player_Character.spell_blue_image.set_colorkey("BLACK")
     player_bullet_picture = pygame.image.load("Picture/reimu_needle.bmp").convert()
     player_bullet_picture.set_colorkey("BLACK")
     #这段也是Bing AI优化的
