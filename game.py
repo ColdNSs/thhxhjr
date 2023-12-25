@@ -15,6 +15,8 @@ class SEasset():
         self.soundasset["timeout"] = pygame.mixer.Sound("SE/timeout.wav")
         self.soundasset["shoot"] = pygame.mixer.Sound("SE/shoot.wav")
         self.soundasset["bomb"] = pygame.mixer.Sound("SE/bomb.wav")
+        self.soundasset["enemyst01"] = pygame.mixer.Sound("SE/enemyst01.wav")
+        self.soundasset["enemyst02"] = pygame.mixer.Sound("SE/enemyst02.wav")
         self.setvolume(0.2)
 
     def play(self,effect):
@@ -26,7 +28,7 @@ class SEasset():
 
 class UIasset():
     def __init__(self):
-        self.scoreitem = pygame.image.load("Picture/scoreitem.bmp").convert()
+        self.bulletitem = pygame.image.load("Picture/bulletitem.bmp").convert()
         self.enemy_hp_bar = pygame.image.load("Picture/hp_bar.bmp").convert()
         self.framework = pygame.image.load("Picture/framework.png").convert()
         self.background = pygame.image.load("Picture/background.png").convert()
@@ -194,9 +196,9 @@ class playerCharacter(pygame.sprite.Sprite): #判定点类
                 self.nowattackspeed = self.attackSpeed    
                 if chooseCharacter == "Reimu": # 为什么是全局变量 因为懒
                     se.play("shoot")
-                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeLeft.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),100,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
-                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),10,0,False,pygame.math.Vector2(0,0))
+                    mybullet = Bullet(self.spell_image.copy(),(255,0,0),10,30,pygame.math.Vector2(player_CharacterJadeRight.rect.x + 13,player_CharacterJadeLeft.rect.y + 10),pygame.math.Vector2(0,-40),100,0,False,pygame.math.Vector2(0,0))
                     selfBulletGroup.add(mybullet)
                 elif chooseCharacter == "Marisa":
                     se.play("shoot")
@@ -306,10 +308,10 @@ class playerJade(playerCharacterImage): # 子机类
         if self.angle > 360:
             self.angle = 0
 
-class Scoreitem(pygame.sprite.Sprite):
+class bulletitem(pygame.sprite.Sprite):
     def __init__(self,posvec:pygame.math.Vector2):
         super().__init__()
-        self.image = UI.scoreitem
+        self.image = UI.bulletitem
         self.rect = self.image.get_rect()
         self.posvec = posvec
 
@@ -319,6 +321,7 @@ class Scoreitem(pygame.sprite.Sprite):
         self.rect.center = self.posvec
         if pygame.sprite.collide_circle(self,player_Character):
             se.play("shoot")
+            global score
             score += 100
             self.kill()
 
@@ -365,8 +368,8 @@ class Bullet(pygame.sprite.Sprite): # 子弹类
         if self.free:
             self.rect.centerx = self.posvec.x = self.free.rect.centerx
     
-    def toscoreitem(self):
-        itemGroup.add(Scoreitem(self.posvec))
+    def tobulletitem(self):
+        itemGroup.add(bulletitem(self.posvec))
         self.kill()
 
 class MarisaBomb(pygame.sprite.Sprite): # 抄袭自灵梦Bomb类型 别问我为什么不复用 问就是懒和不会
@@ -467,7 +470,7 @@ class Enemy(pygame.sprite.Sprite):
         self.ice_cone_image = pygame.image.load("Picture/ice_cone.bmp").convert()
         self.ice_cone_image.set_colorkey("BLACK")
         self.shootCoolDown = (1,10,4,1,1,1,1,1,1,1)
-        self.HPlist = (400,2500,4000,7000,3000,6000,8000,4000,4000,4000)
+        self.HPlist = (4000,2500,4000,7000,3000,6000,8000,4000,4000,4000)
         self.spellTimeLimitList = (2400,2400,2000,3000,2000,3000,3600,2000,2000,4000)
         self.spell = 1
         self.HP = self.HPlist[self.spell - 1]
@@ -487,8 +490,11 @@ class Enemy(pygame.sprite.Sprite):
         self.spelltick = 0
         self.enter_spell6 = False # 屎
         self.stand = False
-
+        self.recovering = False
     def update(self):
+        if self.recovering:
+            self.recover()
+            return
         global score
         global showspellfailedtime
         self.shootCoolDownCount += 1
@@ -505,6 +511,7 @@ class Enemy(pygame.sprite.Sprite):
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
             se.play("destory")
+            self.spelltick = 0
             if not player_Character.missinthisspell: # 符卡收取判定
                 spellscore = (self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
                 score += spellscore
@@ -513,15 +520,12 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 player_Character.missinthisspell = False
                 showspellfailedtime = 150
-            for item in enemyBulletGroup:
-                item.toscoreitem()
             if self.spell > self.spellcount:
                 self.kill()
                 return
-            self.shootCoolDownCount = 0
-            self.spell += 1
-            self.spelltick = 0
-            self.HP = self.HPlist[self.spell - 1]
+            self.recovering = True
+            self.spell += 1 # 此时已经进入下张符卡
+            return
         if not self.stand:
             self.moveCoolDownCount += 1
             if self.moveCoolDown == self.moveCoolDownCount:
@@ -534,6 +538,19 @@ class Enemy(pygame.sprite.Sprite):
             self.posvec.y=min(screenY - 50,self.posvec.y)
             self.posvec.y=max(self.rect.height,self.posvec.y)
             self.rect.centerx , self.rect.centery = self.posvec
+
+    def recover(self):
+        pygame.sprite.spritecollide(self,selfBulletGroup,True) # 无敌
+        self.HP += self.HPlist[self.spell - 1] / 120 # 恢复完成则继续正常行动
+        for item in enemyBulletGroup:
+                if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < ((self.HP / self.HPlist[self.spell - 1])* 4 * 900)**2:
+                # 在30帧内以笨蛋为圆心创建一个半径为3600的把弹幕转换为道具的圆的狗屎实现
+                    item.tobulletitem()
+        if self.HP >= self.HPlist[self.spell - 1]: 
+            self.recovering = False
+            self.HP = self.HPlist[self.spell - 1]
+            self.shootCoolDownCount = 0
+            se.play("bomb")
 
     def shoot(self):
         if self.spell == 1:
@@ -609,6 +626,7 @@ class Enemy(pygame.sprite.Sprite):
                     bullet.tracktime = 181
                     enemyBulletGroup.add(bullet)
             if self.spelltick % 30 == 0: # 一定时间内的诱导弹
+                se.play("enemyst02")
                 bullet = Bullet(1,(240,240,240),40,40,pygame.math.Vector2(self.posvec.x,self.posvec.y),relative_direction(self,player_Character) * 2,1,0,0,pygame.math.Vector2(0,0))
                 bullet.tracktime = 0
                 enemyBulletGroup.add(bullet)
@@ -671,26 +689,11 @@ class Enemy(pygame.sprite.Sprite):
                 item.speedvec.rotate_ip(self.spell7_bulletrotate)
             if self.spelltick % 480 == 0:
                 self.spell7_bulletrotate = -self.spell7_bulletrotate
+                se.play("enemyst01")
                 for item in enemyBulletGroup:
                     item.tracktime = 999
             self.posvec = pygame.math.Vector2(self.rect.centerx,self.rect.centery)
 
-        if self.spell == 8:
-            self.stand = True
-            for i in range(60):
-                if self.spelltick % 15 == i: #开花旋转加速弹（?
-                    tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.02)     
-                    enemyBulletGroup.add(bullet)
-                if (self.spelltick + 5) % 15 == i:
-                    tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.04)     
-                    enemyBulletGroup.add(bullet)
-                if (self.spelltick + 10) % 15 == i:
-                    tmp_speedvec = pygame.math.Vector2(0,-1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1,(0,min(240 - self.spelltick % 240,self.spelltick % 240) * 2,240),20,20,baka.posvec + tmp_speedvec,tmp_speedvec,1,0,0,tmp_speedvec * 0.06)     
-                    enemyBulletGroup.add(bullet)
-        
         if self.spell == 8:
             self.stand = True
             for i in range(60):
@@ -733,6 +736,7 @@ class Enemy(pygame.sprite.Sprite):
                         bullet.specialtag_1 = True
                         enemyBulletGroup.add(bullet)
             if self.spelltick % 180 == 60: # 丢出去
+                se.play("enemyst01")
                 self.stand = False
                 for item in enemyBulletGroup:
                     if hasattr(item,"specialtag_1") and item.specialtag_1 == True:
