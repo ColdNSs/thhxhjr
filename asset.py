@@ -56,8 +56,8 @@ class UIDrawer():
         self.font_Arial36 = pygame.sysfont.SysFont('Arial', 36)
         self.font_Simsun20 = pygame.sysfont.SysFont('SimSun', 20)
         self.font_Simsun16 = pygame.sysfont.SysFont('SimSun', 16)
-        self.fpsTimer = 0
         self.settings = settings
+        self.fpsTimer = 0
         self.showspellfailedtime = 0
         self.showspellscoredata = {"score": 0, "time": 0}
 
