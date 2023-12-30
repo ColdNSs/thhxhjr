@@ -46,16 +46,16 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                                (self.radius, self.radius), self.radius)
             pygame.draw.circle(self.image, 'RED',
                                (self.radius, self.radius), self.radius, 1)
-            player_CharacterOptionRight.x = 30
+            player_CharacterOptionRight.x = 27
             player_CharacterOptionRight.y = 28
-            player_CharacterOptionLeft.x = -24
+            player_CharacterOptionLeft.x = -27
             player_CharacterOptionLeft.y = 28
         if mode == 0:
             self.slow = 1
             self.image.fill('BLACK')
-            player_CharacterOptionRight.x = 18
+            player_CharacterOptionRight.x = 16
             player_CharacterOptionRight.y = -23
-            player_CharacterOptionLeft.x = -15
+            player_CharacterOptionLeft.x = -16
             player_CharacterOptionLeft.y = -23
         self.mode = mode
 
@@ -123,16 +123,16 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             if chooseCharacter == "Reimu":  # 为什么是全局变量 因为懒
                 # 红白主机子弹
                 selfBulletGroup.add(Bullet(self.spell_image, (255, 0, 0), 10, 30, pygame.math.Vector2(
-                    self.rect.x + 10, self.rect.y + 10), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
+                    self.rect.centerx + 8, self.rect.y - 5), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
                 selfBulletGroup.add(Bullet(self.spell_image, (255, 0, 0), 10, 30, pygame.math.Vector2(
-                    self.rect.x - 10, self.rect.y + 10), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
+                    self.rect.centerx - 8, self.rect.y - 5), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
             elif chooseCharacter == "Marisa":
                 # 黑白主机子弹
                 mybullet = Bullet(self.bulletimage, (255, 255, 128), 10, 300, pygame.math.Vector2(
-                    self.rect.x + 13, self.rect.y), pygame.math.Vector2(0, -1), 30, 0, False, pygame.math.Vector2(0, -0.5))
+                    self.rect.x + 13, self.rect.y - 10), pygame.math.Vector2(0, -1), 30, 0, False, pygame.math.Vector2(0, -0.5))
                 selfBulletGroup.add(mybullet)
                 mybullet = Bullet(self.bulletimage, (255, 255, 128), 10, 300, pygame.math.Vector2(
-                    self.rect.x + 13, self.rect.y), pygame.math.Vector2(0, -1), 30, 0, False, pygame.math.Vector2(0, -0.5))
+                    self.rect.x - 7, self.rect.y - 10), pygame.math.Vector2(0, -1), 30, 0, False, pygame.math.Vector2(0, -0.5))
                 selfBulletGroup.add(mybullet)
 
     def bombingCheck(self):
@@ -201,9 +201,9 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
 class playerCharacterImage(pygame.sprite.Sprite):  # 自机点阵图
     def __init__(self, image, x, y):
         super().__init__()
-        self.image = image
+        self.image = pygame.transform.scale(image,(35,50))
         self.originimage = image
-        self.image.set_colorkey((240, 240, 240))
+        self.image.set_colorkey("BLUE")
         self.x = x
         self.y = y
 
@@ -223,12 +223,16 @@ class playerOption(playerCharacterImage):  # 子机类
         self.slowattackSpeed = slowattackSpeed
         self.attackCoolDown = 0
         self.slow = False
+        self.image = image
+        image.set_colorkey("BLUE")
+        self.x = x
+        self.y = y
     def update(self):
         self.attackCoolDown += 1
         self.rect = self.image.get_rect()
         width, height = self.image.get_size()
-        self.rect.x, self.rect.y = (-width / 2 + player_Character.rect.x +
-                                    self.x, -height / 2 + player_Character.rect.y + self.y)
+        self.rect.center = (player_Character.rect.centerx +
+                                    self.x, -height / 2 + player_Character.rect.centery + self.y)
         self.image = pygame.transform.rotate(self.originimage, self.angle+1)
         self.rect = self.image.get_rect(
             center=self.rect.center)  # 重新获取中心 避免转动问题
@@ -239,14 +243,16 @@ class playerOption(playerCharacterImage):  # 子机类
             return
         if chooseCharacter == "Reimu":
             if self.slow == False and self.attackSpeed < self.attackCoolDown:
+                se.play("shoot")
                 selfBulletGroup.add(Bullet(player_Character.spell_blue_image, (255, 255, 255), 10, 10, pygame.math.Vector2(
-                    self.rect.x + 10, self.rect.centery + 10), pygame.math.Vector2(0, -20), 6, 0, True, pygame.math.Vector2(0, 0))
+                    self.rect.centerx, self.rect.centery + 10), pygame.math.Vector2(0, -20), 6, 0, True, pygame.math.Vector2(0, 0))
                 )
                 self.attackCoolDown = 0
                 return
             if self.slow == True and self.slowattackSpeed < self.attackCoolDown:
+                se.play("shoot")
                 selfBulletGroup.add(Bullet(player_Character.spell_purple_image, (255, 0, 0), 10, 30, pygame.math.Vector2(
-                    self.rect.x + 10, self.rect.centery + 10), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
+                    self.rect.centerx, self.rect.centery + 10), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
                 self.attackCoolDown = 0
                 return
         if chooseCharacter == "Marisa":
@@ -422,7 +428,7 @@ class ReimuBomb(pygame.sprite.Sprite):
                 self.trigger = 1  # 击中则被触发
         self.lifetime -= 1
         if self.trigger:  # 逐渐变大消失
-            self.image = pygame.transform.scale(self.image, (self.image.get_width(
+            self.image = pygame.transform.scale(self.image,(self.image.get_width(
             ) * (1 + 0.03 * self.trigger), self.image.get_height() * (1 + 0.03 * self.trigger)))
             self.trigger += 1
             self.image.set_alpha(255 - self.trigger * 4)
@@ -899,11 +905,11 @@ itemGroup = pygame.sprite.Group()
 if chooseCharacter == "Reimu":
     player_Character = playerCharacter(5, 8, 0.5, 10, 3)
     player_CharacterImage = playerCharacterImage(
-        pygame.image.load("Picture/reimu.bmp").convert(), 5, 3)
+        pygame.image.load("Picture/reimu_new.bmp").convert(), 5, 3)
     player_CharacterOptionRight = playerOption(pygame.image.load(
-        "Picture/reimu_option.bmp").convert(), 18, -23, 9, 6)
+        "Picture/reimu_option.bmp").convert(), 16, -23, 9, 6)
     player_CharacterOptionLeft = playerOption(pygame.image.load(
-        "Picture/reimu_option.bmp").convert(), -15, -23, 9, 6)
+        "Picture/reimu_option.bmp").convert(), -16, -23, 9, 6)
     player_Character.spell_image = pygame.image.load(
         "Picture/reimu_spell.bmp").convert()
     player_Character.spell_purple_image = pygame.image.load(
@@ -925,16 +931,16 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
 
 if chooseCharacter == "Marisa":
-    player_Character = playerCharacter(6, 9, 0.4, 9, 0)
+    player_Character = playerCharacter(6, 9, 0.4, 9, 15)
     player_Character.bulletimage = pygame.image.load("Picture/grass.bmp")
     player_Character.bulletimage.convert()
     player_Character.bulletimage.set_colorkey((240, 240, 240))
     player_CharacterImage = playerCharacterImage(
         pygame.image.load("Picture/marisa.bmp").convert(), 5, 3)
     player_CharacterOptionRight = playerOption(pygame.image.load(
-        "Picture/marisa_option.bmp").convert(), 30, 28,2,2)
+        "Picture/marisa_option.bmp").convert(), 30, 28,0,0)
     player_CharacterOptionLeft = playerOption(pygame.image.load(
-        "Picture/marisa_option.bmp").convert(), -24, 28,2,2)
+        "Picture/marisa_option.bmp").convert(), -24, 28,0,0)
     player_bullet_picture = pygame.image.load(
         "Picture/marisa_missile.bmp").convert()
     player_bullet_picture.set_colorkey("BLACK")
