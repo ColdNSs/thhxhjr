@@ -6,6 +6,7 @@ class SEPlayer():
     PLAYER_SPELL_CHANNEL = 34
     ENEMY_SPELL_CHANNEL = 35
     ENEMY_DESTORY_CHANNEL = 35
+
     def __init__(self):
         self.channel = 0
         self.soundasset = {}
@@ -38,19 +39,29 @@ class SEPlayer():
             self.soundasset[sound].set_volume(volume)
 
 
+class PicLoader():
+    def load(self, picname: str, width=0, height=0, ignorecolorkey=False):
+        pic = pygame.image.load(picname).convert()
+        if not ignorecolorkey:
+            pic.set_colorkey("BLUE")
+        if not (width and height):
+            return pic
+        pic = pygame.transform.scale(pic, (width, height))
+        pic.set_colorkey("BLUE")
+        return pic
+
+
 class UIDrawer():
+    picLoader = PicLoader()
+
     def __init__(self, settings):
-        self.bulletitem = pygame.image.load("Picture/bulletitem.bmp").convert()
-        self.enemy_hp_bar = pygame.image.load("Picture/hp_bar.bmp").convert()
-        self.framework = pygame.image.load("Picture/framework.png").convert()
-        self.background = pygame.image.load("Picture/background.png").convert()
-        self.bomb = pygame.image.load("Picture/star_green.bmp").convert()
-        self.HP = pygame.image.load("Picture/star_red.bmp").convert()
-        self.time_panel = pygame.image.load("Picture/time_panel.bmp").convert()
-        self.framework.set_colorkey((255, 255, 255))
-        self.bomb.set_colorkey((240, 240, 240))
-        self.HP.set_colorkey((240, 240, 240))
-        self.time_panel.set_colorkey("BLACK")
+        self.bulletitem = self.picLoader.load("Picture/bulletitem.bmp")
+        self.enemy_hp_bar = self.picLoader.load("Picture/hp_bar.bmp")
+        self.framework = self.picLoader.load("Picture/framework.png")
+        self.background = self.picLoader.load("Picture/background.png")
+        self.bomb = self.picLoader.load("Picture/star_green.bmp",25,25)
+        self.HP = self.picLoader.load("Picture/star_red.bmp",25,25)
+        self.time_panel = self.picLoader.load("Picture/time_panel.bmp")
         self.font_Arial20 = pygame.sysfont.SysFont('Arial', 20)
         self.font_Arial24 = pygame.sysfont.SysFont('Arial', 24)
         self.font_Arial36 = pygame.sysfont.SysFont('Arial', 36)
