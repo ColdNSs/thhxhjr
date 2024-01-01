@@ -883,7 +883,7 @@ screenY = 720
 gameX = 570
 size = (screenX, screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Reimu"
+chooseCharacter = "Marisa"
 
 
 if settings["replay"] == True:
@@ -951,11 +951,11 @@ if chooseCharacter == "Marisa":
     player_Character.bulletimage.convert()
     player_Character.bulletimage.set_colorkey((240, 240, 240))
     player_CharacterImage = playerCharacterImage(
-        pygame.image.load("Picture/marisa.bmp").convert())
+        pygame.image.load("Picture/marisa_new.bmp").convert(),pygame.image.load("Picture/marisa_newl.bmp").convert(),pygame.image.load("Picture/marisa_newr.bmp").convert())
     player_CharacterOptionRight = playerOption(pygame.image.load(
-        "Picture/marisa_option.bmp").convert(), 30, 28,0,0)
+        "Picture/marisa_option.bmp").convert(), 16, -23,0,0)
     player_CharacterOptionLeft = playerOption(pygame.image.load(
-        "Picture/marisa_option.bmp").convert(), -24, 28,0,0)
+        "Picture/marisa_option.bmp").convert(), -16, -23,0,0)
     player_bullet_picture = pygame.image.load(
         "Picture/marisa_missile.bmp").convert()
     player_bullet_picture.set_colorkey("BLACK")
