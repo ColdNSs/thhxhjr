@@ -40,10 +40,12 @@ class SEPlayer():
 
 
 class PicLoader():
-    def load(self, picname: str, width=0, height=0, ignorecolorkey=False):
-        pic = pygame.image.load(picname).convert()
-        if not ignorecolorkey:
+    def load(self, picname: str, width=0, height=0, hasalpha=False):
+        if not hasalpha:
+            pic = pygame.image.load(picname).convert()
             pic.set_colorkey("BLUE")
+        else:
+            pic = pygame.image.load(picname).convert_alpha()
         if not (width and height):
             return pic
         pic = pygame.transform.scale(pic, (width, height))
@@ -62,16 +64,25 @@ class UIDrawer():
         self.bomb = self.picLoader.load("Picture/star_green.bmp",25,25)
         self.HP = self.picLoader.load("Picture/star_red.bmp",25,25)
         self.time_panel = self.picLoader.load("Picture/time_panel.bmp")
+        self.lifetext = self.picLoader.load("Picture/lifetext.png",hasalpha=True)
+        self.spelltext = self.picLoader.load("Picture/spelltext.png",hasalpha=True)
+        self.hiscoretext = self.picLoader.load("Picture/hiscore.png",hasalpha=True)
+        self.scoretext = self.picLoader.load("Picture/score.png",hasalpha=True)
+        self.grazetext = self.picLoader.load("Picture/graze.png",hasalpha=True)
         self.font_Arial20 = pygame.sysfont.SysFont('Arial', 20)
         self.font_Arial24 = pygame.sysfont.SysFont('Arial', 24)
         self.font_Arial36 = pygame.sysfont.SysFont('Arial', 36)
+        self.font_Simsun24 = pygame.sysfont.SysFont('SimSun', 24)
         self.font_Simsun20 = pygame.sysfont.SysFont('SimSun', 20)
         self.font_Simsun16 = pygame.sysfont.SysFont('SimSun', 16)
         self.settings = settings
         self.fpsTimer = 0
         self.showspellfailedtime = 0
         self.showspellscoredata = {"score": 0, "time": 0}
-
+        self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
+        self.framework.blit(self.lifetext,(620,170))
+        self.framework.blit(self.spelltext,(620,210))
+        self.framework.blit(self.grazetext,(642,250))
     def drawBefore(self, screen):
         screen.blit(self.background, (30, 20))
 
@@ -101,7 +112,7 @@ class UIDrawer():
             self.fpstext = self.font_Arial20.render(str("{0:.2f}".format(
                 nowfps/2 if self.settings["powersave"] else nowfps)), True, fpscolor)
             self.versiontext = self.font_Simsun16.render(
-                "DEV 231226 早期开发版本", True, "WHITE")
+                "DEV 240104 早期开发版本", True, "WHITE")
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         screen.blit(self.versiontext, (0, 700))
@@ -111,21 +122,17 @@ class UIDrawer():
             500*baka.HP/baka.HPlist[baka.spell - 1], 0), 20)), (90, 35))
         screen.blit(self.time_panel, (50, 22))
         # 分数显示
-        screen.blit(self.font_Simsun20.render("   Score：{0:0>10}".format(
-            score), True, (240, 240, 240)), (630, 140))
+        screen.blit(self.font_Simsun24.render("{0:0>10}".format(
+            score), True, (240, 240, 240)), (740, 133))
         # 残机显示
-        screen.blit(self.font_Simsun20.render(
-            "剩余人数：", True, (240, 240, 240)), (630, 170))
         for i in range(player_Character.HP):
-            screen.blit(self.HP, (730+i*25, 170))
+            screen.blit(self.HP, (740+i*25, 172))
         # 符卡显示
-        screen.blit(self.font_Simsun20.render(
-            "剩余符卡：", True, (240, 240, 240)), (630, 200))
         for i in range(player_Character.Bomb):
-            screen.blit(self.bomb, (730+i*25, 200))
+            screen.blit(self.bomb, (740+i*25, 212))
         # 擦弹数量显示
-        screen.blit(self.font_Simsun20.render("擦弹数：{0}".format(
-            player_Character.graze), True, (240, 240, 240)), (630, 230))
+        screen.blit(self.font_Simsun24.render("{0}".format(
+            player_Character.graze), True, (240, 240, 240)), (740, 253))
         # 敌人位置显示
         screen.blit(self.font_Simsun16.render(
             "| ENEMY |", True, (255, 0, 0)), (baka.rect.x, 700))

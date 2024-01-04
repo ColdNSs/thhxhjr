@@ -942,9 +942,9 @@ if chooseCharacter == "Marisa":
     player_CharacterImage = playerCharacterImage(
         picloader.load("Picture/marisa_new.bmp", 35, 50), picloader.load("Picture/marisa_newl.bmp", 35, 50), picloader.load("Picture/marisa_newr.bmp", 35, 50))
     player_CharacterOptionRight = playerOption(
-        picloader.load("Picture/marisa_option.bmp"), 16, -23, 0, 8)
+        picloader.load("Picture/marisa_option.bmp",hasalpha=True), 16, -23, 0, 8)
     player_CharacterOptionLeft = playerOption(picloader.load(
-        "Picture/marisa_option.bmp"), -16, -23, 0, 8)
+        "Picture/marisa_option.bmp",hasalpha=True), -16, -23, 0, 8)
     player_Character.missile_image = picloader.load(
         "Picture/marisa_missile.bmp")
     colors = ["red", "green", "yellow"]
