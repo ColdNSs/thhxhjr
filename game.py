@@ -1,5 +1,6 @@
 # DEV BY TJUGERKFER
 import random
+from typing import Any
 import pygame
 import json
 import asset
@@ -72,9 +73,9 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             self.speedvec.scale_to_length(
                 self.speed * self.slow)  # 算出速度方向并乘以速度标量
             self.posvec += self.speedvec
-            self.posvec.x = min(gameX + 20, self.posvec.x)
+            self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
             self.posvec.x = max(40, self.posvec.x)
-            self.posvec.y = min(screenY - 50, self.posvec.y)
+            self.posvec.y = min(gameZoneDown - self.rect.height, self.posvec.y)
             self.posvec.y = max(50, self.posvec.y)
             self.rect.centerx, self.rect.centery = self.posvec
         # 伪状态机
@@ -249,26 +250,26 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
         if self.shoot == False:  # 未射击直接返回
             return
         if chooseCharacter == "Reimu":
-            if self.slow == False and self.attackSpeed < self.attackCoolDown: # 红白诱导
+            if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 红白诱导
                 se.play("shoot")
                 selfBulletGroup.add(Bullet(player_Character.spell_blue_image, (255, 255, 255), 10, 10, pygame.math.Vector2(
                     self.rect.centerx, self.rect.centery + 10), pygame.math.Vector2(0, -20), 6, 0, True, pygame.math.Vector2(0, 0))
                 )
                 self.attackCoolDown = 0
                 return
-            if self.slow == True and self.slowattackSpeed < self.attackCoolDown: # 红白集中
+            if self.slow == True and self.slowattackSpeed < self.attackCoolDown:  # 红白集中
                 se.play("shoot")
                 selfBulletGroup.add(Bullet(player_Character.spell_purple_image, (255, 0, 0), 10, 30, pygame.math.Vector2(
                     self.rect.centerx, self.rect.centery + 10), pygame.math.Vector2(0, -40), 10, 0, False, pygame.math.Vector2(0, 0)))
                 self.attackCoolDown = 0
                 return
         if chooseCharacter == "Marisa":
-            if self.slow == False and self.attackSpeed < self.attackCoolDown: # 黑白激光
+            if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 黑白激光
                 selfBulletGroup.add(Bullet(0, (255, 255, 128), 10, 300, pygame.math.Vector2(self.rect.x + 13,
                                                                                             self.rect.y - 10), pygame.math.Vector2(0, -120), 1, self, False, pygame.math.Vector2(0, 0)))
                 self.attackCoolDown = 0
                 return
-            elif self.slow == True and self.slowattackSpeed < self.attackCoolDown: # 黑白导弹
+            elif self.slow == True and self.slowattackSpeed < self.attackCoolDown:  # 黑白导弹
                 selfBulletGroup.add(Bullet(player_Character.missile_image, (255, 255, 128), 10, 300, pygame.math.Vector2(
                     self.rect.centerx, self.rect.y - 10), pygame.math.Vector2(0, -1), 18, 0, False, pygame.math.Vector2(0, -0.5)))
                 self.attackCoolDown = 0
@@ -339,7 +340,7 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
                 self.originimage, -pygame.math.Vector2(0, -1).angle_to(self.speedvec))
             self.rect = self.image.get_rect(
                 center=self.rect.center)  # 重新获取中心 避免转动问题
-        if self.rect.x - self.width > gameX + 50 or self.rect.x < -50 or self.rect.y > screenY + 50 or self.rect.y + self.height < -50:  # 出界判定
+        if self.rect.x - self.width > gameZoneRight or self.rect.x + self.width < gameZoneLeft or self.rect.y - self.rect.height > gameZoneDown or self.rect.y + self.height < gameZoneUp:  # 出界判定
             self.kill()
         if self.free:
             self.rect.centerx = self.posvec.x = self.free.rect.centerx
@@ -450,6 +451,20 @@ class ReimuBomb(pygame.sprite.Sprite):
                 sprite_disappear(item, 5)
 
 
+class LimitTimePic(pygame.sprite.Sprite):
+    def __init__(self, image, posvec, lifetime):
+        super().__init__()
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.center = self.posvec = posvec
+        self.lifetime = self.lastlifetime = lifetime
+
+    def update(self):
+        self.lastlifetime -= 1
+        if self.lastlifetime <= 0:
+            self.kill()
+
+
 class Enemy(pygame.sprite.Sprite):  # 敌人类
     def __init__(self, maxHP, HP, posvec):
         super().__init__()
@@ -502,20 +517,24 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
             se.play("destory", se.ENEMY_DESTORY_CHANNEL)
-            self.spelltick = 0
             if not player_Character.missinthisspell:  # 符卡收取判定
                 spellscore = (
                     self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
                 score += spellscore
-                ui.showspellscoredata["score"] = spellscore
-                ui.showspellscoredata["time"] = 150
+                effectgroup.add(LimitTimePic(
+                    ui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
+                scoretext = ui.font_24.render(str(spellscore),True,"WHITE")
+                effectgroup.add(LimitTimePic(
+                    scoretext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
             else:
-                player_Character.missinthisspell = False
-                ui.showspellfailedtime = 150
+                effectgroup.add(LimitTimePic(
+                    ui.bonusfailedtext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
+            player_Character.missinthisspell = False
             if self.spell > self.spellcount:
                 self.kill()
                 return
             self.recovering = True
+            self.spelltick = 0
             self.spell += 1  # 此时已经进入下张符卡
             return
         if not self.stand:
@@ -525,9 +544,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 self.moveCoolDownCount = 0
                 self.speedvec.x = random.uniform(-2, 2)
             self.posvec = self.posvec + self.speedvec
-            self.posvec.x = min(gameX - 50, self.posvec.x)
+            self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
             self.posvec.x = max(self.rect.width, self.posvec.x)
-            self.posvec.y = min(screenY - 50, self.posvec.y)
+            self.posvec.y = min(gameZoneDown - self.rect.height, self.posvec.y)
             self.posvec.y = max(self.rect.height, self.posvec.y)
             self.rect.centerx, self.rect.centery = self.posvec
 
@@ -876,10 +895,13 @@ except FileNotFoundError:
 score = 0
 screenX = 960
 screenY = 720
-gameX = 570
+gameZoneLeft = 30
+gameZoneRight = 620
+gameZoneUp = 20
+gameZoneDown = 695
 size = (screenX, screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Marisa"
+chooseCharacter = "Reimu"
 recorder = TimeRecorder()
 framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
@@ -942,9 +964,9 @@ if chooseCharacter == "Marisa":
     player_CharacterImage = playerCharacterImage(
         picloader.load("Picture/marisa_new.bmp", 35, 50), picloader.load("Picture/marisa_newl.bmp", 35, 50), picloader.load("Picture/marisa_newr.bmp", 35, 50))
     player_CharacterOptionRight = playerOption(
-        picloader.load("Picture/marisa_option.bmp",hasalpha=True), 16, -23, 0, 8)
+        picloader.load("Picture/marisa_option.bmp", hasalpha=True), 16, -23, 0, 8)
     player_CharacterOptionLeft = playerOption(picloader.load(
-        "Picture/marisa_option.bmp",hasalpha=True), -16, -23, 0, 8)
+        "Picture/marisa_option.bmp", hasalpha=True), -16, -23, 0, 8)
     player_Character.missile_image = picloader.load(
         "Picture/marisa_missile.bmp")
     colors = ["red", "green", "yellow"]

@@ -69,35 +69,19 @@ class UIDrawer():
         self.hiscoretext = self.picLoader.load("Picture/hiscore.png",hasalpha=True)
         self.scoretext = self.picLoader.load("Picture/score.png",hasalpha=True)
         self.grazetext = self.picLoader.load("Picture/graze.png",hasalpha=True)
-        self.font_Arial20 = pygame.sysfont.SysFont('Arial', 20)
-        self.font_Arial24 = pygame.sysfont.SysFont('Arial', 24)
-        self.font_Arial36 = pygame.sysfont.SysFont('Arial', 36)
-        self.font_Simsun24 = pygame.sysfont.SysFont('SimSun', 24)
-        self.font_Simsun20 = pygame.sysfont.SysFont('SimSun', 20)
-        self.font_Simsun16 = pygame.sysfont.SysFont('SimSun', 16)
+        self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
+        self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
+        self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
+        self.font_20 = pygame.font.Font("fonts/fonts.ttf", 20)
+        self.font_16 = pygame.font.Font("fonts/fonts.ttf", 16)
         self.settings = settings
         self.fpsTimer = 0
-        self.showspellfailedtime = 0
-        self.showspellscoredata = {"score": 0, "time": 0}
         self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
         self.framework.blit(self.lifetext,(620,170))
         self.framework.blit(self.spelltext,(620,210))
         self.framework.blit(self.grazetext,(642,250))
     def drawBefore(self, screen):
         screen.blit(self.background, (30, 20))
-
-    def showspellscore(self, screen):
-        if self.showspellscoredata["time"]:
-            char_count = int((150 - self.showspellscoredata["time"]) / 6)
-            screen.blit(self.font_Arial36.render("Get Spell Bonus!!",
-                        True, (255, 255, 255)), (210, 250))
-            screen.blit(self.font_Arial24.render(str(self.showspellscoredata["score"]).rjust(
-                8, "0")[:char_count], True, (255, 0, 0)), (290, 290))
-            self.showspellscoredata["time"] -= 1
-        if self.showspellfailedtime:
-            screen.blit(self.font_Arial36.render("Bonus Failed...",
-                        True, (235, 235, 235)), (246, 250))
-            self.showspellfailedtime -= 1
 
     def drawAfter(self, screen, baka, player_Character, se, clock, score):
         # 游戏UI背景
@@ -109,9 +93,9 @@ class UIDrawer():
                 fpscolor = (255, 255, 255)
             else:
                 fpscolor = (255, 0, 0)
-            self.fpstext = self.font_Arial20.render(str("{0:.2f}".format(
+            self.fpstext = self.font_20.render(str("{0:.2f}".format(
                 nowfps/2 if self.settings["powersave"] else nowfps)), True, fpscolor)
-            self.versiontext = self.font_Simsun16.render(
+            self.versiontext = self.font_16.render(
                 "DEV 240104 早期开发版本", True, "WHITE")
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
@@ -122,8 +106,8 @@ class UIDrawer():
             500*baka.HP/baka.HPlist[baka.spell - 1], 0), 20)), (90, 35))
         screen.blit(self.time_panel, (50, 22))
         # 分数显示
-        screen.blit(self.font_Simsun24.render("{0:0>10}".format(
-            score), True, (240, 240, 240)), (740, 133))
+        screen.blit(self.font_24.render("{0:0>10}".format(
+            score), True, (240, 240, 240)), (740, 130))
         # 残机显示
         for i in range(player_Character.HP):
             screen.blit(self.HP, (740+i*25, 172))
@@ -131,27 +115,26 @@ class UIDrawer():
         for i in range(player_Character.Bomb):
             screen.blit(self.bomb, (740+i*25, 212))
         # 擦弹数量显示
-        screen.blit(self.font_Simsun24.render("{0}".format(
-            player_Character.graze), True, (240, 240, 240)), (740, 253))
+        screen.blit(self.font_24.render("{0}".format(
+            player_Character.graze), True, (240, 240, 240)), (740, 250))
         # 敌人位置显示
-        screen.blit(self.font_Simsun16.render(
+        screen.blit(self.font_16.render(
             "| ENEMY |", True, (255, 0, 0)), (baka.rect.x, 700))
         # 剩余时间显示
         self.lefttime = int(
             (baka.spellTimeLimitList[baka.spell - 1] - baka.spelltick) / 6)
         if self.lefttime > 99:
-            screen.blit(self.font_Arial24.render(
+            screen.blit(self.font_24.render(
                 str(int(self.lefttime / 10)), True, "BLACK"), (55, 31))
-            screen.blit((self.font_Arial24.render(
+            screen.blit((self.font_24.render(
                 ".", True, "BLACK")), (79, 31))
-            screen.blit(self.font_Arial20.render(
+            screen.blit(self.font_20.render(
                 str(int(self.lefttime - int(self.lefttime / 10) * 10)), True, "BLACK"), (83, 35))
         else:
             if self.lefttime % 10 == 9:
                 se.play("timeout")
-            screen.blit(self.font_Arial24.render(
+            screen.blit(self.font_24.render(
                 "0"+str(int(self.lefttime / 10)), True, "RED"), (55, 31))
-            screen.blit((self.font_Arial24.render(".", True, "RED")), (79, 31))
-            screen.blit(self.font_Arial20.render(
+            screen.blit((self.font_24.render(".", True, "RED")), (79, 31))
+            screen.blit(self.font_20.render(
                 str(int(self.lefttime - int(self.lefttime / 10) * 10)), True, "RED"), (83, 35))
-        self.showspellscore(screen)
