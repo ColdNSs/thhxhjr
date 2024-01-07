@@ -71,6 +71,7 @@ class UIDrawer():
         self.grazetext = self.picLoader.load("Picture/graze.png",hasalpha=True)
         self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
+        self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
         self.font_20 = pygame.font.Font("fonts/fonts.ttf", 20)
         self.font_16 = pygame.font.Font("fonts/fonts.ttf", 16)
@@ -96,15 +97,21 @@ class UIDrawer():
             self.fpstext = self.font_20.render(str("{0:.2f}".format(
                 nowfps/2 if self.settings["powersave"] else nowfps)), True, fpscolor)
             self.versiontext = self.font_16.render(
-                "DEV 240104 早期开发版本", True, "WHITE")
+                "DEV 240107 早期开发版本", True, "WHITE")
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
         screen.blit(self.versiontext, (0, 700))
         self.fpsTimer -= 1
         # 敌机血量显示
         screen.blit(pygame.transform.scale(self.enemy_hp_bar, (max(
-            500*baka.HP/baka.HPlist[baka.spell - 1], 0), 20)), (90, 35))
+            500*baka.HP/baka.spelldata[baka.spell].hp, 0), 20)), (90, 35))
         screen.blit(self.time_panel, (50, 22))
+        # 敌机剩余符卡显示
+        spellcount = 0
+        for spell in baka.spelldata[baka.spell:len(baka.spelldata)]:
+            if spell.isspell:
+                spellcount += 1
+                screen.blit(self.ice, (80+16*spellcount, 60))
         # 分数显示
         screen.blit(self.font_24.render("{0:0>10}".format(
             score), True, (240, 240, 240)), (740, 130))
@@ -122,19 +129,25 @@ class UIDrawer():
             "| ENEMY |", True, (255, 0, 0)), (baka.rect.x, 700))
         # 剩余时间显示
         self.lefttime = int(
-            (baka.spellTimeLimitList[baka.spell - 1] - baka.spelltick) / 6)
+            (baka.spelldata[baka.spell].time - baka.spelltick) / 6)
+        lefttimestr = str(self.lefttime)
         if self.lefttime > 99:
-            screen.blit(self.font_24.render(
-                str(int(self.lefttime / 10)), True, "BLACK"), (55, 31))
-            screen.blit((self.font_24.render(
-                ".", True, "BLACK")), (79, 31))
-            screen.blit(self.font_20.render(
-                str(int(self.lefttime - int(self.lefttime / 10) * 10)), True, "BLACK"), (83, 35))
-        else:
-            if self.lefttime % 10 == 9:
+            for i,c in enumerate(lefttimestr):
+                if i == 2:
+                    screen.blit(self.font_20.render(".",True,"BLACK"),(79,31))
+                    screen.blit(self.font_16.render(c,True,"BLACK"),(83,36))
+                    return
+                screen.blit(self.font_20.render(c,True,"BLACK"),(55+12*i,31))
+            return
+        elif self.lefttime > 9:
+            if lefttimestr[1] == "0": # 非等宽字体，只能单个绘制
                 se.play("timeout")
-            screen.blit(self.font_24.render(
-                "0"+str(int(self.lefttime / 10)), True, "RED"), (55, 31))
-            screen.blit((self.font_24.render(".", True, "RED")), (79, 31))
-            screen.blit(self.font_20.render(
-                str(int(self.lefttime - int(self.lefttime / 10) * 10)), True, "RED"), (83, 35))
+            screen.blit(self.font_20.render("0", True, "RED"), (55, 31))
+            screen.blit(self.font_20.render(lefttimestr[0], True, "RED"), (67, 31))
+            screen.blit((self.font_20.render(".", True, "RED")), (79, 31))
+            screen.blit(self.font_16.render(lefttimestr[1], True, "RED"), (83, 36))
+            return
+        screen.blit(self.font_20.render("0", True, "RED"), (55, 31))
+        screen.blit(self.font_20.render("0", True, "RED"), (67, 31))
+        screen.blit((self.font_20.render(".", True, "RED")), (79, 31))
+        screen.blit(self.font_16.render(lefttimestr[0], True, "RED"), (83, 36))

@@ -443,6 +443,7 @@ class ReimuBomb(pygame.sprite.Sprite):
         if self.trigger > 63:
             if not baka.recovering:
                 baka.HP -= 50
+                se.play("destory")
             self.kill()
         if not self.lifetime:  # 超过生命周期也消失
             self.kill()
@@ -451,7 +452,7 @@ class ReimuBomb(pygame.sprite.Sprite):
                 sprite_disappear(item, 5)
 
 
-class LimitTimePic(pygame.sprite.Sprite):
+class LimitTimePic(pygame.sprite.Sprite): # 限时图片
     def __init__(self, image, posvec, lifetime):
         super().__init__()
         self.image = image
@@ -464,20 +465,33 @@ class LimitTimePic(pygame.sprite.Sprite):
         if self.lastlifetime <= 0:
             self.kill()
 
+class Spellcard: # 符卡结构体
+    def __init__(self,name:str,hp:int,isspell:bool,time:int,shootcooldown):
+        self.name = name
+        self.hp = hp
+        self.isspell = isspell
+        self.time = time
+        self.shootcooldown = shootcooldown
 
 class Enemy(pygame.sprite.Sprite):  # 敌人类
     def __init__(self, maxHP, HP, posvec):
         super().__init__()
         self.enter_spell7 = False
-        self.ice_cone_image = picloader.load(
-            "Picture/ice_cone.bmp")
-        self.shootCoolDown = (1, 10, 4, 1, 1, 1, 1, 1, 1, 1)
-        self.HPlist = (4000, 2500, 4000, 7000, 3000,
-                       6000, 8000, 4000, 4000, 4000)
-        self.spellTimeLimitList = (
-            2400, 2400, 2000, 3000, 2000, 3000, 3600, 2000, 2000, 4000)
+        self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
+        self.spelldata = [
+            Spellcard("缺省",4000,False,2400,1), # 符卡从第一张开始算 所以从[1]开始访问
+            Spellcard("符卡1",4000,True,2400,1),
+            Spellcard("符卡1",4000,False,2400,10),
+            Spellcard("符卡1",4000,True,2400,4),
+            Spellcard("符卡1",4000,False,2400,1),
+            Spellcard("符卡1",4000,True,2400,1),
+            Spellcard("符卡1",4000,False,2400,1),
+            Spellcard("符卡1",4000,True,2400,1),
+            Spellcard("符卡1",4000,False,2400,1),
+            Spellcard("符卡1",4000,True,2400,1)
+        ]
         self.spell = 1
-        self.HP = self.HPlist[self.spell - 1]
+        self.HP = self.spelldata[self.spell].hp
         self.image = picloader.load("Picture/cirno.bmp")
         self.rect = self.image.get_rect()
         self.maxHP = maxHP
@@ -502,28 +516,28 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         global score
         self.shootCoolDownCount += 1
         self.spelltick += 1
-        if self.shootCoolDown[self.spell - 1] == self.shootCoolDownCount:
+        if self.spelldata[self.spell].shootcooldown == self.shootCoolDownCount:
             self.shoot()
             self.shootCoolDownCount = 0
         list = pygame.sprite.spritecollide(
             self, selfBulletGroup, False)  # 伤害判定
         for item in list:
-            if baka.HP/baka.HPlist[baka.spell - 1] < 0.1:
+            if self.HP/self.spelldata[self.spell].hp < 0.1:
                 se.play("damageloud")
             else:
                 se.play("damage")
             self.HP -= item.damage
             if not item.free:
                 item.kill()
-        if self.HP < 0 or self.spelltick >= self.spellTimeLimitList[baka.spell - 1]:
+        if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time:
             se.play("destory", se.ENEMY_DESTORY_CHANNEL)
             if not player_Character.missinthisspell:  # 符卡收取判定
                 spellscore = (
-                    self.spellTimeLimitList[baka.spell - 1] - self.spelltick) * 1000
+                    self.spelldata[self.spell].time - self.spelltick) * 1000
                 score += spellscore
                 effectgroup.add(LimitTimePic(
                     ui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
-                scoretext = ui.font_24.render(str(spellscore),True,"WHITE")
+                scoretext = ui.font_24.render(str(spellscore),True,(0,128,240))
                 effectgroup.add(LimitTimePic(
                     scoretext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
             else:
@@ -534,8 +548,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 self.kill()
                 return
             self.recovering = True
-            self.spelltick = 0
-            self.spell += 1  # 此时已经进入下张符卡
+            self.spellinit() # 此时已经进入下张符卡
             return
         if not self.stand:
             self.moveCoolDownCount += 1
@@ -550,16 +563,21 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.posvec.y = max(self.rect.height, self.posvec.y)
             self.rect.centerx, self.rect.centery = self.posvec
 
+    def spellinit(self):
+        self.spelltick = 0
+        self.spell += 1  
+
+    
     def recover(self):
         pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
-        self.HP += self.HPlist[self.spell - 1] / 120  # 恢复完成则继续正常行动
+        self.HP += self.spelldata[self.spell].hp / 120  # 恢复完成则继续正常行动
         for item in enemyBulletGroup:
-            if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < ((self.HP / self.HPlist[self.spell - 1]) * 4 * 900)**2:
+            if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < ((self.HP / self.spelldata[self.spell].hp) * 4 * 900)**2:
                 # 在30帧内以笨蛋为圆心创建一个半径为3600的把弹幕转换为道具的圆的狗屎实现
                 item.tobulletitem()
-        if self.HP >= self.HPlist[self.spell - 1]:
+        if self.HP >= self.spelldata[self.spell].hp:
             self.recovering = False
-            self.HP = self.HPlist[self.spell - 1]
+            self.HP = self.spelldata[self.spell].hp
             self.shootCoolDownCount = 0
             se.play("bomb", se.ENEMY_SPELL_CHANNEL)
 
@@ -707,20 +725,20 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     self.rect.centerx, self.rect.centery)
                 self.speedvec = pygame.math.Vector2(
                     0, 0)  # 防止弹幕修改笨蛋位置只能每帧锁定速度了
-                bullet = Bullet(1, (0, 100, 240), 20, 20, baka.posvec, pygame.math.Vector2(
+                bullet = Bullet(1, (0, 100, 240), 20, 20, self.posvec, pygame.math.Vector2(
                     random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(4, 5), 1, 0, 0, pygame.math.Vector2(0, 0))
                 bullet.tracktime = 0
                 enemyBulletGroup.add(bullet)
             if self.spelltick % 2 == 1:
                 self.posvec = pygame.math.Vector2(
                     self.rect.centerx, self.rect.centery)
-                bullet = Bullet(1, (0, 240, 100), 20, 20, baka.posvec, pygame.math.Vector2(
+                bullet = Bullet(1, (0, 240, 100), 20, 20, self.posvec, pygame.math.Vector2(
                     random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(3, 4), 1, 0, 0, pygame.math.Vector2(0, 0))
                 bullet.tracktime = 0
                 enemyBulletGroup.add(bullet)
                 self.posvec = pygame.math.Vector2(
                     self.rect.centerx, self.rect.centery)
-                bullet = Bullet(1, (240, 240, 240), 20, 20, baka.posvec, pygame.math.Vector2(
+                bullet = Bullet(1, (240, 240, 240), 20, 20, self.posvec, pygame.math.Vector2(
                     random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(2, 3), 1, 0, 0, pygame.math.Vector2(0, 0))
                 bullet.tracktime = 0
                 enemyBulletGroup.add(bullet)
@@ -744,19 +762,19 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     tmp_speedvec = pygame.math.Vector2(
                         0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
                     bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, baka.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.02)
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.02)
                     enemyBulletGroup.add(bullet)
                 if (self.spelltick + 5) % 15 == i:
                     tmp_speedvec = pygame.math.Vector2(
                         0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
                     bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, baka.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.04)
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.04)
                     enemyBulletGroup.add(bullet)
                 if (self.spelltick + 10) % 15 == i:
                     tmp_speedvec = pygame.math.Vector2(
                         0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
                     bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, baka.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.06)
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.06)
                     enemyBulletGroup.add(bullet)
 
         if self.spell == 9:
@@ -991,18 +1009,19 @@ clock = pygame.time.Clock()
 done = False
 tick = 0
 while not done:
-    clock.tick(60)
+    clock.tick(600)
     print("="*10, tick, "="*10)
     framerecorder.stop("Frame total", True)
+    recorder.start()
     tick += 1
-    screen.fill((240, 240, 240))
     for item in disappear_group:
         if item.nowdisappeartime <= 0:
             item.kill()
             continue
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
         item.nowdisappeartime -= 1
-    if not settings["replay"]:
+    recorder.stop("disapper group", True)
+    if not settings["replay"]: # 记录录像
         input_event_list.append([])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1030,7 +1049,7 @@ while not done:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-    recorder.start()
+    recorder.stop("replay", True)
     player_Character.update(chooseCharacter)
     player_CharacterImage.update()
     player_CharacterOptionLeft.update()
