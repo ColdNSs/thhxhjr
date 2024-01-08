@@ -74,9 +74,11 @@ class UIDrawer():
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
         self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
+        self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
         self.font_20 = pygame.font.Font("fonts/fonts.ttf", 20)
         self.font_16 = pygame.font.Font("fonts/fonts.ttf", 16)
+        self.font_12 = pygame.font.Font("fonts/fonts.ttf", 12)
         self.settings = settings
         self.fpsTimer = 0
         self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
@@ -117,8 +119,6 @@ class UIDrawer():
         # 分数显示
         screen.blit(self.font_24.render("{0:0>10}".format(
             score), True, (240, 240, 240)), (740, 130))
-        screen.blit(self.font_24.render("{0:0>10}".format(
-            player_Character.temperature), True, (240, 240, 240)), (740, 530))
         # 残机显示
         for i in range(player_Character.HP):
             screen.blit(self.HP, (740+i*25, 172))

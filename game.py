@@ -12,7 +12,7 @@ pygame.mixer.set_num_channels(40)
 
 
 class playerCharacter(pygame.sprite.Sprite):  # 判定点类
-    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature,tempdownspeed):
+    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature, tempdownspeed):
         super().__init__()
         self.image = pygame.Surface([radius * 2, radius * 2])
         self.rect = self.image.get_rect()
@@ -42,6 +42,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.graze = 0
         self.temperature = temperature
         self.tempdownspeed = tempdownspeed
+
     def setmode(self, mode):  # 设置子机位置
         if mode == 1:
             self.slow = self.speedMultiplier
@@ -55,7 +56,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             player_CharacterOptionLeft.y = 28
         if mode == 0:
             self.slow = 1
-            self.image.fill('BLACK')
+            self.image.fill('BLUE')
+            self.image.set_colorkey("BLUE")
             player_CharacterOptionRight.x = 16
             player_CharacterOptionRight.y = -23
             player_CharacterOptionLeft.x = -16
@@ -63,7 +65,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.mode = mode
 
     def update(self, chooseCharacter):
-        self.temperature = max(self.temperature - self.tempdownspeed, 0) # 温度限制
+        self.temperature = max(
+            self.temperature - self.tempdownspeed, 0)  # 温度限制
         self.temperature = min(self.temperature, 80000)
         if chooseCharacter == "Marisa":
             for item in bombgroup:
@@ -156,7 +159,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             self.status = "invincible"
             self.invincibleTime = 120
             self.HP -= 1
-            self.temperature = max(self.temperature,10000)
+            self.temperature = max(self.temperature - 10000, 10000)
             self.missinthisspell = True
             self.clearradius = 10
             self.diecenter = self.rect.center
@@ -254,7 +257,7 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
             self.angle = 0
         if self.shoot == False:  # 未射击直接返回
             return
-        if player_Character.temperature == 0: # 温度为0禁止副机射击
+        if player_Character.temperature == 0:  # 温度为0禁止副机射击
             return
         if chooseCharacter == "Reimu":
             if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 红白诱导
@@ -299,7 +302,7 @@ class bulletitem(pygame.sprite.Sprite):  # 道具类
             se.play("shoot")
             global score
             score += 100
-            player_Character.temperature += 30 # 点数加温度
+            player_Character.temperature += 30  # 点数加温度
             self.kill()
 
 
@@ -476,21 +479,59 @@ class LimitTimePic(pygame.sprite.Sprite):  # 图片精灵
             self.kill()
 
 
+class SpellNameSprite(LimitTimePic):  # 符卡名称显示类 同下
+    def __init__(self, image, posvec, lifetime, enemy, spellid):
+        super().__init__(image, posvec, lifetime)
+        self.enemy = enemy
+        self.spellid = spellid
+        self.originimage = self.image.copy()
+        self.acc = -0.1
+        self.speed = 2
+        self.is_created_scoretext = False
+
+    def update(self):
+        if self.rect.y > 70:
+            self.rect.y -= max(5, 10 + self.speed)
+            self.image = self.originimage.copy()
+            pygame.transform.scale(self.image, (self.image.get_width(
+            )*(1+self.speed*1), self.image.get_height()*(1+self.speed*1)))  # 由大变小 高度耦合
+            self.rect.x = self.posvec[0] - self.image.get_width()
+            self.image.set_alpha(255 - self.speed*20)  # 由虚变实 高度耦合
+            return
+        if not self.is_created_scoretext:  # 在下方显示分数
+            self.image.set_alpha(255)
+            text = ui.font_12.render("SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
+            self.scoretext = LimitTimePic(text,(self.rect.x + text.get_width()/2, self.rect.y + self.image.get_height() + text.get_height()), -1) #传入的应是分数文字所在的中心坐标
+            effectgroup.add(self.scoretext)
+            self.is_created_scoretext = True
+        if not player_Character.missinthisspell:
+            self.scoretext.image = ui.font_12.render(
+                "SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
+        else:
+            self.scoretext.image = ui.font_12.render("FAILED...", True, "BLACK")
+        if self.enemy.spell > self.spellid:
+            self.scoretext.kill()
+            self.kill()
+
+
 class Tempbar(LimitTimePic):  # 温度槽类 应该放在ui类里的 但是就这样吧
     def __init__(self, image, posvec, lifetime, character):
         super().__init__(image, posvec, lifetime)
         self.character = character
         self.originimage = self.image
+        self.alpha = 255
 
     def update(self):
         self.image = self.originimage.copy()
-        self.image.blit(self.originimage,(0,0))
+        self.image.blit(self.originimage, (0, 0))
         pygame.draw.rect(self.image, "BLUE", [int(
             self.character.temperature / 1000) + 1, 1, 80-int(self.character.temperature / 1000), 9])
         if pygame.sprite.collide_circle(player_CharacterImage, self):
-            self.image.set_alpha(128)
+            self.alpha = max(self.alpha-10, 100)  # 渐变效果
+            self.image.set_alpha(self.alpha)
         else:
-            self.image.set_alpha(255)
+            self.alpha = min(self.alpha+10, 255)
+            self.image.set_alpha(self.alpha)
 
 
 class Spellcard:  # 符卡结构体
@@ -509,15 +550,15 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
         self.spelldata = [
             Spellcard("缺省", 4000, False, 2400, 1),  # 符卡从第一张开始算 所以从[1]开始访问
-            Spellcard("符卡1", 4000, True, 2400, 1),
-            Spellcard("符卡1", 4000, False, 2400, 10),
-            Spellcard("符卡1", 4000, True, 2400, 4),
+            Spellcard("缺省", 4000, False, 2400, 1),
+            Spellcard("冷符「冷冻锁链」", 4000, True, 2400, 10),
+            Spellcard("符卡1", 4000, False, 2400, 4),
+            Spellcard("冻符「超完美冻结」", 4000, True, 2400, 1),
             Spellcard("符卡1", 4000, False, 2400, 1),
-            Spellcard("符卡1", 4000, True, 2400, 1),
+            Spellcard("寒符「幻想乡的寒极」", 4000, True, 2400, 1),
             Spellcard("符卡1", 4000, False, 2400, 1),
-            Spellcard("符卡1", 4000, True, 2400, 1),
-            Spellcard("符卡1", 4000, False, 2400, 1),
-            Spellcard("符卡1", 4000, True, 2400, 1)
+            Spellcard("草&雪符「忍冬草」", 4000, True, 2400, 1),
+            Spellcard("冰符「Grand Ice Ball」", 4000, True, 2400, 1)
         ]
         self.spell = 1
         self.HP = self.spelldata[self.spell].hp
@@ -556,26 +597,27 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             else:
                 se.play("damage")
             self.HP -= item.damage
-            player_Character.temperature += item.damage # 子弹打出伤害加温度
+            player_Character.temperature += item.damage  # 子弹打出伤害加温度
             if not item.free:
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time:
             se.play("destory", se.ENEMY_DESTORY_CHANNEL)
-            if not player_Character.missinthisspell:  # 符卡收取判定
-                spellscore = (
-                    self.spelldata[self.spell].time - self.spelltick) * 1000
-                score += spellscore
-                player_Character.temperature += spellscore / 50 # 收卡加温度
-                effectgroup.add(LimitTimePic(
-                    ui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
-                scoretext = ui.font_24.render(
-                    str(spellscore), True, (0, 128, 240))
-                effectgroup.add(LimitTimePic(
-                    scoretext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
-            else:
-                effectgroup.add(LimitTimePic(
-                    ui.bonusfailedtext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
-            player_Character.missinthisspell = False
+            if self.spelldata[self.spell].isspell == True:  # 不是非符才能收
+                if not player_Character.missinthisspell:  # 符卡收取判定
+                    spellscore = (
+                        self.spelldata[self.spell].time - self.spelltick) * 1000
+                    score += spellscore
+                    player_Character.temperature += 3000 + spellscore / 200  # 收卡加温度
+                    effectgroup.add(LimitTimePic(
+                        ui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
+                    scoretext = ui.font_24.render(
+                        str(spellscore), True, (0, 128, 240))
+                    effectgroup.add(LimitTimePic(
+                        scoretext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
+                else:
+                    effectgroup.add(LimitTimePic(
+                        ui.bonusfailedtext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
+                player_Character.missinthisspell = False
             if self.spell > self.spellcount:
                 self.kill()
                 return
@@ -611,6 +653,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.HP = self.spelldata[self.spell].hp
             self.shootCoolDownCount = 0
             se.play("bomb", se.ENEMY_SPELL_CHANNEL)
+            if self.spelldata[self.spell].isspell == True:
+                text = ui.font_24.render(self.spelldata[self.spell].name, True, "BLACK")
+                effectgroup.add(SpellNameSprite(text, (500+text.get_width()/2, 800), -1, self, self.spell))  # 符卡宣告动画
 
     def shoot(self):
         if self.spell == 1:
@@ -741,6 +786,29 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 enemyBulletGroup.add(bullet)
 
         if self.spell == 7:
+            self.stand = True
+            for i in range(60):
+                if self.spelltick % 15 == i:  # 开花旋转加速弹（?
+                    tmp_speedvec = pygame.math.Vector2(
+                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.02)
+                    enemyBulletGroup.add(bullet)
+                if (self.spelltick + 5) % 15 == i:
+                    tmp_speedvec = pygame.math.Vector2(
+                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.04)
+                    enemyBulletGroup.add(bullet)
+                if (self.spelltick + 10) % 15 == i:
+                    tmp_speedvec = pygame.math.Vector2(
+                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.06)
+                    enemyBulletGroup.add(bullet)
+
+
+        if self.spell == 7:
             if not self.enter_spell7:
                 self.spell7_bulletrotate = -5
                 self.stand = False
@@ -785,29 +853,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     item.tracktime = 999
             self.posvec = pygame.math.Vector2(
                 self.rect.centerx, self.rect.centery)
-
-        if self.spell == 8:
-            self.stand = True
-            for i in range(60):
-                if self.spelltick % 15 == i:  # 开花旋转加速弹（?
-                    tmp_speedvec = pygame.math.Vector2(
-                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.02)
-                    enemyBulletGroup.add(bullet)
-                if (self.spelltick + 5) % 15 == i:
-                    tmp_speedvec = pygame.math.Vector2(
-                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.04)
-                    enemyBulletGroup.add(bullet)
-                if (self.spelltick + 10) % 15 == i:
-                    tmp_speedvec = pygame.math.Vector2(
-                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.06)
-                    enemyBulletGroup.add(bullet)
-
+            
         if self.spell == 9:
             if self.spelltick % 30 == 0:
                 for i in range(30):  # 白色奇数弹
@@ -880,7 +926,7 @@ def keydown(key):
         player_CharacterOptionLeft.shoot = True
         player_CharacterOptionRight.shoot = True
     if key == pygame.K_x:
-        if not player_Character.status == "bombing" and player_Character.Bomb > 0 and player_Character.temperature > 10000: # 低于10000温度不能放B
+        if not player_Character.status == "bombing" and player_Character.Bomb > 0 and player_Character.temperature > 10000:  # 低于10000温度不能放B
             player_Character.status = "usebomb"
     if key == pygame.K_LSHIFT:
         player_Character.setmode(mode=1)
@@ -892,8 +938,10 @@ def keydown(key):
     if key == pygame.K_c:
         if player_Character.temperature > 65000:
             player_Character.Bomb += 1
-            se.play("spellextend",se.SPELL_EXTEND_CHANNEL)
+            se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
             player_Character.temperature -= 30000
+
+
 def keyup(key):
     if key == pygame.K_UP:
         player_Character.upspeed = 0
@@ -964,7 +1012,7 @@ if settings["replay"] == True:
     seed = load_event_list[0][0]
     type_replace_dict = {"0": 768, "1": 769}
     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
-                        "3": 1073741903, "4": 122, "5": 120, "6": 1073742049,"7":99}
+                        "3": 1073741903, "4": 122, "5": 120, "6": 1073742049, "7": 99}
     for sublist in load_event_list[1:]:
         for item in sublist:
             type_value = str(item["type"])
@@ -988,7 +1036,7 @@ effectgroup = pygame.sprite.Group()
 itemGroup = pygame.sprite.Group()
 
 if chooseCharacter == "Reimu":
-    player_Character = playerCharacter(5, 8, 0.5, 10, 3, 30000,27)
+    player_Character = playerCharacter(5, 8, 0.5, 10, 3, 30000, 27)
     player_CharacterImage = playerCharacterImage(
         picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
     player_CharacterOptionRight = playerOption(
@@ -1010,7 +1058,7 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
 
 if chooseCharacter == "Marisa":
-    player_Character = playerCharacter(6, 9, 0.4, 9, 6, 30000,30)
+    player_Character = playerCharacter(6, 9, 0.4, 9, 6, 30000, 30)
     player_Character.bulletimage = picloader.load(
         "Picture/marisa_fire.bmp", 20, 36)
     player_CharacterImage = playerCharacterImage(
@@ -1121,7 +1169,7 @@ if not settings["replay"]:
     input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
     type_replace_dict = {"768": "0", "769": "1"}
     key_replace_dict = {"1073741906": "0", "1073741905": "1", "1073741904": "2",
-                        "1073741903": "3", "122": "4", "120": "5", "1073742049": "6","99": "7"}
+                        "1073741903": "3", "122": "4", "120": "5", "1073742049": "6", "99": "7"}
     for sublist in input_event_list[1:]:
         for item in sublist:
             type_value = str(item["type"])
