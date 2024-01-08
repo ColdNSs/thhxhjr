@@ -5,8 +5,8 @@ class SEPlayer():
     MISS_CHANNEL = 33
     PLAYER_SPELL_CHANNEL = 34
     ENEMY_SPELL_CHANNEL = 35
-    ENEMY_DESTORY_CHANNEL = 35
-
+    ENEMY_DESTORY_CHANNEL = 36
+    SPELL_EXTEND_CHANNEL = 37
     def __init__(self):
         self.channel = 0
         self.soundasset = {}
@@ -22,6 +22,7 @@ class SEPlayer():
         self.soundasset["bomb"] = pygame.mixer.Sound("SE/bomb.wav")
         self.soundasset["enemyst01"] = pygame.mixer.Sound("SE/enemyst01.wav")
         self.soundasset["enemyst02"] = pygame.mixer.Sound("SE/enemyst02.wav")
+        self.soundasset["spellextend"] = pygame.mixer.Sound("SE/spellextend.wav")
         self.setvolume(0.2)
 
     def play(self, effect, channel=-1):
@@ -71,6 +72,7 @@ class UIDrawer():
         self.grazetext = self.picLoader.load("Picture/graze.png",hasalpha=True)
         self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
+        self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
         self.font_20 = pygame.font.Font("fonts/fonts.ttf", 20)
@@ -115,6 +117,8 @@ class UIDrawer():
         # 分数显示
         screen.blit(self.font_24.render("{0:0>10}".format(
             score), True, (240, 240, 240)), (740, 130))
+        screen.blit(self.font_24.render("{0:0>10}".format(
+            player_Character.temperature), True, (240, 240, 240)), (740, 530))
         # 残机显示
         for i in range(player_Character.HP):
             screen.blit(self.HP, (740+i*25, 172))
@@ -147,7 +151,8 @@ class UIDrawer():
             screen.blit((self.font_20.render(".", True, "RED")), (79, 31))
             screen.blit(self.font_16.render(lefttimestr[1], True, "RED"), (83, 36))
             return
-        screen.blit(self.font_20.render("0", True, "RED"), (55, 31))
-        screen.blit(self.font_20.render("0", True, "RED"), (67, 31))
-        screen.blit((self.font_20.render(".", True, "RED")), (79, 31))
-        screen.blit(self.font_16.render(lefttimestr[0], True, "RED"), (83, 36))
+        else:
+            screen.blit(self.font_20.render("0", True, "RED"), (55, 31))
+            screen.blit(self.font_20.render("0", True, "RED"), (67, 31))
+            screen.blit((self.font_20.render(".", True, "RED")), (79, 31))
+            screen.blit(self.font_16.render(lefttimestr[0], True, "RED"), (83, 36))

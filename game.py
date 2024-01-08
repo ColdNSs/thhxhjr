@@ -12,7 +12,7 @@ pygame.mixer.set_num_channels(40)
 
 
 class playerCharacter(pygame.sprite.Sprite):  # 判定点类
-    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed):
+    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature,tempdownspeed):
         super().__init__()
         self.image = pygame.Surface([radius * 2, radius * 2])
         self.rect = self.image.get_rect()
@@ -40,7 +40,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.mode = 0
         self.missinthisspell = False
         self.graze = 0
-
+        self.temperature = temperature
+        self.tempdownspeed = tempdownspeed
     def setmode(self, mode):  # 设置子机位置
         if mode == 1:
             self.slow = self.speedMultiplier
@@ -62,6 +63,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.mode = mode
 
     def update(self, chooseCharacter):
+        self.temperature = max(self.temperature - self.tempdownspeed, 0) # 温度限制
+        self.temperature = min(self.temperature, 80000)
         if chooseCharacter == "Marisa":
             for item in bombgroup:
                 item.angle += 3
@@ -153,6 +156,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             self.status = "invincible"
             self.invincibleTime = 120
             self.HP -= 1
+            self.temperature = max(self.temperature,10000)
             self.missinthisspell = True
             self.clearradius = 10
             self.diecenter = self.rect.center
@@ -178,6 +182,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         for item in enemyBulletGroup:
             global score
             if pygame.sprite.collide_circle_ratio(2)(item, self) and not item.alreadyGraze:
+                self.temperature += 600
                 self.graze += 1
                 se.play("graze")
                 effect = Bullet(2, (240, 240, 240), 8, 8, pygame.math.Vector2(self.rect.centerx, self.rect.centery), pygame.math.Vector2(
@@ -249,6 +254,8 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
             self.angle = 0
         if self.shoot == False:  # 未射击直接返回
             return
+        if player_Character.temperature == 0: # 温度为0禁止副机射击
+            return
         if chooseCharacter == "Reimu":
             if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 红白诱导
                 se.play("shoot")
@@ -292,6 +299,7 @@ class bulletitem(pygame.sprite.Sprite):  # 道具类
             se.play("shoot")
             global score
             score += 100
+            player_Character.temperature += 30 # 点数加温度
             self.kill()
 
 
@@ -452,8 +460,8 @@ class ReimuBomb(pygame.sprite.Sprite):
                 sprite_disappear(item, 5)
 
 
-class LimitTimePic(pygame.sprite.Sprite): # 限时图片
-    def __init__(self, image, posvec, lifetime):
+class LimitTimePic(pygame.sprite.Sprite):  # 图片精灵
+    def __init__(self, image, posvec, lifetime=-1):
         super().__init__()
         self.image = image
         self.rect = self.image.get_rect()
@@ -461,17 +469,38 @@ class LimitTimePic(pygame.sprite.Sprite): # 限时图片
         self.lifetime = self.lastlifetime = lifetime
 
     def update(self):
+        if self.lifetime == -1:
+            return
         self.lastlifetime -= 1
-        if self.lastlifetime <= 0:
+        if self.lastlifetime == 0:
             self.kill()
 
-class Spellcard: # 符卡结构体
-    def __init__(self,name:str,hp:int,isspell:bool,time:int,shootcooldown):
+
+class Tempbar(LimitTimePic):  # 温度槽类 应该放在ui类里的 但是就这样吧
+    def __init__(self, image, posvec, lifetime, character):
+        super().__init__(image, posvec, lifetime)
+        self.character = character
+        self.originimage = self.image
+
+    def update(self):
+        self.image = self.originimage.copy()
+        self.image.blit(self.originimage,(0,0))
+        pygame.draw.rect(self.image, "BLUE", [int(
+            self.character.temperature / 1000) + 1, 1, 80-int(self.character.temperature / 1000), 9])
+        if pygame.sprite.collide_circle(player_CharacterImage, self):
+            self.image.set_alpha(128)
+        else:
+            self.image.set_alpha(255)
+
+
+class Spellcard:  # 符卡结构体
+    def __init__(self, name: str, hp: int, isspell: bool, time: int, shootcooldown):
         self.name = name
         self.hp = hp
         self.isspell = isspell
         self.time = time
         self.shootcooldown = shootcooldown
+
 
 class Enemy(pygame.sprite.Sprite):  # 敌人类
     def __init__(self, maxHP, HP, posvec):
@@ -479,16 +508,16 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.enter_spell7 = False
         self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
         self.spelldata = [
-            Spellcard("缺省",4000,False,2400,1), # 符卡从第一张开始算 所以从[1]开始访问
-            Spellcard("符卡1",4000,True,2400,1),
-            Spellcard("符卡1",4000,False,2400,10),
-            Spellcard("符卡1",4000,True,2400,4),
-            Spellcard("符卡1",4000,False,2400,1),
-            Spellcard("符卡1",4000,True,2400,1),
-            Spellcard("符卡1",4000,False,2400,1),
-            Spellcard("符卡1",4000,True,2400,1),
-            Spellcard("符卡1",4000,False,2400,1),
-            Spellcard("符卡1",4000,True,2400,1)
+            Spellcard("缺省", 4000, False, 2400, 1),  # 符卡从第一张开始算 所以从[1]开始访问
+            Spellcard("符卡1", 4000, True, 2400, 1),
+            Spellcard("符卡1", 4000, False, 2400, 10),
+            Spellcard("符卡1", 4000, True, 2400, 4),
+            Spellcard("符卡1", 4000, False, 2400, 1),
+            Spellcard("符卡1", 4000, True, 2400, 1),
+            Spellcard("符卡1", 4000, False, 2400, 1),
+            Spellcard("符卡1", 4000, True, 2400, 1),
+            Spellcard("符卡1", 4000, False, 2400, 1),
+            Spellcard("符卡1", 4000, True, 2400, 1)
         ]
         self.spell = 1
         self.HP = self.spelldata[self.spell].hp
@@ -527,6 +556,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             else:
                 se.play("damage")
             self.HP -= item.damage
+            player_Character.temperature += item.damage # 子弹打出伤害加温度
             if not item.free:
                 item.kill()
         if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time:
@@ -535,9 +565,11 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 spellscore = (
                     self.spelldata[self.spell].time - self.spelltick) * 1000
                 score += spellscore
+                player_Character.temperature += spellscore / 50 # 收卡加温度
                 effectgroup.add(LimitTimePic(
                     ui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
-                scoretext = ui.font_24.render(str(spellscore),True,(0,128,240))
+                scoretext = ui.font_24.render(
+                    str(spellscore), True, (0, 128, 240))
                 effectgroup.add(LimitTimePic(
                     scoretext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
             else:
@@ -548,7 +580,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 self.kill()
                 return
             self.recovering = True
-            self.spellinit() # 此时已经进入下张符卡
+            self.spellinit()  # 此时已经进入下张符卡
             return
         if not self.stand:
             self.moveCoolDownCount += 1
@@ -565,9 +597,8 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
 
     def spellinit(self):
         self.spelltick = 0
-        self.spell += 1  
+        self.spell += 1
 
-    
     def recover(self):
         pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
         self.HP += self.spelldata[self.spell].hp / 120  # 恢复完成则继续正常行动
@@ -849,7 +880,7 @@ def keydown(key):
         player_CharacterOptionLeft.shoot = True
         player_CharacterOptionRight.shoot = True
     if key == pygame.K_x:
-        if not player_Character.status == "bombing" and player_Character.Bomb > 0:
+        if not player_Character.status == "bombing" and player_Character.Bomb > 0 and player_Character.temperature > 10000: # 低于10000温度不能放B
             player_Character.status = "usebomb"
     if key == pygame.K_LSHIFT:
         player_Character.setmode(mode=1)
@@ -858,8 +889,11 @@ def keydown(key):
     if key == pygame.K_ESCAPE:
         global done
         done = True
-
-
+    if key == pygame.K_c:
+        if player_Character.temperature > 65000:
+            player_Character.Bomb += 1
+            se.play("spellextend",se.SPELL_EXTEND_CHANNEL)
+            player_Character.temperature -= 30000
 def keyup(key):
     if key == pygame.K_UP:
         player_Character.upspeed = 0
@@ -930,7 +964,7 @@ if settings["replay"] == True:
     seed = load_event_list[0][0]
     type_replace_dict = {"0": 768, "1": 769}
     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
-                        "3": 1073741903, "4": 122, "5": 120, "6": 1073742049}
+                        "3": 1073741903, "4": 122, "5": 120, "6": 1073742049,"7":99}
     for sublist in load_event_list[1:]:
         for item in sublist:
             type_value = str(item["type"])
@@ -954,7 +988,7 @@ effectgroup = pygame.sprite.Group()
 itemGroup = pygame.sprite.Group()
 
 if chooseCharacter == "Reimu":
-    player_Character = playerCharacter(5, 8, 0.5, 10, 3)
+    player_Character = playerCharacter(5, 8, 0.5, 10, 3, 30000,27)
     player_CharacterImage = playerCharacterImage(
         picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
     player_CharacterOptionRight = playerOption(
@@ -976,7 +1010,7 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
 
 if chooseCharacter == "Marisa":
-    player_Character = playerCharacter(6, 9, 0.4, 9, 6)
+    player_Character = playerCharacter(6, 9, 0.4, 9, 6, 30000,30)
     player_Character.bulletimage = picloader.load(
         "Picture/marisa_fire.bmp", 20, 36)
     player_CharacterImage = playerCharacterImage(
@@ -1003,13 +1037,15 @@ self_group.add(player_CharacterOptionLeft)
 self_group.add(player_Character)
 ui = asset.UIDrawer(settings)
 se = asset.SEPlayer()
+tempbar = Tempbar(ui.tempbar, (550, 680), -1, player_Character)
+effectgroup.add(tempbar)
 baka = Enemy(5000, 5000, pygame.math.Vector2(355, 100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
 tick = 0
 while not done:
-    clock.tick(600)
+    clock.tick(60)
     print("="*10, tick, "="*10)
     framerecorder.stop("Frame total", True)
     recorder.start()
@@ -1021,7 +1057,7 @@ while not done:
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
         item.nowdisappeartime -= 1
     recorder.stop("disapper group", True)
-    if not settings["replay"]: # 记录录像
+    if not settings["replay"]:  # 记录录像
         input_event_list.append([])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1085,7 +1121,7 @@ if not settings["replay"]:
     input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
     type_replace_dict = {"768": "0", "769": "1"}
     key_replace_dict = {"1073741906": "0", "1073741905": "1", "1073741904": "2",
-                        "1073741903": "3", "122": "4", "120": "5", "1073742049": "6"}
+                        "1073741903": "3", "122": "4", "120": "5", "1073742049": "6","99": "7"}
     for sublist in input_event_list[1:]:
         for item in sublist:
             type_value = str(item["type"])
