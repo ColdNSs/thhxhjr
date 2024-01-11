@@ -285,6 +285,35 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
                 self.attackCoolDown = 0
                 return
 
+class MoveBetweenData(): # 移动函数的结构体
+    def  __init__(self,speed,pointlist):
+        self.speed = speed
+        self.pointlist = pointlist.copy()
+        self.name = "movebetween"
+        self.movecounter = 0
+
+class SpriteMover(): # 精灵移动器
+    def __init__(self,owner):
+        self.owner = owner
+    
+    def reload(self,movelist):
+        self.movelist = movelist
+        self.stepcounter = 0
+
+    def update(self):
+        if self.movelist[self.stepcounter].name == "movebetween":
+            self.movebetween()
+
+    def movebetween(self):
+        nowstep = self.movelist[self.stepcounter] # nowstep是目前执行到的脚本指令
+        if (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).length() < nowstep.speed:# 如果被移动精灵与目标点的位置小于每帧速度
+            self.owner.posvec = nowstep.pointlist[nowstep.movecounter] # 直接移动到目标点
+            nowstep.movecounter += 1 # 指针指向下一个目标点
+            if nowstep.movecounter == len(nowstep.pointlist): # 如果已经完成整个列表中每个目标点
+                nowstep.movecounter = 0 # 指针指向第0个目标点
+            return
+        self.owner.speedvec = (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).normalize()*nowstep.speed # 从现在的位置向第movecounter位移动
+        
 
 class bulletitem(pygame.sprite.Sprite):  # 道具类
     def __init__(self, posvec: pygame.math.Vector2):
@@ -335,6 +364,8 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.damage = damage
         self.free = free  # 0产生跟随子机y轴移动的激光
         self.track = track
+        if track:
+            self.lifetime = 0 # 为了实现诱导弹诱导效果逐渐加强
         self.width = width
         self.height = height
         self.alreadyGraze = False
@@ -344,6 +375,7 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.speedvec += self.accvec
         self.rect.centerx, self.rect.centery = self.posvec  # 这行及上两行实现非整数坐标
         if self.track:  # 诱导弹
+            self.lifetime += 1
             self.speedvec = relative_direction(self, baka)
             self.speedvec.scale_to_length(
                 self.inputspeedvec.length())  # 速度向量转化为长度与输入速度一致
@@ -351,7 +383,7 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
                 self.originimage, -pygame.math.Vector2(0, -1).angle_to(self.speedvec))
             self.rect = self.image.get_rect(
                 center=self.rect.center)  # 重新获取中心 避免转动问题
-        if self.rect.x - self.width > gameZoneRight or self.rect.x + self.width < gameZoneLeft or self.rect.y - self.rect.height > gameZoneDown or self.rect.y + self.height < gameZoneUp:  # 出界判定
+        if self.rect.x - self.width > gameZoneRight + 50 or self.rect.x + self.width < gameZoneLeft - 50 or self.rect.y - self.rect.height > gameZoneDown + 50 or self.rect.y + self.height < gameZoneUp - 50:  # 出界判定
             self.kill()
         if self.free:
             self.rect.centerx = self.posvec.x = self.free.rect.centerx
@@ -546,7 +578,7 @@ class Spellcard:  # 符卡结构体
 class Enemy(pygame.sprite.Sprite):  # 敌人类
     def __init__(self, maxHP, HP, posvec):
         super().__init__()
-        self.enter_spell7 = False
+        self.enter_spell8 = False
         self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
         self.spelldata = [
             Spellcard("缺省", 4000, False, 2400, 1),  # 符卡从第一张开始算 所以从[1]开始访问
@@ -560,7 +592,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             Spellcard("草&雪符「忍冬草」", 4000, True, 2400, 1),
             Spellcard("冰符「Grand Ice Ball」", 4000, True, 2400, 1)
         ]
-        self.spell = 1
+        self.spell = 7
         self.HP = self.spelldata[self.spell].hp
         self.image = picloader.load("Picture/cirno.bmp")
         self.rect = self.image.get_rect()
@@ -570,23 +602,22 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.speedvec = pygame.math.Vector2(0, 0)
         self.width = 59
         self.height = 74
-        self.moveCoolDown = random.randint(300, 600)
-        self.moveCoolDownCount = 0
         self.shootCoolDownCount = 0
         self.spellcount = 10
         self.spelltick = 0
         self.enter_spell6 = False  # 屎
-        self.stand = False
         self.recovering = False
-
+        self.mover = SpriteMover(self)
+        self.mover.reload([MoveBetweenData(2,[(300,100),(100,100),(100,300),(300,300)])])
     def update(self):
+        self.mover.update() # 处理移动
         if self.recovering:
             self.recover()
             return
         global score
         self.shootCoolDownCount += 1
         self.spelltick += 1
-        if self.spelldata[self.spell].shootcooldown == self.shootCoolDownCount:
+        if self.spelldata[self.spell].shootcooldown == self.shootCoolDownCount: # 控制shoot函数执行间隔
             self.shoot()
             self.shootCoolDownCount = 0
         list = pygame.sprite.spritecollide(
@@ -600,7 +631,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             player_Character.temperature += item.damage  # 子弹打出伤害加温度
             if not item.free:
                 item.kill()
-        if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time:
+        if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time: # 本张符卡/非符结束判定
             se.play("destory", se.ENEMY_DESTORY_CHANNEL)
             if self.spelldata[self.spell].isspell == True:  # 不是非符才能收
                 if not player_Character.missinthisspell:  # 符卡收取判定
@@ -617,30 +648,28 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 else:
                     effectgroup.add(LimitTimePic(
                         ui.bonusfailedtext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
-                player_Character.missinthisspell = False
             if self.spell > self.spellcount:
                 self.kill()
                 return
             self.recovering = True
             self.spellinit()  # 此时已经进入下张符卡
             return
-        if not self.stand:
-            self.moveCoolDownCount += 1
-            if self.moveCoolDown == self.moveCoolDownCount:
-                self.moveCoolDown = random.randint(120, 300)
-                self.moveCoolDownCount = 0
-                self.speedvec.x = random.uniform(-2, 2)
-            self.posvec = self.posvec + self.speedvec
-            self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
-            self.posvec.x = max(self.rect.width, self.posvec.x)
-            self.posvec.y = min(gameZoneDown - self.rect.height, self.posvec.y)
-            self.posvec.y = max(self.rect.height, self.posvec.y)
-            self.rect.centerx, self.rect.centery = self.posvec
+        self.posvec = self.posvec + self.speedvec
+        self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
+        self.posvec.x = max(self.rect.width, self.posvec.x)
+        self.posvec.y = min(gameZoneDown - self.rect.height, self.posvec.y)
+        self.posvec.y = max(self.rect.height, self.posvec.y)
+        self.rect.centerx, self.rect.centery = self.posvec
 
-    def spellinit(self):
+    def spellinit(self): # 高耦合屎山
         self.spelltick = 0
         self.spell += 1
-
+        player_Character.missinthisspell = False
+        if self.spell == 4:
+            self.isfreeze = False
+        if self.spell == 8:
+            self.spell8_bulletrotate = 3
+        
     def recover(self):
         pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
         self.HP += self.spelldata[self.spell].hp / 120  # 恢复完成则继续正常行动
@@ -657,6 +686,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 text = ui.font_24.render(self.spelldata[self.spell].name, True, "BLACK")
                 effectgroup.add(SpellNameSprite(text, (500+text.get_width()/2, 800), -1, self, self.spell))  # 符卡宣告动画
 
+    
     def shoot(self):
         if self.spell == 1:
             tmp_vec1 = pygame.math.Vector2(
@@ -700,12 +730,6 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 enemyBulletGroup.add(bullet)
 
         if self.spell == 4:
-            if self.posvec.y <= 250:  # 笨蛋下压中
-                self.speedvec.y = 5
-                self.isfreeze = True
-                return
-            elif not self.speedvec.y == 0:
-                self.speedvec.y = 0
             if self.spelltick % 600 < 400:
                 if self.isfreeze:
                     self.isfreeze = False
@@ -739,9 +763,6 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                         item.speedvec = pygame.math.Vector2(0, 0)
 
         if self.spell == 5:
-            if self.posvec.y > 100:
-                self.speedvec.y = -5
-                return
             if self.spelltick % 30 == 0:
                 for i in range(60):
                     bullet = Bullet(1, (0, 100, 240), 20, 20, pygame.math.Vector2(
@@ -766,14 +787,6 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                         item.speedvec.rotate_ip(-2)
 
         if self.spell == 6:  # 转圈弹
-            if not self.enter_spell6:
-                self.speedvec = (pygame.math.Vector2(
-                    350, 350) - self.posvec) / 60  # 60帧内移动到屏幕中心
-                self.enter_spell6 = True
-                return
-            if self.spelltick < 60:
-                return
-            self.stand = True
             bullet = Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
                 0, 2).rotate(self.spelltick * 18), 1, 0, 0, pygame.math.Vector2(0, 0))
             enemyBulletGroup.add(bullet)
@@ -786,7 +799,6 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 enemyBulletGroup.add(bullet)
 
         if self.spell == 7:
-            self.stand = True
             for i in range(60):
                 if self.spelltick % 15 == i:  # 开花旋转加速弹（?
                     tmp_speedvec = pygame.math.Vector2(
@@ -808,17 +820,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     enemyBulletGroup.add(bullet)
 
 
-        if self.spell == 7:
-            if not self.enter_spell7:
-                self.spell7_bulletrotate = -5
-                self.stand = False
-                self.speedvec = (pygame.math.Vector2(
-                    350, 100) - self.posvec) / 60  # 60帧内移动回上方
-                self.enter_spell7 = True
-                return
-            if self.spelltick < 60:
-                return
-            self.stand = True
+        if self.spell == 8:
             if self.spelltick % 2 == 0:
                 self.posvec = pygame.math.Vector2(
                     self.rect.centerx, self.rect.centery)
@@ -845,9 +847,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 if item.tracktime > 180:  # 超过时间就停止旋转
                     continue
                 item.tracktime += 1
-                item.speedvec.rotate_ip(self.spell7_bulletrotate)
+                item.speedvec.rotate_ip(self.spell8_bulletrotate)
             if self.spelltick % 480 == 0:
-                self.spell7_bulletrotate = -self.spell7_bulletrotate
+                self.spell8_bulletrotate = -self.spell8_bulletrotate
                 se.play("enemyst01")
                 for item in enemyBulletGroup:
                     item.tracktime = 999
