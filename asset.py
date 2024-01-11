@@ -99,7 +99,7 @@ class UIDrawer():
             else:
                 fpscolor = (255, 0, 0)
             self.fpstext = self.font_20.render(str("{0:.2f}".format(
-                nowfps/2 if self.settings["powersave"] else nowfps)), True, fpscolor)
+                nowfps/4 if self.settings["powersave"] else nowfps)), True, fpscolor)
             self.versiontext = self.font_16.render(
                 "DEV 240107 早期开发版本", True, "WHITE")
             self.fpsTimer = 60

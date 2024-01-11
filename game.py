@@ -284,37 +284,94 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
                     self.rect.centerx, self.rect.y - 10), pygame.math.Vector2(0, -1), 18, 0, False, pygame.math.Vector2(0, -0.5)))
                 self.attackCoolDown = 0
                 return
-
-class MoveBetweenData(): # 移动函数的结构体
-    def  __init__(self,speed,pointlist):
-        self.speed = speed
-        self.pointlist = pointlist.copy()
-        self.name = "movebetween"
-        self.movecounter = 0
-
+class MoveData():# 移动函数的结构体
+    class MoveBetween(): 
+        def  __init__(self,speed,pointlist):
+            self.speed = speed
+            self.pointlist = pointlist.copy()
+            self.name = "movebetween"
+            self.movecounter = 0
+    class SetSpeed():
+        def __init__(self,speedvec):
+            self.name = "setspeed"
+            self.speedvec = speedvec
+    class Sleep():
+        def __init__(self,tick):
+            self.name = "sleep"
+            self.lasttick = self.tick = tick
+    class MoveInTime():
+        def __init__(self,tick,point):
+            self.name = "moveintime"
+            self.lasttick = self.tick = tick
+            self.point = point
+            
 class SpriteMover(): # 精灵移动器
     def __init__(self,owner):
         self.owner = owner
     
-    def reload(self,movelist):
-        self.movelist = movelist
-        self.stepcounter = 0
+    def reload(self,commandlist):
+        self.commandlist = commandlist
+        self.commandcounter = 0
 
     def update(self):
-        if self.movelist[self.stepcounter].name == "movebetween":
+        if self.commandcounter == len(self.commandlist): # 如果完成整个指令序列的所有指令
+            self.commandcounter = 0
+        if self.commandlist[self.commandcounter].name == "movebetween":
             self.movebetween()
+            self.move()
+            return
+        if self.commandlist[self.commandcounter].name == "setspeed":
+            self.setspeed()
+            self.move()
+            return
+        if self.commandlist[self.commandcounter].name == "sleep":
+            self.sleep()
+            self.move()
+            return
+        if self.commandlist[self.commandcounter].name == "moveintime":
+            self.moveintime()
+            self.move()
+            return
+    def move(self):    
+        self.owner.posvec = self.owner.posvec + self.owner.speedvec
+        self.owner.posvec.x = min(gameZoneRight - self.owner.rect.width, self.owner.posvec.x)
+        self.owner.posvec.x = max(self.owner.rect.width, self.owner.posvec.x)
+        self.owner.posvec.y = min(gameZoneDown - self.owner.rect.height, self.owner.posvec.y)
+        self.owner.posvec.y = max(self.owner.rect.height, self.owner.posvec.y)
+        self.owner.rect.centerx, self.owner.rect.centery = self.owner.posvec
 
     def movebetween(self):
-        nowstep = self.movelist[self.stepcounter] # nowstep是目前执行到的脚本指令
+        nowstep = self.commandlist[self.commandcounter] # nowstep是目前执行到的脚本指令
         if (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).length() < nowstep.speed:# 如果被移动精灵与目标点的位置小于每帧速度
             self.owner.posvec = nowstep.pointlist[nowstep.movecounter] # 直接移动到目标点
             nowstep.movecounter += 1 # 指针指向下一个目标点
             if nowstep.movecounter == len(nowstep.pointlist): # 如果已经完成整个列表中每个目标点
-                nowstep.movecounter = 0 # 指针指向第0个目标点
+                nowstep.movecounter = 0 # 重置目标点指针
+                self.commandcounter += 1 # 指针指向下一个脚本指令
             return
         self.owner.speedvec = (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).normalize()*nowstep.speed # 从现在的位置向第movecounter位移动
-        
+    
+    def setspeed(self):
+        nowstep = self.commandlist[self.commandcounter]
+        self.owner.speedvec = pygame.math.Vector2(0,0) + nowstep.speedvec
+        self.commandcounter += 1
 
+    def sleep(self):
+        nowstep = self.commandlist[self.commandcounter]
+        nowstep.lasttick -= 1
+        if nowstep.lasttick == 0:
+            nowstep.lasttick = nowstep.ticks
+            self.commandcounter += 1
+
+    def moveintime(self):
+        nowstep = self.commandlist[self.commandcounter]
+        if nowstep.tick == nowstep.lasttick:
+            self.owner.speedvec = (nowstep.point - self.owner.posvec) / nowstep.tick
+        nowstep.lasttick -= 1
+        if nowstep.lasttick == 0:
+            self.commandcounter += 1
+            self.owner.speedvec = pygame.math.Vector2(0,0)
+            nowstep.lasttick = nowstep.tick 
 class bulletitem(pygame.sprite.Sprite):  # 道具类
     def __init__(self, posvec: pygame.math.Vector2):
         super().__init__()
@@ -576,7 +633,7 @@ class Spellcard:  # 符卡结构体
 
 
 class Enemy(pygame.sprite.Sprite):  # 敌人类
-    def __init__(self, maxHP, HP, posvec):
+    def __init__(self, maxHP, posvec):
         super().__init__()
         self.enter_spell8 = False
         self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
@@ -592,7 +649,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             Spellcard("草&雪符「忍冬草」", 4000, True, 2400, 1),
             Spellcard("冰符「Grand Ice Ball」", 4000, True, 2400, 1)
         ]
-        self.spell = 7
+        self.spell = 3
         self.HP = self.spelldata[self.spell].hp
         self.image = picloader.load("Picture/cirno.bmp")
         self.rect = self.image.get_rect()
@@ -608,12 +665,19 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.enter_spell6 = False  # 屎
         self.recovering = False
         self.mover = SpriteMover(self)
-        self.mover.reload([MoveBetweenData(2,[(300,100),(100,100),(100,300),(300,300)])])
+        self.recovermover = SpriteMover(self) # 
+        self.mover.reload([
+            MoveData.Sleep(60)
+            ])
+        self.recovermover.reload([
+            MoveData.Sleep(60)
+            ])
     def update(self):
-        self.mover.update() # 处理移动
         if self.recovering:
             self.recover()
+            self.recovermover.update()
             return
+        self.mover.update() # 处理移动
         global score
         self.shootCoolDownCount += 1
         self.spelltick += 1
@@ -654,25 +718,30 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.recovering = True
             self.spellinit()  # 此时已经进入下张符卡
             return
-        self.posvec = self.posvec + self.speedvec
-        self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
-        self.posvec.x = max(self.rect.width, self.posvec.x)
-        self.posvec.y = min(gameZoneDown - self.rect.height, self.posvec.y)
-        self.posvec.y = max(self.rect.height, self.posvec.y)
-        self.rect.centerx, self.rect.centery = self.posvec
 
     def spellinit(self): # 高耦合屎山
         self.spelltick = 0
         self.spell += 1
         player_Character.missinthisspell = False
+        if self.spell == 2:
+            self.mover.reload([
+                MoveData.MoveBetween(1,[(gameZoneLeft+100,100),(gameZoneRight-100,100)])
+            ])
         if self.spell == 4:
             self.isfreeze = False
+            self.recovermover.reload([
+                MoveData.MoveInTime(60,(gameZoneLeft + 100,100))
+            ])
+            self.mover.reload([
+                MoveData.MoveInTime(400,(gameZoneRight - 100,100)),
+                MoveData.MoveInTime(200,(gameZoneLeft + 100,100))
+            ])
         if self.spell == 8:
             self.spell8_bulletrotate = 3
         
     def recover(self):
         pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
-        self.HP += self.spelldata[self.spell].hp / 120  # 恢复完成则继续正常行动
+        self.HP += self.spelldata[self.spell].hp / 60  # 恢复完成则继续正常行动
         for item in enemyBulletGroup:
             if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < ((self.HP / self.spelldata[self.spell].hp) * 4 * 900)**2:
                 # 在30帧内以笨蛋为圆心创建一个半径为3600的把弹幕转换为道具的圆的狗屎实现
@@ -1089,7 +1158,7 @@ ui = asset.UIDrawer(settings)
 se = asset.SEPlayer()
 tempbar = Tempbar(ui.tempbar, (550, 680), -1, player_Character)
 effectgroup.add(tempbar)
-baka = Enemy(5000, 5000, pygame.math.Vector2(355, 100))
+baka = Enemy(5000, pygame.math.Vector2(355, 100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
@@ -1149,7 +1218,7 @@ while not done:
     effectgroup.update()
     itemGroup.update()
     recorder.stop("Other calculate", True)
-    if tick % 2 or not settings["powersave"]:
+    if tick % 4 or not settings["powersave"]:
         ui.drawBefore(screen)
         recorder.stop("UI draw", True)
         self_group.draw(screen)
