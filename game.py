@@ -4,6 +4,7 @@ from typing import Any
 import pygame
 import json
 import asset
+import time
 
 pygame.init()
 pygame.mixer.set_num_channels(40)
@@ -145,9 +146,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.bombingTime -= 1
         if chooseCharacter == "Marisa":
             color = random.choice(["red", "green", "yellow"])
-            mybomb = MarisaBomb(player_bomb_pictures[color][0], pygame.math.Vector2(
-                self.rect.centerx, self.rect.centery - 40), pygame.math.Vector2(random.uniform(-1.5, 1.5), random.uniform(-3.5, -5.5)), 8, color)
-            bombgroup.add(mybomb)
+            bombgroup.add(MarisaBomb(player_bomb_pictures[color][0], pygame.math.Vector2(
+                self.rect.centerx, self.rect.centery - 40), pygame.math.Vector2(random.uniform(-1.5, 1.5), random.uniform(-3.5, -5.5)), 8, color))
         if not self.bombingTime:
             self.status = "alive"
 
@@ -360,7 +360,7 @@ class SpriteMover(): # 精灵移动器
         nowstep = self.commandlist[self.commandcounter]
         nowstep.lasttick -= 1
         if nowstep.lasttick == 0:
-            nowstep.lasttick = nowstep.ticks
+            nowstep.lasttick = nowstep.tick
             self.commandcounter += 1
 
     def moveintime(self):
@@ -649,7 +649,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             Spellcard("草&雪符「忍冬草」", 4000, True, 2400, 1),
             Spellcard("冰符「Grand Ice Ball」", 4000, True, 2400, 1)
         ]
-        self.spell = 3
+        self.spell = 1
         self.HP = self.spelldata[self.spell].hp
         self.image = picloader.load("Picture/cirno.bmp")
         self.rect = self.image.get_rect()
@@ -736,6 +736,23 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 MoveData.MoveInTime(400,(gameZoneRight - 100,100)),
                 MoveData.MoveInTime(200,(gameZoneLeft + 100,100))
             ])
+        if self.spell == 5:
+            self.recovermover.reload([
+                MoveData.MoveInTime(60,(gameZoneLeft + 100,gameZoneUp - 100))
+            ])
+            self.mover.reload([
+                MoveData.MoveInTime(300,(gameZoneRight - 100,gameZoneUp - 100)),
+                MoveData.MoveInTime(300,(gameZoneRight - 100,gameZoneDown + 100)),
+                MoveData.MoveInTime(300,(gameZoneLeft + 100,gameZoneDown + 100)),
+                MoveData.MoveInTime(300,(gameZoneLeft + 100,gameZoneUp - 100))
+            ])
+        if self.spell == 6:
+            self.recovermover.reload([
+                MoveData.MoveInTime(60,(gameZoneCenterX,gameZoneCenterY))
+            ])
+            self.mover.reload([
+                MoveData.Sleep(60)
+            ])
         if self.spell == 8:
             self.spell8_bulletrotate = 3
         
@@ -759,44 +776,47 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
     def shoot(self):
         if self.spell == 1:
             tmp_vec1 = pygame.math.Vector2(
-                random.uniform(-1, 1), random.uniform(0, 1)).normalize() * 3
-            while True:  # 朴实无华随机弹
-                bullet = Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(
+                random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * 3
+            enemyBulletGroup.add(
+                Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(
+                    0, 240))), 20, 20, pygame.math.Vector2(self.posvec.x, self.posvec.y), tmp_vec1, 1, 0, 0, pygame.math.Vector2(0, 0)),
+                Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(
                     0, 240))), 20, 20, pygame.math.Vector2(self.posvec.x, self.posvec.y), tmp_vec1, 1, 0, 0, pygame.math.Vector2(0, 0))
-                if not (bullet.speedvec.length() < 1):  # 避免出现太慢的弹幕
-                    break
-            enemyBulletGroup.add(bullet)
+            )
 
         if self.spell == 2:
             if not self.spelltick % 300 < 20:
-                for i in range(-3, 4, 1):  # 上下2*7=14条封位弹
-                    bullet = Bullet(1, (100, 128, 240), 20, 20, pygame.math.Vector2(
-                        self.posvec.x, self.posvec.y), pygame.math.Vector2(i, 2), 1, 0, 0, pygame.math.Vector2(0, 0))
-                    enemyBulletGroup.add(bullet)
-                    bullet = Bullet(1, (100, 128, 240), 20, 20, pygame.math.Vector2(
+                for i in range(-4, 5, 1):  # 上下2*9=18条封位弹
+                    enemyBulletGroup.add(
+                        Bullet(1, (100, 128, 240), 20, 20, pygame.math.Vector2(
+                        self.posvec.x, self.posvec.y), pygame.math.Vector2(i, 2), 1, 0, 0, pygame.math.Vector2(0, 0)),
+                        Bullet(1, (100, 128, 240), 20, 20, pygame.math.Vector2(
                         self.posvec.x, self.posvec.y), pygame.math.Vector2(i, -2), 1, 0, 0, pygame.math.Vector2(0, 0))
-                    enemyBulletGroup.add(bullet)
+                        )
             if self.spelltick / 10 % 3:  # 8颗朝下的随机弹
                 for i in range(8):
-                    bullet = Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 20, 20, pygame.math.Vector2(
+                    enemyBulletGroup.add(
+                        Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 20, 20, pygame.math.Vector2(
                         self.posvec.x, self.posvec.y), pygame.math.Vector2(random.uniform(3, -3), 3), 1, 0, 0, pygame.math.Vector2(0, 0))
-                    enemyBulletGroup.add(bullet)
+                        )
             if self.spelltick % 120 == 0:  # 1颗自机狙
-                bullet = Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(
-                    self.posvec.x, self.posvec.y), relative_direction(self, player_Character)*5, 1, 0, 0, pygame.math.Vector2(0, 0))
-                enemyBulletGroup.add(bullet)
+                enemyBulletGroup.add(
+                    Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(
+                        self.posvec.x, self.posvec.y), relative_direction(self, player_Character)*5, 1, 0, 0, pygame.math.Vector2(0, 0))
+                    )
 
         if self.spell == 3:  # 大冰棱子
-            bullet = Bullet(self.ice_cone_image.copy(), ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 40, 40, pygame.math.Vector2(
-                random.uniform(10, 600), self.rect.centery - 50), pygame.math.Vector2(0, 1.5), 1, 0, 0, pygame.math.Vector2(0, 0.01))
-            enemyBulletGroup.add(bullet)
+            enemyBulletGroup.add(
+                Bullet(self.ice_cone_image.copy(), ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 40, 40, pygame.math.Vector2(
+                    random.uniform(10, 600), self.rect.centery - 50), pygame.math.Vector2(0, 1.5), 1, 0, 0, pygame.math.Vector2(0, 0.01))
+                    )
             if self.spelltick % 90 == 0:  # 屎山偶数弹
-                bullet = Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
-                    self, player_Character).rotate(10)*8, 1, 0, 0, pygame.math.Vector2(0, 0))
-                enemyBulletGroup.add(bullet)
-                bullet = Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
-                    self, player_Character).rotate(-10)*8, 1, 0, 0, pygame.math.Vector2(0, 0))
-                enemyBulletGroup.add(bullet)
+                enemyBulletGroup.add(
+                    Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
+                        self, player_Character).rotate(10)*8, 1, 0, 0, pygame.math.Vector2(0, 0)),
+                    Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
+                        self, player_Character).rotate(-10)*8, 1, 0, 0, pygame.math.Vector2(0, 0))
+                    )
 
         if self.spell == 4:
             if self.spelltick % 600 < 400:
@@ -813,12 +833,14 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     self.posvec.x, self.posvec.y), tmp_vec1 * random.uniform(1.5, 2.5), 1, 0, 0, pygame.math.Vector2(0, 0))
                 enemyBulletGroup.add(bullet)
             else:
-                if self.spelltick % 10 == 0 and 410 < self.spelltick % 600 < 500:  # 2*⑨ = 18颗偶数弹
-                    bullet = Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
-                        self, player_Character).rotate(random.uniform(5, 15))*8, 1, 0, 0, pygame.math.Vector2(0, 0))
-                    enemyBulletGroup.add(bullet)
-                    bullet = Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
-                        self, player_Character).rotate(random.uniform(-5, -15))*8, 1, 0, 0, pygame.math.Vector2(0, 0))
+                if self.spelltick % 20 == 0 and 410 < self.spelltick % 600 < 599:  # 2*⑨ = 18颗偶数弹
+                    enemyBulletGroup.add(
+                        Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
+                            self, player_Character).rotate(random.uniform(5, 15))*8, 1, 0, 0, pygame.math.Vector2(0, 0)),
+                        Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
+                            self, player_Character).rotate(random.uniform(-5, -15))*8, 1, 0, 0, pygame.math.Vector2(0, 0))
+                        )
+                    
                     enemyBulletGroup.add(bullet)
                 if not self.isfreeze:  # Perfect Freeze!
                     self.isfreeze = True
@@ -856,11 +878,12 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                         item.speedvec.rotate_ip(-2)
 
         if self.spell == 6:  # 转圈弹
-            bullet = Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
-                0, 2).rotate(self.spelltick * 18), 1, 0, 0, pygame.math.Vector2(0, 0))
-            enemyBulletGroup.add(bullet)
-            bullet = Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
-                0, 2).rotate(self.spelltick * 9), 1, 0, 0, pygame.math.Vector2(0, 0))
+            enemyBulletGroup.add(
+                Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
+                    0, 2).rotate(self.spelltick * 18), 1, 0, 0, pygame.math.Vector2(0, 0)),
+                Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
+                    0, 2).rotate(self.spelltick * 9), 1, 0, 0, pygame.math.Vector2(0, 0))
+                    )
             enemyBulletGroup.add(bullet)
             if self.spelltick % 90 == 0:  # 1颗自机狙
                 bullet = Bullet(1, (240, 240, 240), 40, 40, pygame.math.Vector2(
@@ -1070,6 +1093,8 @@ gameZoneLeft = 30
 gameZoneRight = 620
 gameZoneUp = 20
 gameZoneDown = 695
+gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
+gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
 size = (screenX, screenY)
 screen = pygame.display.set_mode(size)
 chooseCharacter = "Reimu"
@@ -1078,24 +1103,36 @@ framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
 
 if settings["replay"] == True:
-    with open('rep.json') as f:
-        load_event_list = json.load(f, strict=False)
-    seed = load_event_list[0][0]
+    with open('rep_new.json') as f:
+        jsondict = json.load(f, strict=False)
+    seed = jsondict["metadata"]["seed"]
     type_replace_dict = {"0": 768, "1": 769}
     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
                         "3": 1073741903, "4": 122, "5": 120, "6": 1073742049, "7": 99}
-    for sublist in load_event_list[1:]:
-        for item in sublist:
-            type_value = str(item["type"])
-            key_value = str(item["key"])
-            if type_value in type_replace_dict:
-                item["type"] = type_replace_dict[type_value]
-            if key_value in key_replace_dict:
-                item["key"] = key_replace_dict[key_value]
-
+    for eachtypelist in jsondict["replaybody"]["type"]: # 将自定义格式转换为pygame事件和按键编号
+        for i,eachtype in enumerate(eachtypelist):
+            eachtypelist[i] = type_replace_dict[eachtype]
+    for eachkeylist in jsondict["replaybody"]["key"]:
+        for i,eachkey in enumerate(eachkeylist):
+            eachkeylist[i] = key_replace_dict[eachkey]
+    replayeventcount = 0
 else:
     seed = random.randint(1000000000, 9999999999)  # 下面在为replay做准备
-    input_event_list = [[seed]]
+    input_event_list = []
+    jsondict = { # 初始化录像数据结构
+        "metadata":
+        {
+            "seed": seed,
+            "character": chooseCharacter,
+            "time": int(time.time()),
+            "avgfps": 57
+        },
+        "replaybody":{
+            "tick":[],
+            "type":[],
+            "key":[]
+        }
+        }
 random.seed(seed)
 disappear_group = pygame.sprite.Group()
 self_group = pygame.sprite.Group()
@@ -1158,7 +1195,7 @@ ui = asset.UIDrawer(settings)
 se = asset.SEPlayer()
 tempbar = Tempbar(ui.tempbar, (550, 680), -1, player_Character)
 effectgroup.add(tempbar)
-baka = Enemy(5000, pygame.math.Vector2(355, 100))
+baka = Enemy(5000, pygame.math.Vector2(gameZoneCenterX, 100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
 done = False
@@ -1176,7 +1213,7 @@ while not done:
         item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
         item.nowdisappeartime -= 1
     recorder.stop("disapper group", True)
-    if not settings["replay"]:  # 记录录像
+    if not settings["replay"]:  # 记录原始录像数据
         input_event_list.append([])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1190,17 +1227,16 @@ while not done:
                 input_event_list[tick].append(
                     {"t": tick, "type": event.type, "key": event.key})
     else:  # 播放录像
-        item = load_event_list[1]
-        if item[0]["t"] == tick:
-            for event in item:
-                for event in load_event_list[1]:
-                    if event["type"] == pygame.QUIT:
-                        done = True
-                    elif event["type"] == pygame.KEYDOWN:
-                        keydown(event["key"])
-                    elif event["type"] == pygame.KEYUP:
-                        keyup(event["key"])
-            del load_event_list[1]
+        nexteventtick = jsondict["replaybody"]["tick"][replayeventcount]
+        if nexteventtick == tick:
+            replayeventcount += 1
+            if replayeventcount == len(jsondict["replaybody"]["tick"]) - 1:
+                done = True
+            for i,eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
+                if eventtype == pygame.KEYDOWN:
+                    keydown(jsondict["replaybody"]["key"][replayeventcount - 1][i])
+                elif eventtype == pygame.KEYUP:
+                    keyup(jsondict["replaybody"]["key"][replayeventcount - 1][i])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -1238,17 +1274,31 @@ while not done:
 done = True
 if not settings["replay"]:
     input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
+    new_input_event_list = []
     type_replace_dict = {"768": "0", "769": "1"}
     key_replace_dict = {"1073741906": "0", "1073741905": "1", "1073741904": "2",
                         "1073741903": "3", "122": "4", "120": "5", "1073742049": "6", "99": "7"}
-    for sublist in input_event_list[1:]:
+    for sublist in input_event_list: # 将原始数据通过自定义字典转化为自定义数据
+        tmpsublist = []
         for item in sublist:
             type_value = str(item["type"])
             key_value = str(item["key"])
-            if type_value in type_replace_dict:
-                item["type"] = type_replace_dict[type_value]
-            if key_value in key_replace_dict:
-                item["key"] = key_replace_dict[key_value]
-    replay_json = json.dumps(input_event_list)
+            if not key_value in key_replace_dict: # 如果这个键不需要被记录就跳过
+                continue
+            item["key"] = key_replace_dict[key_value]
+            item["type"] = type_replace_dict[type_value]
+            tmpsublist.append(item)
+        new_input_event_list.append(tmpsublist) #加入新的列表中
+    new_input_event_list = [x for x in new_input_event_list if x != []]  # 清除所有空项
+    for eachtick in new_input_event_list: # 遍历原始数据中的每一tick
+        jsondict["replaybody"]["tick"].append(eachtick[0]["t"]) # 写入tick号
+        tmpkeylist = [] # 对每一tick初始化空的事件和按键列表
+        tmptypelist = []
+        for eachevent in eachtick: # 遍历每一tick下的每一事件
+            tmpkeylist.append(eachevent["key"])
+            tmptypelist.append(eachevent["type"])
+        jsondict["replaybody"]["key"].append(tmpkeylist)
+        jsondict["replaybody"]["type"].append(tmptypelist)
+    replay_json = json.dumps(jsondict)
     with open("rep.json", "w") as file:
         file.write(replay_json)
