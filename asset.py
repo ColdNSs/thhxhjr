@@ -81,10 +81,14 @@ class UIDrawer():
         self.font_12 = pygame.font.Font("fonts/fonts.ttf", 12)
         self.settings = settings
         self.fpsTimer = 0
+        self.fpslist = []
+        self.versiontext = self.font_16.render(
+                "DEV 240107 早期开发版本", True, "WHITE")
         self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
         self.framework.blit(self.lifetext,(620,170))
         self.framework.blit(self.spelltext,(620,210))
         self.framework.blit(self.grazetext,(642,250))
+        self.framework.blit(self.versiontext, (0, 700))
     def drawBefore(self, screen):
         screen.blit(self.background, (30, 20))
 
@@ -99,12 +103,10 @@ class UIDrawer():
             else:
                 fpscolor = (255, 0, 0)
             self.fpstext = self.font_20.render(str("{0:.2f}".format(
-                nowfps/4 if self.settings["powersave"] else nowfps)), True, fpscolor)
-            self.versiontext = self.font_16.render(
-                "DEV 240107 早期开发版本", True, "WHITE")
+                nowfps/2 if self.settings["powersave"] else nowfps)), True, fpscolor)
+            self.fpslist.append(nowfps/2 if self.settings["powersave"] else nowfps)
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
-        screen.blit(self.versiontext, (0, 700))
         self.fpsTimer -= 1
         # 敌机血量显示
         screen.blit(pygame.transform.scale(self.enemy_hp_bar, (max(

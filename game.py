@@ -5,7 +5,7 @@ import pygame
 import json
 import asset
 import time
-
+import gzip
 pygame.init()
 pygame.mixer.set_num_channels(40)
 
@@ -1103,8 +1103,8 @@ framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
 
 if settings["replay"] == True:
-    with open('rep_new.json') as f:
-        jsondict = json.load(f, strict=False)
+    with gzip.open('rep.rpy', 'rb') as f: 
+        jsondict = json.loads(gzip.decompress(f.read()).decode(), strict=False)
     seed = jsondict["metadata"]["seed"]
     type_replace_dict = {"0": 768, "1": 769}
     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
@@ -1220,11 +1220,11 @@ while not done:
                 done = True
             elif event.type == pygame.KEYDOWN:
                 keydown(event.key)
-                input_event_list[tick].append(
+                input_event_list[tick - 1].append(
                     {"t": tick, "type": event.type, "key": event.key})
             elif event.type == pygame.KEYUP:
                 keyup(event.key)
-                input_event_list[tick].append(
+                input_event_list[tick - 1].append(
                     {"t": tick, "type": event.type, "key": event.key})
     else:  # 播放录像
         nexteventtick = jsondict["replaybody"]["tick"][replayeventcount]
@@ -1254,7 +1254,7 @@ while not done:
     effectgroup.update()
     itemGroup.update()
     recorder.stop("Other calculate", True)
-    if tick % 4 or not settings["powersave"]:
+    if tick % 2 or not settings["powersave"]:
         ui.drawBefore(screen)
         recorder.stop("UI draw", True)
         self_group.draw(screen)
@@ -1299,6 +1299,7 @@ if not settings["replay"]:
             tmptypelist.append(eachevent["type"])
         jsondict["replaybody"]["key"].append(tmpkeylist)
         jsondict["replaybody"]["type"].append(tmptypelist)
-    replay_json = json.dumps(jsondict)
-    with open("rep.json", "w") as file:
-        file.write(replay_json)
+    jsondict["metadata"]["avgfps"] = sum(ui.fpslist)/len(ui.fpslist)
+    replay_gzip = gzip.compress(json.dumps(jsondict).encode())
+    with gzip.open('rep.rpy', 'wb') as file: 
+        file.write(replay_gzip)
