@@ -13,7 +13,7 @@ pygame.mixer.set_num_channels(40)
 
 
 class playerCharacter(pygame.sprite.Sprite):  # 判定点类
-    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature, tempdownspeed):
+    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature, tempdownspeed,spellcardname,drawsprite):
         super().__init__()
         self.image = pygame.Surface([radius * 2, radius * 2])
         self.rect = self.image.get_rect()
@@ -26,6 +26,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.speedvec = pygame.math.Vector2(0, 0)
         self.speed = speed
         self.slow = 1
+        self.spellcardname = spellcardname
+        self.drawsprite = drawsprite
         self.speedMultiplier = speedMultiplier
         self.shoot = False
         self.HP = 5
@@ -97,6 +99,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         if self.status == "usebomb":
             self.Bomb -= 1
             se.play("bomb", se.PLAYER_SPELL_CHANNEL)
+            effectgroup.add(CharacterDrawSprite(self.drawsprite,(self.drawsprite.get_width()/2,900 + self.drawsprite.get_height()/2)))
+            effectgroup.add(CharacterDrawSprite(gameui.font_24.render(self.spellcardname, True, "BLACK"),(self.drawsprite.get_width()/2,900)))
             self.missinthisspell = True
             if self.QTETime:  # 决死
                 self.QTETime = 0
@@ -375,7 +379,7 @@ class SpriteMover(): # 精灵移动器
 class bulletitem(pygame.sprite.Sprite):  # 道具类
     def __init__(self, posvec: pygame.math.Vector2):
         super().__init__()
-        self.image = ui.bulletitem
+        self.image = gameui.bulletitem
         self.rect = self.image.get_rect()
         self.posvec = posvec
 
@@ -567,6 +571,14 @@ class LimitTimePic(pygame.sprite.Sprite):  # 图片精灵
         if self.lastlifetime == 0:
             self.kill()
 
+class CharacterDrawSprite(LimitTimePic): # 为什么sprite还有立绘的意思。。。
+    def __init__(self, image, posvec):
+        self.image = image
+        super().__init__(self.image, posvec, 120)
+
+    def update(self):
+        self.rect.centery -= (abs(self.lastlifetime - 60)/10)**2
+        super().update()
 
 class SpellNameSprite(LimitTimePic):  # 符卡名称显示类 同下
     def __init__(self, image, posvec, lifetime, enemy, spellid):
@@ -589,15 +601,15 @@ class SpellNameSprite(LimitTimePic):  # 符卡名称显示类 同下
             return
         if not self.is_created_scoretext:  # 在下方显示分数
             self.image.set_alpha(255)
-            text = ui.font_12.render("SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
+            text = gameui.font_12.render("SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
             self.scoretext = LimitTimePic(text,(self.rect.x + text.get_width()/2, self.rect.y + self.image.get_height() + text.get_height()), -1) #传入的应是分数文字所在的中心坐标
             effectgroup.add(self.scoretext)
             self.is_created_scoretext = True
         if not player_Character.missinthisspell:
-            self.scoretext.image = ui.font_12.render(
+            self.scoretext.image = gameui.font_12.render(
                 "SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
         else:
-            self.scoretext.image = ui.font_12.render("FAILED...", True, "BLACK")
+            self.scoretext.image = gameui.font_12.render("FAILED...", True, "BLACK")
         if self.enemy.spell > self.spellid:
             self.scoretext.kill()
             self.kill()
@@ -639,7 +651,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
         self.spelldata = [
             Spellcard("缺省", 4000, False, 2400, 1),  # 符卡从第一张开始算 所以从[1]开始访问
-            Spellcard("缺省", 4000, False, 2400, 1),
+            Spellcard("缺省", 400, False, 2400, 1),
             Spellcard("冷符「冷冻锁链」", 4000, True, 2400, 10),
             Spellcard("符卡1", 4000, False, 2400, 4),
             Spellcard("冻符「超完美冻结」", 4000, True, 2400, 1),
@@ -704,14 +716,14 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     score += spellscore
                     player_Character.temperature += 3000 + spellscore / 200  # 收卡加温度
                     effectgroup.add(LimitTimePic(
-                        ui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
-                    scoretext = ui.font_24.render(
+                        gameui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
+                    scoretext = gameui.font_24.render(
                         str(spellscore), True, (0, 128, 240))
                     effectgroup.add(LimitTimePic(
                         scoretext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
                 else:
                     effectgroup.add(LimitTimePic(
-                        ui.bonusfailedtext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
+                        gameui.bonusfailedtext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 300), 120))
             if self.spell > self.spellcount:
                 self.kill()
                 return
@@ -769,7 +781,8 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.shootCoolDownCount = 0
             se.play("bomb", se.ENEMY_SPELL_CHANNEL)
             if self.spelldata[self.spell].isspell == True:
-                text = ui.font_24.render(self.spelldata[self.spell].name, True, "BLACK")
+                text = gameui.font_24.render(self.spelldata[self.spell].name, True, "BLACK")
+                effectgroup.add(CharacterDrawSprite(gameui.cirno,(650 - gameui.cirno.get_width()/2,900 + gameui.cirno.get_height()/2)))
                 effectgroup.add(SpellNameSprite(text, (500+text.get_width()/2, 800), -1, self, self.spell))  # 符卡宣告动画
 
     
@@ -1003,58 +1016,62 @@ class TimeRecorder:  # 基于pygame计时器的性能监测类
         if start:
             self.start()
 
+class Characterctl():
+    def __init__(self,character,characterOptionLeft,characterOptionRight,characterImage):
+        self.character = character
+        self.characterOptionLeft = characterOptionLeft
+        self.characterOptionRight = characterOptionRight
+        self.characterImage = characterImage
+    def keydown(self,key):
+        if key == pygame.K_UP:
+            self.character.upspeed = 1
+        if key == pygame.K_DOWN:
+            self.character.downspeed = 1
+        if key == pygame.K_LEFT:
+            self.character.leftspeed = 1
+            self.characterImage.leftspeed = 1
+        if key == pygame.K_RIGHT:
+            self.character.rightspeed = 1
+            self.characterImage.rightspeed = 1
+        if key == pygame.K_z:
+            self.character.shoot = True
+            self.characterOptionLeft.shoot = True
+            self.characterOptionRight.shoot = True
+        if key == pygame.K_x:
+            if not self.character.status == "bombing" and self.character.Bomb > 0 and self.character.temperature > 10000:  # 低于10000温度不能放B
+                self.character.status = "usebomb"
+        if key == pygame.K_LSHIFT:
+            self.character.setmode(mode=1)
+            self.characterOptionLeft.slow = True
+            self.characterOptionRight.slow = True
+        if key == pygame.K_ESCAPE:
+            global done
+            done = True
+        if key == pygame.K_c:
+            if self.character.temperature > 65000:
+                self.character.Bomb += 1
+                se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
+                self.character.temperature -= 30000
 
-def keydown(key):
-    if key == pygame.K_UP:
-        player_Character.upspeed = 1
-    if key == pygame.K_DOWN:
-        player_Character.downspeed = 1
-    if key == pygame.K_LEFT:
-        player_Character.leftspeed = 1
-        player_CharacterImage.leftspeed = 1
-    if key == pygame.K_RIGHT:
-        player_Character.rightspeed = 1
-        player_CharacterImage.rightspeed = 1
-    if key == pygame.K_z:
-        player_Character.shoot = True
-        player_CharacterOptionLeft.shoot = True
-        player_CharacterOptionRight.shoot = True
-    if key == pygame.K_x:
-        if not player_Character.status == "bombing" and player_Character.Bomb > 0 and player_Character.temperature > 10000:  # 低于10000温度不能放B
-            player_Character.status = "usebomb"
-    if key == pygame.K_LSHIFT:
-        player_Character.setmode(mode=1)
-        player_CharacterOptionLeft.slow = True
-        player_CharacterOptionRight.slow = True
-    if key == pygame.K_ESCAPE:
-        global done
-        done = True
-    if key == pygame.K_c:
-        if player_Character.temperature > 65000:
-            player_Character.Bomb += 1
-            se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
-            player_Character.temperature -= 30000
-
-
-def keyup(key):
-    if key == pygame.K_UP:
-        player_Character.upspeed = 0
-    if key == pygame.K_DOWN:
-        player_Character.downspeed = 0
-    if key == pygame.K_LEFT:
-        player_Character.leftspeed = 0
-        player_CharacterImage.leftspeed = 0
-    if key == pygame.K_RIGHT:
-        player_Character.rightspeed = 0
-        player_CharacterImage.rightspeed = 0
-    if key == pygame.K_z:
-        player_Character.shoot = False
-        player_CharacterOptionLeft.shoot = False
-        player_CharacterOptionRight.shoot = False
-    if key == pygame.K_LSHIFT:
-        player_Character.setmode(mode=0)
-        player_CharacterOptionLeft.slow = False
-        player_CharacterOptionRight.slow = False
+    def keyup(self,key):
+        if key == pygame.K_UP:
+            self.character.upspeed = 0
+        if key == pygame.K_DOWN:
+            self.character.downspeed = 0
+        if key == pygame.K_LEFT:
+            self.character.leftspeed = 0
+            self.characterImage.leftspeed = 0
+        if key == pygame.K_RIGHT:
+            self.character.rightspeed = 0
+            self.characterImage.rightspeed = 0
+        if key == pygame.K_z:
+            self.character.shoot = False
+            self.characterOptionLeft.shoot = False
+            self.characterOptionRight.shoot = False
+        if key == pygame.K_LSHIFT:
+            self.character.setmode(mode=0)
+            self.characterOptionLeft.slow = False
+            self.characterOptionRight.slow = False
 
 
 # 返回从Sprite1指向Sprite2的单位向量 若为0向量则返回随机微小向量
@@ -1097,7 +1114,7 @@ gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
 gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
 size = (screenX, screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Reimu"
+chooseCharacter = "Marisa"
 recorder = TimeRecorder()
 framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
@@ -1142,9 +1159,10 @@ enemyBulletGroup = pygame.sprite.Group()
 bombgroup = pygame.sprite.Group()
 effectgroup = pygame.sprite.Group()
 itemGroup = pygame.sprite.Group()
-
+gameui = asset.GameUI(settings)
+se = asset.SEPlayer()
 if chooseCharacter == "Reimu":
-    player_Character = playerCharacter(5, 8, 0.5, 10, 3, 30000, 27)
+    player_Character = playerCharacter(5, 8, 0.5, 10, 3, 30000, 27,"梦符「梦想封印·彩」",gameui.reimu)
     player_CharacterImage = playerCharacterImage(
         picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
     player_CharacterOptionRight = playerOption(
@@ -1166,7 +1184,7 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
 
 if chooseCharacter == "Marisa":
-    player_Character = playerCharacter(6, 9, 0.4, 9, 6, 30000, 30)
+    player_Character = playerCharacter(6, 9, 0.4, 9, 6, 30000, 30,"魔符「Blasting Star」",gameui.marisa)
     player_Character.bulletimage = picloader.load(
         "Picture/marisa_fire.bmp", 20, 36)
     player_CharacterImage = playerCharacterImage(
@@ -1191,115 +1209,140 @@ self_group.add(player_CharacterImage)
 self_group.add(player_CharacterOptionRight)
 self_group.add(player_CharacterOptionLeft)
 self_group.add(player_Character)
-ui = asset.UIDrawer(settings)
-se = asset.SEPlayer()
-tempbar = Tempbar(ui.tempbar, (550, 680), -1, player_Character)
+characterctl = Characterctl(player_Character,player_CharacterOptionLeft,player_CharacterOptionRight,player_CharacterImage)
+tempbar = Tempbar(gameui.tempbar, (550, 680), -1, player_Character)
 effectgroup.add(tempbar)
 baka = Enemy(5000, pygame.math.Vector2(gameZoneCenterX, 100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
+
+def gameloop():
+    done = False
+    tick = 0
+    input_event_list = []
+    while not done:
+        clock.tick(60)
+        print("="*10, tick, "="*10)
+        framerecorder.stop("Frame total", True)
+        recorder.start()
+        tick += 1
+        for item in disappear_group:
+            if item.nowdisappeartime <= 0:
+                item.kill()
+                continue
+            item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
+            item.nowdisappeartime -= 1
+        recorder.stop("disapper group", True)
+        if not settings["replay"]:  # 记录原始录像数据
+            input_event_list.append([])
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+                elif event.type == pygame.KEYDOWN:
+                    characterctl.keydown(event.key)
+                    input_event_list[tick - 1].append(
+                        {"t": tick, "type": event.type, "key": event.key})
+                elif event.type == pygame.KEYUP:
+                    characterctl.keyup(event.key)
+                    input_event_list[tick - 1].append(
+                        {"t": tick, "type": event.type, "key": event.key})
+        else:  # 播放录像
+            nexteventtick = jsondict["replaybody"]["tick"][replayeventcount]
+            if nexteventtick == tick:
+                replayeventcount += 1
+                if replayeventcount == len(jsondict["replaybody"]["tick"]) - 1:
+                    done = True
+                for i,eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
+                    if eventtype == pygame.KEYDOWN:
+                        characterctl.keydown(jsondict["replaybody"]["key"][replayeventcount - 1][i])
+                    elif eventtype == pygame.KEYUP:
+                        characterctl.keyup(jsondict["replaybody"]["key"][replayeventcount - 1][i])
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+        recorder.stop("replay", True)
+        player_Character.update(chooseCharacter)
+        player_CharacterImage.update()
+        player_CharacterOptionLeft.update()
+        player_CharacterOptionRight.update()
+        enemyGroup.update()
+        recorder.stop("Character calculate", True)
+        enemyBulletGroup.update()
+        selfBulletGroup.update()
+        recorder.stop("Bullet calculate", True)
+        bombgroup.update()
+        effectgroup.update()
+        itemGroup.update()
+        recorder.stop("Other calculate", True)
+        if tick % 2 or not settings["powersave"]:
+            gameui.drawBefore(screen)
+            recorder.stop("UI draw", True)
+            self_group.draw(screen)
+            enemyGroup.draw(screen)
+            recorder.stop("Character draw", True)
+            selfBulletGroup.draw(screen)
+            enemyBulletGroup.draw(screen)
+            recorder.stop("Bullet draw", True)
+            bombgroup.draw(screen)
+            effectgroup.draw(screen)
+            itemGroup.draw(screen)
+            recorder.stop("Other draw", True)
+            gameui.drawAfter(screen, baka, player_Character, se,
+                        clock, score)
+            recorder.stop("UI after draw", True)
+            pygame.display.flip()
+    done = True
+    if not settings["replay"]:
+        input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
+        new_input_event_list = []
+        type_replace_dict = {"768": "0", "769": "1"}
+        key_replace_dict = {"1073741906": "0", "1073741905": "1", "1073741904": "2",
+                            "1073741903": "3", "122": "4", "120": "5", "1073742049": "6", "99": "7"}
+        for sublist in input_event_list: # 将原始数据通过自定义字典转化为自定义数据
+            tmpsublist = []
+            for item in sublist:
+                type_value = str(item["type"])
+                key_value = str(item["key"])
+                if not key_value in key_replace_dict: # 如果这个键不需要被记录就跳过
+                    continue
+                item["key"] = key_replace_dict[key_value]
+                item["type"] = type_replace_dict[type_value]
+                tmpsublist.append(item)
+            new_input_event_list.append(tmpsublist) #加入新的列表中
+        new_input_event_list = [x for x in new_input_event_list if x != []]  # 清除所有空项
+        for eachtick in new_input_event_list: # 遍历原始数据中的每一tick
+            jsondict["replaybody"]["tick"].append(eachtick[0]["t"]) # 写入tick号
+            tmpkeylist = [] # 对每一tick初始化空的事件和按键列表
+            tmptypelist = []
+            for eachevent in eachtick: # 遍历每一tick下的每一事件
+                tmpkeylist.append(eachevent["key"])
+                tmptypelist.append(eachevent["type"])
+            jsondict["replaybody"]["key"].append(tmpkeylist)
+            jsondict["replaybody"]["type"].append(tmptypelist)
+        jsondict["metadata"]["avgfps"] = sum(gameui.fpslist)/len(gameui.fpslist)
+        replay_gzip = gzip.compress(json.dumps(jsondict).encode())
+        with gzip.open('rep.rpy', 'wb') as file: 
+            file.write(replay_gzip)
+
 done = False
 tick = 0
+mymenu = asset.Menu(gameui.font_24,[asset.MenuStruct("START"),asset.MenuStruct("OPTION"),asset.MenuStruct("MUSIC ROOM",True),asset.MenuStruct("EXIT")],"WHITE","RED","GREY",(100,100),True)
 while not done:
     clock.tick(60)
-    print("="*10, tick, "="*10)
-    framerecorder.stop("Frame total", True)
-    recorder.start()
-    tick += 1
-    for item in disappear_group:
-        if item.nowdisappeartime <= 0:
-            item.kill()
-            continue
-        item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
-        item.nowdisappeartime -= 1
-    recorder.stop("disapper group", True)
-    if not settings["replay"]:  # 记录原始录像数据
-        input_event_list.append([])
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            elif event.type == pygame.KEYDOWN:
-                keydown(event.key)
-                input_event_list[tick - 1].append(
-                    {"t": tick, "type": event.type, "key": event.key})
-            elif event.type == pygame.KEYUP:
-                keyup(event.key)
-                input_event_list[tick - 1].append(
-                    {"t": tick, "type": event.type, "key": event.key})
-    else:  # 播放录像
-        nexteventtick = jsondict["replaybody"]["tick"][replayeventcount]
-        if nexteventtick == tick:
-            replayeventcount += 1
-            if replayeventcount == len(jsondict["replaybody"]["tick"]) - 1:
-                done = True
-            for i,eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
-                if eventtype == pygame.KEYDOWN:
-                    keydown(jsondict["replaybody"]["key"][replayeventcount - 1][i])
-                elif eventtype == pygame.KEYUP:
-                    keyup(jsondict["replaybody"]["key"][replayeventcount - 1][i])
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-    recorder.stop("replay", True)
-    player_Character.update(chooseCharacter)
-    player_CharacterImage.update()
-    player_CharacterOptionLeft.update()
-    player_CharacterOptionRight.update()
-    enemyGroup.update()
-    recorder.stop("Character calculate", True)
-    enemyBulletGroup.update()
-    selfBulletGroup.update()
-    recorder.stop("Bullet calculate", True)
-    bombgroup.update()
-    effectgroup.update()
-    itemGroup.update()
-    recorder.stop("Other calculate", True)
-    if tick % 2 or not settings["powersave"]:
-        ui.drawBefore(screen)
-        recorder.stop("UI draw", True)
-        self_group.draw(screen)
-        enemyGroup.draw(screen)
-        recorder.stop("Character draw", True)
-        selfBulletGroup.draw(screen)
-        enemyBulletGroup.draw(screen)
-        recorder.stop("Bullet draw", True)
-        bombgroup.draw(screen)
-        effectgroup.draw(screen)
-        itemGroup.draw(screen)
-        recorder.stop("Other draw", True)
-        ui.drawAfter(screen, baka, player_Character, se,
-                     clock, score)
-        recorder.stop("UI after draw", True)
-        pygame.display.flip()
-done = True
-if not settings["replay"]:
-    input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
-    new_input_event_list = []
-    type_replace_dict = {"768": "0", "769": "1"}
-    key_replace_dict = {"1073741906": "0", "1073741905": "1", "1073741904": "2",
-                        "1073741903": "3", "122": "4", "120": "5", "1073742049": "6", "99": "7"}
-    for sublist in input_event_list: # 将原始数据通过自定义字典转化为自定义数据
-        tmpsublist = []
-        for item in sublist:
-            type_value = str(item["type"])
-            key_value = str(item["key"])
-            if not key_value in key_replace_dict: # 如果这个键不需要被记录就跳过
-                continue
-            item["key"] = key_replace_dict[key_value]
-            item["type"] = type_replace_dict[type_value]
-            tmpsublist.append(item)
-        new_input_event_list.append(tmpsublist) #加入新的列表中
-    new_input_event_list = [x for x in new_input_event_list if x != []]  # 清除所有空项
-    for eachtick in new_input_event_list: # 遍历原始数据中的每一tick
-        jsondict["replaybody"]["tick"].append(eachtick[0]["t"]) # 写入tick号
-        tmpkeylist = [] # 对每一tick初始化空的事件和按键列表
-        tmptypelist = []
-        for eachevent in eachtick: # 遍历每一tick下的每一事件
-            tmpkeylist.append(eachevent["key"])
-            tmptypelist.append(eachevent["type"])
-        jsondict["replaybody"]["key"].append(tmpkeylist)
-        jsondict["replaybody"]["type"].append(tmptypelist)
-    jsondict["metadata"]["avgfps"] = sum(ui.fpslist)/len(ui.fpslist)
-    replay_gzip = gzip.compress(json.dumps(jsondict).encode())
-    with gzip.open('rep.rpy', 'wb') as file: 
-        file.write(replay_gzip)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            done = True
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                mymenu.up()
+            if event.key == pygame.K_DOWN:
+                mymenu.down()
+            if event.key == pygame.K_z:
+                id = mymenu.choose()
+                if id == 0:
+                    gameloop()
+                if id == 3:
+                    exit()
+    mymenu.optiongroup.update()
+    mymenu.optiongroup.draw(screen)
+    pygame.display.flip()

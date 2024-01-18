@@ -1,3 +1,4 @@
+from typing import Any
 import pygame
 
 
@@ -53,8 +54,71 @@ class PicLoader():
         pic.set_colorkey("BLUE")
         return pic
 
+class MenuStruct():
+    def __init__(self,text,isdisabled = False):
+        self.text = text
+        self.isdisabled = isdisabled
 
-class UIDrawer():
+class Menu():
+    def __init__(self,font:pygame.font.Font,menulist,defaultcolor,choicecolor,disablecolor,posvec,iscirculute = False):
+        self.font = font
+        self.menulist = menulist
+        self.defaultcolor = defaultcolor
+        self.choicecolor = choicecolor
+        self.disablecolor = disablecolor
+        self.choice = 0
+        self.exactchoice = 0
+        self.iscirculute = iscirculute
+        self.posvec = posvec
+        self.optiongroup = pygame.sprite.Group()
+        self.choiceablelist = []
+        for i, struct in enumerate(self.menulist):
+            self.optiongroup.add(self.MenuSprite(self,struct,i))
+            if not struct.isdisabled:
+                self.choiceablelist.append(i) # 维护一个可选择选项的索引
+        pass
+
+    def up(self):
+        self.choice -= 1
+        self.choice = max(0,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
+        self.exactchoice = self.choiceablelist[self.choice]
+
+    def down(self):
+        self.choice += 1
+        self.choice = min(len(self.choiceablelist) - 1,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
+        self.exactchoice = self.choiceablelist[self.choice]
+    
+    def choose(self):
+        return self.exactchoice
+    
+    class MenuSprite(pygame.sprite.Sprite):
+        def __init__(self,owner,struct:MenuStruct,id):
+            super().__init__()
+            self.id = id
+            self.owner = owner
+            self.struct = struct
+            self.color = self.owner.defaultcolor
+            if self.id == 0: # 默认选第一个
+                self.color = self.owner.choicecolor
+            if struct.isdisabled:
+                self.color = self.owner.disablecolor
+            self.image = self.owner.font.render(struct.text,True,self.color)
+            self.rect = self.image.get_rect()
+            self.rect.x,self.rect.y = self.owner.posvec[0], self.owner.posvec[1] + (self.image.get_height() + 5) * id
+
+        def update(self):
+            if self.struct.isdisabled == True:
+                return
+            if self.id == self.owner.exactchoice: 
+                if self.color != self.owner.choicecolor: # 说明是刚刚变动的
+                    self.color = self.owner.choicecolor
+                    self.image = self.owner.font.render(self.struct.text,True,self.color)
+            else:
+                if self.color != self.owner.defaultcolor: # 说明是刚刚变动的
+                    self.color = self.owner.defaultcolor
+                    self.image = self.owner.font.render(self.struct.text,True,self.color)
+            
+class GameUI():
     picLoader = PicLoader()
 
     def __init__(self, settings):
@@ -73,7 +137,11 @@ class UIDrawer():
         self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
         self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
+        self.title = self.picLoader.load("Picture/title.png")
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
+        self.reimu = self.picLoader.load("Picture/reimu.png",360,540,True)
+        self.marisa = self.picLoader.load("Picture/marisa.png",360,540,True)
+        self.cirno = self.picLoader.load("Picture/cirno.png",360,540,True)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
         self.font_20 = pygame.font.Font("fonts/fonts.ttf", 20)
@@ -89,6 +157,8 @@ class UIDrawer():
         self.framework.blit(self.spelltext,(620,210))
         self.framework.blit(self.grazetext,(642,250))
         self.framework.blit(self.versiontext, (0, 700))
+    
+
     def drawBefore(self, screen):
         screen.blit(self.background, (30, 20))
 
