@@ -44,6 +44,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.missinthisspell = False
         self.graze = 0
         self.temperature = temperature
+        self.keeptemptime = 60
         self.tempdownspeed = tempdownspeed
 
     def setmode(self, mode):  # 设置子机位置
@@ -68,8 +69,11 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.mode = mode
 
     def update(self, chooseCharacter):
-        self.temperature = max(
-            self.temperature - self.tempdownspeed, 0)  # 温度限制
+        assert(self.keeptemptime >= 0)
+        if self.keeptemptime == 0: # 保温时间已过
+            self.temperature = max(self.temperature - self.tempdownspeed, 0)  # 温度限制
+        else:
+            self.keeptemptime -= 1
         self.temperature = min(self.temperature, 80000)
         if chooseCharacter == "Marisa":
             for item in bombgroup:
@@ -189,7 +193,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         for item in enemyBulletGroup:
             global score
             if pygame.sprite.collide_circle_ratio(2)(item, self) and not item.alreadyGraze:
-                self.temperature += 600
+                self.temperature += 200 # 擦弹加温度
+                player_Character.keeptemptime = 60 # 重置保温计数器
                 self.graze += 1
                 se.play("graze")
                 effect = Bullet(2, (240, 240, 240), 8, 8, pygame.math.Vector2(self.rect.centerx, self.rect.centery), pygame.math.Vector2(
@@ -746,7 +751,8 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             ])
             self.mover.reload([
                 MoveData.MoveInTime(400,(gameZoneRight - 100,100)),
-                MoveData.MoveInTime(200,(gameZoneLeft + 100,100))
+                MoveData.MoveInTime(100,(gameZoneLeft + 100,100)),
+                MoveData.Sleep(100)
             ])
         if self.spell == 5:
             self.recovermover.reload([
@@ -846,15 +852,13 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     self.posvec.x, self.posvec.y), tmp_vec1 * random.uniform(1.5, 2.5), 1, 0, 0, pygame.math.Vector2(0, 0))
                 enemyBulletGroup.add(bullet)
             else:
-                if self.spelltick % 20 == 0 and 410 < self.spelltick % 600 < 599:  # 2*⑨ = 18颗偶数弹
+                if self.spelltick % 10 == 0 and 410 < self.spelltick % 600 < 500:  # 2*⑨ = 18颗偶数弹
                     enemyBulletGroup.add(
                         Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
                             self, player_Character).rotate(random.uniform(5, 15))*8, 1, 0, 0, pygame.math.Vector2(0, 0)),
                         Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
                             self, player_Character).rotate(random.uniform(-5, -15))*8, 1, 0, 0, pygame.math.Vector2(0, 0))
                         )
-                    
-                    enemyBulletGroup.add(bullet)
                 if not self.isfreeze:  # Perfect Freeze!
                     self.isfreeze = True
                     for item in enemyBulletGroup:
@@ -897,7 +901,6 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
                     0, 2).rotate(self.spelltick * 9), 1, 0, 0, pygame.math.Vector2(0, 0))
                     )
-            enemyBulletGroup.add(bullet)
             if self.spelltick % 90 == 0:  # 1颗自机狙
                 bullet = Bullet(1, (240, 240, 240), 40, 40, pygame.math.Vector2(
                     self.posvec.x, self.posvec.y), relative_direction(self, player_Character)*4, 1, 0, 0, pygame.math.Vector2(0, 0))
@@ -1114,7 +1117,7 @@ gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
 gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
 size = (screenX, screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Marisa"
+chooseCharacter = "Reimu"
 recorder = TimeRecorder()
 framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
