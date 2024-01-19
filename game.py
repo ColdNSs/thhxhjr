@@ -13,7 +13,7 @@ pygame.mixer.set_num_channels(40)
 
 
 class playerCharacter(pygame.sprite.Sprite):  # 判定点类
-    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature, tempdownspeed,spellcardname,drawsprite):
+    def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature, tempdownspeed, spellcardname, drawsprite):
         super().__init__()
         self.image = pygame.Surface([radius * 2, radius * 2])
         self.rect = self.image.get_rect()
@@ -69,9 +69,10 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.mode = mode
 
     def update(self, chooseCharacter):
-        assert(self.keeptemptime >= 0)
-        if self.keeptemptime == 0: # 保温时间已过
-            self.temperature = max(self.temperature - self.tempdownspeed, 0)  # 温度限制
+        assert (self.keeptemptime >= 0)
+        if self.keeptemptime == 0:  # 保温时间已过
+            self.temperature = max(
+                self.temperature - self.tempdownspeed, 0)  # 温度限制
         else:
             self.keeptemptime -= 1
         self.temperature = min(self.temperature, 80000)
@@ -103,8 +104,10 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         if self.status == "usebomb":
             self.Bomb -= 1
             se.play("bomb", se.PLAYER_SPELL_CHANNEL)
-            effectgroup.add(CharacterDrawSprite(self.drawsprite,(self.drawsprite.get_width()/2,900 + self.drawsprite.get_height()/2)))
-            effectgroup.add(CharacterDrawSprite(gameui.font_24.render(self.spellcardname, True, "BLACK"),(self.drawsprite.get_width()/2,900)))
+            effectgroup.add(CharacterDrawSprite(
+                self.drawsprite, (self.drawsprite.get_width()/2, 900 + self.drawsprite.get_height()/2)))
+            effectgroup.add(CharacterDrawSprite(gameui.font_24.render(
+                self.spellcardname, True, "BLACK"), (self.drawsprite.get_width()/2, 900)))
             self.missinthisspell = True
             if self.QTETime:  # 决死
                 self.QTETime = 0
@@ -193,8 +196,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         for item in enemyBulletGroup:
             global score
             if pygame.sprite.collide_circle_ratio(2)(item, self) and not item.alreadyGraze:
-                self.temperature += 200 # 擦弹加温度
-                player_Character.keeptemptime = 60 # 重置保温计数器
+                self.temperature += 200  # 擦弹加温度
+                player_Character.keeptemptime = 60  # 重置保温计数器
                 self.graze += 1
                 se.play("graze")
                 effect = Bullet(2, (240, 240, 240), 8, 8, pygame.math.Vector2(self.rect.centerx, self.rect.centery), pygame.math.Vector2(
@@ -293,37 +296,43 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
                     self.rect.centerx, self.rect.y - 10), pygame.math.Vector2(0, -1), 18, 0, False, pygame.math.Vector2(0, -0.5)))
                 self.attackCoolDown = 0
                 return
-class MoveData():# 移动函数的结构体
-    class MoveBetween(): 
-        def  __init__(self,speed,pointlist):
+
+
+class MoveData():  # 移动函数的结构体
+    class MoveBetween():
+        def __init__(self, speed, pointlist):
             self.speed = speed
             self.pointlist = pointlist.copy()
             self.name = "movebetween"
             self.movecounter = 0
+
     class SetSpeed():
-        def __init__(self,speedvec):
+        def __init__(self, speedvec):
             self.name = "setspeed"
             self.speedvec = speedvec
+
     class Sleep():
-        def __init__(self,tick):
+        def __init__(self, tick):
             self.name = "sleep"
             self.lasttick = self.tick = tick
+
     class MoveInTime():
-        def __init__(self,tick,point):
+        def __init__(self, tick, point):
             self.name = "moveintime"
             self.lasttick = self.tick = tick
             self.point = point
-            
-class SpriteMover(): # 精灵移动器
-    def __init__(self,owner):
+
+
+class SpriteMover():  # 精灵移动器
+    def __init__(self, owner):
         self.owner = owner
-    
-    def reload(self,commandlist):
+
+    def reload(self, commandlist):
         self.commandlist = commandlist
         self.commandcounter = 0
 
     def update(self):
-        if self.commandcounter == len(self.commandlist): # 如果完成整个指令序列的所有指令
+        if self.commandcounter == len(self.commandlist):  # 如果完成整个指令序列的所有指令
             self.commandcounter = 0
         if self.commandlist[self.commandcounter].name == "movebetween":
             self.movebetween()
@@ -341,28 +350,35 @@ class SpriteMover(): # 精灵移动器
             self.moveintime()
             self.move()
             return
-    def move(self):    
+
+    def move(self):
         self.owner.posvec = self.owner.posvec + self.owner.speedvec
-        self.owner.posvec.x = min(gameZoneRight - self.owner.rect.width, self.owner.posvec.x)
+        self.owner.posvec.x = min(
+            gameZoneRight - self.owner.rect.width, self.owner.posvec.x)
         self.owner.posvec.x = max(self.owner.rect.width, self.owner.posvec.x)
-        self.owner.posvec.y = min(gameZoneDown - self.owner.rect.height, self.owner.posvec.y)
+        self.owner.posvec.y = min(
+            gameZoneDown - self.owner.rect.height, self.owner.posvec.y)
         self.owner.posvec.y = max(self.owner.rect.height, self.owner.posvec.y)
         self.owner.rect.centerx, self.owner.rect.centery = self.owner.posvec
 
     def movebetween(self):
-        nowstep = self.commandlist[self.commandcounter] # nowstep是目前执行到的脚本指令
-        if (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).length() < nowstep.speed:# 如果被移动精灵与目标点的位置小于每帧速度
-            self.owner.posvec = nowstep.pointlist[nowstep.movecounter] # 直接移动到目标点
-            nowstep.movecounter += 1 # 指针指向下一个目标点
-            if nowstep.movecounter == len(nowstep.pointlist): # 如果已经完成整个列表中每个目标点
-                nowstep.movecounter = 0 # 重置目标点指针
-                self.commandcounter += 1 # 指针指向下一个脚本指令
+        nowstep = self.commandlist[self.commandcounter]  # nowstep是目前执行到的脚本指令
+        # 如果被移动精灵与目标点的位置小于每帧速度
+        if (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).length() < nowstep.speed:
+            # 直接移动到目标点
+            self.owner.posvec = nowstep.pointlist[nowstep.movecounter]
+            nowstep.movecounter += 1  # 指针指向下一个目标点
+            if nowstep.movecounter == len(nowstep.pointlist):  # 如果已经完成整个列表中每个目标点
+                nowstep.movecounter = 0  # 重置目标点指针
+                self.commandcounter += 1  # 指针指向下一个脚本指令
             return
-        self.owner.speedvec = (nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).normalize()*nowstep.speed # 从现在的位置向第movecounter位移动
-    
+        # 从现在的位置向第movecounter位移动
+        self.owner.speedvec = (
+            nowstep.pointlist[nowstep.movecounter] - self.owner.posvec).normalize()*nowstep.speed
+
     def setspeed(self):
         nowstep = self.commandlist[self.commandcounter]
-        self.owner.speedvec = pygame.math.Vector2(0,0) + nowstep.speedvec
+        self.owner.speedvec = pygame.math.Vector2(0, 0) + nowstep.speedvec
         self.commandcounter += 1
 
     def sleep(self):
@@ -375,12 +391,15 @@ class SpriteMover(): # 精灵移动器
     def moveintime(self):
         nowstep = self.commandlist[self.commandcounter]
         if nowstep.tick == nowstep.lasttick:
-            self.owner.speedvec = (nowstep.point - self.owner.posvec) / nowstep.tick
+            self.owner.speedvec = (
+                nowstep.point - self.owner.posvec) / nowstep.tick
         nowstep.lasttick -= 1
         if nowstep.lasttick == 0:
             self.commandcounter += 1
-            self.owner.speedvec = pygame.math.Vector2(0,0)
-            nowstep.lasttick = nowstep.tick 
+            self.owner.speedvec = pygame.math.Vector2(0, 0)
+            nowstep.lasttick = nowstep.tick
+
+
 class bulletitem(pygame.sprite.Sprite):  # 道具类
     def __init__(self, posvec: pygame.math.Vector2):
         super().__init__()
@@ -431,7 +450,7 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.free = free  # 0产生跟随子机y轴移动的激光
         self.track = track
         if track:
-            self.lifetime = 0 # 为了实现诱导弹诱导效果逐渐加强
+            self.lifetime = 0  # 为了实现诱导弹诱导效果逐渐加强
         self.width = width
         self.height = height
         self.alreadyGraze = False
@@ -486,7 +505,7 @@ class MarisaBomb(pygame.sprite.Sprite):  # 抄袭自灵梦Bomb类型 别问我�
         self.posvec += self.speedvec
         self.rect.centerx, self.rect.centery = self.posvec
         if not self.trigger:
-            if pygame.sprite.collide_circle(self, baka):
+            if pygame.sprite.collide_rect(self, baka):
                 self.trigger = 1  # 击中则被触发
                 if not baka.recovering:
                     baka.HP -= self.damage
@@ -576,7 +595,8 @@ class LimitTimePic(pygame.sprite.Sprite):  # 图片精灵
         if self.lastlifetime == 0:
             self.kill()
 
-class CharacterDrawSprite(LimitTimePic): # 为什么sprite还有立绘的意思。。。
+
+class CharacterDrawSprite(LimitTimePic):  # 为什么sprite还有立绘的意思。。。
     def __init__(self, image, posvec):
         self.image = image
         super().__init__(self.image, posvec, 120)
@@ -584,6 +604,7 @@ class CharacterDrawSprite(LimitTimePic): # 为什么sprite还有立绘的意思�
     def update(self):
         self.rect.centery -= (abs(self.lastlifetime - 60)/10)**2
         super().update()
+
 
 class SpellNameSprite(LimitTimePic):  # 符卡名称显示类 同下
     def __init__(self, image, posvec, lifetime, enemy, spellid):
@@ -606,15 +627,18 @@ class SpellNameSprite(LimitTimePic):  # 符卡名称显示类 同下
             return
         if not self.is_created_scoretext:  # 在下方显示分数
             self.image.set_alpha(255)
-            text = gameui.font_12.render("SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
-            self.scoretext = LimitTimePic(text,(self.rect.x + text.get_width()/2, self.rect.y + self.image.get_height() + text.get_height()), -1) #传入的应是分数文字所在的中心坐标
+            text = gameui.font_12.render(
+                "SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
+            self.scoretext = LimitTimePic(text, (self.rect.x + text.get_width(
+            )/2, self.rect.y + self.image.get_height() + text.get_height()), -1)  # 传入的应是分数文字所在的中心坐标
             effectgroup.add(self.scoretext)
             self.is_created_scoretext = True
         if not player_Character.missinthisspell:
             self.scoretext.image = gameui.font_12.render(
                 "SCORE:"+str((self.enemy.spelldata[self.enemy.spell].time - self.enemy.spelltick) * 1000), True, "BLACK")
         else:
-            self.scoretext.image = gameui.font_12.render("FAILED...", True, "BLACK")
+            self.scoretext.image = gameui.font_12.render(
+                "FAILED...", True, "BLACK")
         if self.enemy.spell > self.spellid:
             self.scoretext.kill()
             self.kill()
@@ -682,23 +706,24 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.enter_spell6 = False  # 屎
         self.recovering = False
         self.mover = SpriteMover(self)
-        self.recovermover = SpriteMover(self) # 
+        self.recovermover = SpriteMover(self)
         self.mover.reload([
             MoveData.Sleep(60)
-            ])
+        ])
         self.recovermover.reload([
             MoveData.Sleep(60)
-            ])
+        ])
+
     def update(self):
         if self.recovering:
             self.recover()
             self.recovermover.update()
             return
-        self.mover.update() # 处理移动
+        self.mover.update()  # 处理移动
         global score
         self.shootCoolDownCount += 1
         self.spelltick += 1
-        if self.spelldata[self.spell].shootcooldown == self.shootCoolDownCount: # 控制shoot函数执行间隔
+        if self.spelldata[self.spell].shootcooldown == self.shootCoolDownCount:  # 控制shoot函数执行间隔
             self.shoot()
             self.shootCoolDownCount = 0
         list = pygame.sprite.spritecollide(
@@ -712,7 +737,8 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             player_Character.temperature += item.damage  # 子弹打出伤害加温度
             if not item.free:
                 item.kill()
-        if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time: # 本张符卡/非符结束判定
+        # 本张符卡/非符结束判定
+        if self.HP < 0 or self.spelltick >= self.spelldata[self.spell].time:
             se.play("destory", se.ENEMY_DESTORY_CHANNEL)
             if self.spelldata[self.spell].isspell == True:  # 不是非符才能收
                 if not player_Character.missinthisspell:  # 符卡收取判定
@@ -736,44 +762,49 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.spellinit()  # 此时已经进入下张符卡
             return
 
-    def spellinit(self): # 高耦合屎山
+    def spellinit(self):  # 高耦合屎山
         self.spelltick = 0
         self.spell += 1
         player_Character.missinthisspell = False
         if self.spell == 2:
             self.mover.reload([
-                MoveData.MoveBetween(1,[(gameZoneLeft+100,100),(gameZoneRight-100,100)])
+                MoveData.MoveBetween(
+                    1, [(gameZoneLeft+100, 100), (gameZoneRight-100, 100)])
             ])
         if self.spell == 4:
             self.isfreeze = False
             self.recovermover.reload([
-                MoveData.MoveInTime(60,(gameZoneLeft + 100,100))
+                MoveData.MoveInTime(60, (gameZoneLeft + 100, 100))
             ])
             self.mover.reload([
-                MoveData.MoveInTime(400,(gameZoneRight - 100,100)),
-                MoveData.MoveInTime(100,(gameZoneLeft + 100,100)),
+                MoveData.MoveInTime(400, (gameZoneRight - 100, 100)),
+                MoveData.MoveInTime(100, (gameZoneLeft + 100, 100)),
                 MoveData.Sleep(100)
             ])
         if self.spell == 5:
             self.recovermover.reload([
-                MoveData.MoveInTime(60,(gameZoneLeft + 100,gameZoneUp - 100))
+                MoveData.MoveInTime(60, (gameZoneLeft + 100, gameZoneUp - 100))
             ])
             self.mover.reload([
-                MoveData.MoveInTime(300,(gameZoneRight - 100,gameZoneUp - 100)),
-                MoveData.MoveInTime(300,(gameZoneRight - 100,gameZoneDown + 100)),
-                MoveData.MoveInTime(300,(gameZoneLeft + 100,gameZoneDown + 100)),
-                MoveData.MoveInTime(300,(gameZoneLeft + 100,gameZoneUp - 100))
+                MoveData.MoveInTime(
+                    300, (gameZoneRight - 100, gameZoneUp - 100)),
+                MoveData.MoveInTime(
+                    300, (gameZoneRight - 100, gameZoneDown + 100)),
+                MoveData.MoveInTime(
+                    300, (gameZoneLeft + 100, gameZoneDown + 100)),
+                MoveData.MoveInTime(
+                    300, (gameZoneLeft + 100, gameZoneUp - 100))
             ])
         if self.spell == 6:
             self.recovermover.reload([
-                MoveData.MoveInTime(60,(gameZoneCenterX,gameZoneCenterY))
+                MoveData.MoveInTime(60, (gameZoneCenterX, gameZoneCenterY))
             ])
             self.mover.reload([
                 MoveData.Sleep(60)
             ])
         if self.spell == 8:
             self.spell8_bulletrotate = 3
-        
+
     def recover(self):
         pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
         self.HP += self.spelldata[self.spell].hp / 60  # 恢复完成则继续正常行动
@@ -787,11 +818,13 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.shootCoolDownCount = 0
             se.play("bomb", se.ENEMY_SPELL_CHANNEL)
             if self.spelldata[self.spell].isspell == True:
-                text = gameui.font_24.render(self.spelldata[self.spell].name, True, "BLACK")
-                effectgroup.add(CharacterDrawSprite(gameui.cirno,(650 - gameui.cirno.get_width()/2,900 + gameui.cirno.get_height()/2)))
-                effectgroup.add(SpellNameSprite(text, (500+text.get_width()/2, 800), -1, self, self.spell))  # 符卡宣告动画
+                text = gameui.font_24.render(
+                    self.spelldata[self.spell].name, True, "BLACK")
+                effectgroup.add(CharacterDrawSprite(
+                    gameui.cirno, (650 - gameui.cirno.get_width()/2, 900 + gameui.cirno.get_height()/2)))
+                effectgroup.add(SpellNameSprite(
+                    text, (500+text.get_width()/2, 800), -1, self, self.spell))  # 符卡宣告动画
 
-    
     def shoot(self):
         if self.spell == 1:
             tmp_vec1 = pygame.math.Vector2(
@@ -808,34 +841,34 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 for i in range(-4, 5, 1):  # 上下2*9=18条封位弹
                     enemyBulletGroup.add(
                         Bullet(1, (100, 128, 240), 20, 20, pygame.math.Vector2(
-                        self.posvec.x, self.posvec.y), pygame.math.Vector2(i, 2), 1, 0, 0, pygame.math.Vector2(0, 0)),
+                            self.posvec.x, self.posvec.y), pygame.math.Vector2(i, 2), 1, 0, 0, pygame.math.Vector2(0, 0)),
                         Bullet(1, (100, 128, 240), 20, 20, pygame.math.Vector2(
-                        self.posvec.x, self.posvec.y), pygame.math.Vector2(i, -2), 1, 0, 0, pygame.math.Vector2(0, 0))
-                        )
+                            self.posvec.x, self.posvec.y), pygame.math.Vector2(i, -2), 1, 0, 0, pygame.math.Vector2(0, 0))
+                    )
             if self.spelltick / 10 % 3:  # 8颗朝下的随机弹
                 for i in range(8):
                     enemyBulletGroup.add(
                         Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 20, 20, pygame.math.Vector2(
-                        self.posvec.x, self.posvec.y), pygame.math.Vector2(random.uniform(3, -3), 3), 1, 0, 0, pygame.math.Vector2(0, 0))
-                        )
+                            self.posvec.x, self.posvec.y), pygame.math.Vector2(random.uniform(3, -3), 3), 1, 0, 0, pygame.math.Vector2(0, 0))
+                    )
             if self.spelltick % 120 == 0:  # 1颗自机狙
                 enemyBulletGroup.add(
                     Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(
                         self.posvec.x, self.posvec.y), relative_direction(self, player_Character)*5, 1, 0, 0, pygame.math.Vector2(0, 0))
-                    )
+                )
 
         if self.spell == 3:  # 大冰棱子
             enemyBulletGroup.add(
                 Bullet(self.ice_cone_image.copy(), ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 40, 40, pygame.math.Vector2(
                     random.uniform(10, 600), self.rect.centery - 50), pygame.math.Vector2(0, 1.5), 1, 0, 0, pygame.math.Vector2(0, 0.01))
-                    )
+            )
             if self.spelltick % 90 == 0:  # 屎山偶数弹
                 enemyBulletGroup.add(
                     Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
                         self, player_Character).rotate(10)*8, 1, 0, 0, pygame.math.Vector2(0, 0)),
                     Bullet(1, (240, 240, 240), 60, 60, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
                         self, player_Character).rotate(-10)*8, 1, 0, 0, pygame.math.Vector2(0, 0))
-                    )
+                )
 
         if self.spell == 4:
             if self.spelltick % 600 < 400:
@@ -858,7 +891,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                             self, player_Character).rotate(random.uniform(5, 15))*8, 1, 0, 0, pygame.math.Vector2(0, 0)),
                         Bullet(1, (20, 100, 240), 40, 40, pygame.math.Vector2(self.posvec.x, self.posvec.y), relative_direction(
                             self, player_Character).rotate(random.uniform(-5, -15))*8, 1, 0, 0, pygame.math.Vector2(0, 0))
-                        )
+                    )
                 if not self.isfreeze:  # Perfect Freeze!
                     self.isfreeze = True
                     for item in enemyBulletGroup:
@@ -900,7 +933,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     0, 2).rotate(self.spelltick * 18), 1, 0, 0, pygame.math.Vector2(0, 0)),
                 Bullet(1, (0, 100, 240), 15, 15, pygame.math.Vector2(self.posvec.x, self.posvec.y), pygame.math.Vector2(
                     0, 2).rotate(self.spelltick * 9), 1, 0, 0, pygame.math.Vector2(0, 0))
-                    )
+            )
             if self.spelltick % 90 == 0:  # 1颗自机狙
                 bullet = Bullet(1, (240, 240, 240), 40, 40, pygame.math.Vector2(
                     self.posvec.x, self.posvec.y), relative_direction(self, player_Character)*4, 1, 0, 0, pygame.math.Vector2(0, 0))
@@ -926,7 +959,6 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
                                     20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.06)
                     enemyBulletGroup.add(bullet)
-
 
         if self.spell == 8:
             if self.spelltick % 2 == 0:
@@ -963,7 +995,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     item.tracktime = 999
             self.posvec = pygame.math.Vector2(
                 self.rect.centerx, self.rect.centery)
-            
+
         if self.spell == 9:
             if self.spelltick % 30 == 0:
                 for i in range(30):  # 白色奇数弹
@@ -1019,13 +1051,15 @@ class TimeRecorder:  # 基于pygame计时器的性能监测类
         if start:
             self.start()
 
+
 class Characterctl():
-    def __init__(self,character,characterOptionLeft,characterOptionRight,characterImage):
+    def __init__(self, character, characterOptionLeft, characterOptionRight, characterImage):
         self.character = character
         self.characterOptionLeft = characterOptionLeft
         self.characterOptionRight = characterOptionRight
         self.characterImage = characterImage
-    def keydown(self,key):
+
+    def keydown(self, key):
         if key == pygame.K_UP:
             self.character.upspeed = 1
         if key == pygame.K_DOWN:
@@ -1056,7 +1090,7 @@ class Characterctl():
                 se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
                 self.character.temperature -= 30000
 
-    def keyup(self,key):
+    def keyup(self, key):
         if key == pygame.K_UP:
             self.character.upspeed = 0
         if key == pygame.K_DOWN:
@@ -1117,29 +1151,29 @@ gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
 gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
 size = (screenX, screenY)
 screen = pygame.display.set_mode(size)
-chooseCharacter = "Reimu"
+chooseCharacter = "Marisa"
 recorder = TimeRecorder()
 framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
 
 if settings["replay"] == True:
-    with gzip.open('rep.rpy', 'rb') as f: 
+    with gzip.open('rep.rpy', 'rb') as f:
         jsondict = json.loads(gzip.decompress(f.read()).decode(), strict=False)
     seed = jsondict["metadata"]["seed"]
     type_replace_dict = {"0": 768, "1": 769}
     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
                         "3": 1073741903, "4": 122, "5": 120, "6": 1073742049, "7": 99}
-    for eachtypelist in jsondict["replaybody"]["type"]: # 将自定义格式转换为pygame事件和按键编号
-        for i,eachtype in enumerate(eachtypelist):
+    for eachtypelist in jsondict["replaybody"]["type"]:  # 将自定义格式转换为pygame事件和按键编号
+        for i, eachtype in enumerate(eachtypelist):
             eachtypelist[i] = type_replace_dict[eachtype]
     for eachkeylist in jsondict["replaybody"]["key"]:
-        for i,eachkey in enumerate(eachkeylist):
+        for i, eachkey in enumerate(eachkeylist):
             eachkeylist[i] = key_replace_dict[eachkey]
     replayeventcount = 0
 else:
     seed = random.randint(1000000000, 9999999999)  # 下面在为replay做准备
     input_event_list = []
-    jsondict = { # 初始化录像数据结构
+    jsondict = {  # 初始化录像数据结构
         "metadata":
         {
             "seed": seed,
@@ -1147,12 +1181,12 @@ else:
             "time": int(time.time()),
             "avgfps": 57
         },
-        "replaybody":{
-            "tick":[],
-            "type":[],
-            "key":[]
+        "replaybody": {
+            "tick": [],
+            "type": [],
+            "key": []
         }
-        }
+    }
 random.seed(seed)
 disappear_group = pygame.sprite.Group()
 self_group = pygame.sprite.Group()
@@ -1165,7 +1199,8 @@ itemGroup = pygame.sprite.Group()
 gameui = asset.GameUI(settings)
 se = asset.SEPlayer()
 if chooseCharacter == "Reimu":
-    player_Character = playerCharacter(5, 8, 0.5, 10, 3, 30000, 27,"梦符「梦想封印·彩」",gameui.reimu)
+    player_Character = playerCharacter(
+        5, 8, 0.5, 10, 3, 30000, 27, "梦符「梦想封印·彩」", gameui.reimu)
     player_CharacterImage = playerCharacterImage(
         picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
     player_CharacterOptionRight = playerOption(
@@ -1187,7 +1222,8 @@ if chooseCharacter == "Reimu":
         player_bomb_pictures[color] = picture
 
 if chooseCharacter == "Marisa":
-    player_Character = playerCharacter(6, 9, 0.4, 9, 6, 30000, 30,"魔符「Blasting Star」",gameui.marisa)
+    player_Character = playerCharacter(
+        6, 9, 0.4, 9, 6, 30000, 30, "魔符「Blasting Star」", gameui.marisa)
     player_Character.bulletimage = picloader.load(
         "Picture/marisa_fire.bmp", 20, 36)
     player_CharacterImage = playerCharacterImage(
@@ -1212,12 +1248,14 @@ self_group.add(player_CharacterImage)
 self_group.add(player_CharacterOptionRight)
 self_group.add(player_CharacterOptionLeft)
 self_group.add(player_Character)
-characterctl = Characterctl(player_Character,player_CharacterOptionLeft,player_CharacterOptionRight,player_CharacterImage)
+characterctl = Characterctl(player_Character, player_CharacterOptionLeft,
+                            player_CharacterOptionRight, player_CharacterImage)
 tempbar = Tempbar(gameui.tempbar, (550, 680), -1, player_Character)
 effectgroup.add(tempbar)
 baka = Enemy(5000, pygame.math.Vector2(gameZoneCenterX, 100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
+
 
 def gameloop():
     done = False
@@ -1233,7 +1271,8 @@ def gameloop():
             if item.nowdisappeartime <= 0:
                 item.kill()
                 continue
-            item.image.set_alpha(255 / item.disappeartime * item.nowdisappeartime)
+            item.image.set_alpha(
+                255 / item.disappeartime * item.nowdisappeartime)
             item.nowdisappeartime -= 1
         recorder.stop("disapper group", True)
         if not settings["replay"]:  # 记录原始录像数据
@@ -1255,11 +1294,13 @@ def gameloop():
                 replayeventcount += 1
                 if replayeventcount == len(jsondict["replaybody"]["tick"]) - 1:
                     done = True
-                for i,eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
+                for i, eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
                     if eventtype == pygame.KEYDOWN:
-                        characterctl.keydown(jsondict["replaybody"]["key"][replayeventcount - 1][i])
+                        characterctl.keydown(
+                            jsondict["replaybody"]["key"][replayeventcount - 1][i])
                     elif eventtype == pygame.KEYUP:
-                        characterctl.keyup(jsondict["replaybody"]["key"][replayeventcount - 1][i])
+                        characterctl.keyup(
+                            jsondict["replaybody"]["key"][replayeventcount - 1][i])
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     done = True
@@ -1291,7 +1332,7 @@ def gameloop():
             itemGroup.draw(screen)
             recorder.stop("Other draw", True)
             gameui.drawAfter(screen, baka, player_Character, se,
-                        clock, score)
+                             clock, score)
             recorder.stop("UI after draw", True)
             pygame.display.flip()
     done = True
@@ -1301,36 +1342,92 @@ def gameloop():
         type_replace_dict = {"768": "0", "769": "1"}
         key_replace_dict = {"1073741906": "0", "1073741905": "1", "1073741904": "2",
                             "1073741903": "3", "122": "4", "120": "5", "1073742049": "6", "99": "7"}
-        for sublist in input_event_list: # 将原始数据通过自定义字典转化为自定义数据
+        for sublist in input_event_list:  # 将原始数据通过自定义字典转化为自定义数据
             tmpsublist = []
             for item in sublist:
                 type_value = str(item["type"])
                 key_value = str(item["key"])
-                if not key_value in key_replace_dict: # 如果这个键不需要被记录就跳过
+                if not key_value in key_replace_dict:  # 如果这个键不需要被记录就跳过
                     continue
                 item["key"] = key_replace_dict[key_value]
                 item["type"] = type_replace_dict[type_value]
                 tmpsublist.append(item)
-            new_input_event_list.append(tmpsublist) #加入新的列表中
-        new_input_event_list = [x for x in new_input_event_list if x != []]  # 清除所有空项
-        for eachtick in new_input_event_list: # 遍历原始数据中的每一tick
-            jsondict["replaybody"]["tick"].append(eachtick[0]["t"]) # 写入tick号
-            tmpkeylist = [] # 对每一tick初始化空的事件和按键列表
+            new_input_event_list.append(tmpsublist)  # 加入新的列表中
+        new_input_event_list = [
+            x for x in new_input_event_list if x != []]  # 清除所有空项
+        for eachtick in new_input_event_list:  # 遍历原始数据中的每一tick
+            jsondict["replaybody"]["tick"].append(eachtick[0]["t"])  # 写入tick号
+            tmpkeylist = []  # 对每一tick初始化空的事件和按键列表
             tmptypelist = []
-            for eachevent in eachtick: # 遍历每一tick下的每一事件
+            for eachevent in eachtick:  # 遍历每一tick下的每一事件
                 tmpkeylist.append(eachevent["key"])
                 tmptypelist.append(eachevent["type"])
             jsondict["replaybody"]["key"].append(tmpkeylist)
             jsondict["replaybody"]["type"].append(tmptypelist)
-        jsondict["metadata"]["avgfps"] = sum(gameui.fpslist)/len(gameui.fpslist)
+        jsondict["metadata"]["avgfps"] = sum(
+            gameui.fpslist)/len(gameui.fpslist)
         replay_gzip = gzip.compress(json.dumps(jsondict).encode())
-        with gzip.open('rep.rpy', 'wb') as file: 
+        with gzip.open('rep.rpy', 'wb') as file:
             file.write(replay_gzip)
+
+
+def option():
+    screen.fill((0, 0, 0))
+    done = False
+    mymenu = asset.Menu(gameui.font_24, 
+                        [
+                            asset.MenuStruct("SE Volume: {0:.0f}%".format(settings["sevol"]*100)), 
+                            asset.MenuStruct("BGM Volume: {0:.0f}%".format(settings["bgmvol"]*100)), 
+                            asset.MenuStruct("目标帧率: {0} FPS".format("30" if settings["powersave"] else "60")), 
+                            asset.MenuStruct("Save & Exit")
+                        ], "WHITE", "RED", "GREY", (300, 300), True)
+    while not done:
+        clock.tick(60)
+        screen.fill((0, 0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    mymenu.up()
+                if event.key == pygame.K_DOWN:
+                    mymenu.down()
+                if event.key == pygame.K_LEFT:
+                    if mymenu.choose() == 0:
+                        settings["sevol"] = max(settings["sevol"] - 0.05, 0)
+                        mymenu.getelementbyid(0).settext("SE Volume: {0:.0f}%".format(settings["sevol"]*100)) # 完全不规范的面向对象编程
+                    if mymenu.choose() == 1:
+                        settings["bgmvol"] = max(settings["bgmvol"] - 0.05, 0)
+                        mymenu.getelementbyid(1).settext("BGM Volume: {0:.0f}%".format(settings["bgmvol"]*100))
+                    if mymenu.choose() == 2:
+                        settings["powersave"] = not settings["powersave"]
+                        mymenu.getelementbyid(2).settext("目标帧率: {0} FPS".format("30" if settings["powersave"] else "60"))
+                if event.key == pygame.K_RIGHT:
+                    if mymenu.choose() == 0:
+                        settings["sevol"] = min(settings["sevol"] + 0.05, 100)
+                        mymenu.getelementbyid(0).settext("SE Volume: {0:.0f}%".format(settings["sevol"]*100))
+                    if mymenu.choose() == 1:
+                        settings["bgmvol"] = min(settings["bgmvol"] + 0.05, 100)
+                        mymenu.getelementbyid(1).settext("BGM Volume: {0:.0f}%".format(settings["bgmvol"]*100))
+                    if mymenu.choose() == 2:
+                        settings["powersave"] = not settings["powersave"]
+                        mymenu.getelementbyid(2).settext("目标帧率: {0} FPS".format("30" if settings["powersave"] else "60"))
+                if event.key == pygame.K_z and mymenu.choose() == 3:
+                    with open("settings.json", "w") as file:
+                        file.write(json.dumps(settings))
+                        return
+
+        mymenu.optiongroup.update()
+        mymenu.optiongroup.draw(screen)
+        pygame.display.flip()
+
 
 done = False
 tick = 0
-mymenu = asset.Menu(gameui.font_24,[asset.MenuStruct("START"),asset.MenuStruct("OPTION"),asset.MenuStruct("MUSIC ROOM",True),asset.MenuStruct("EXIT")],"WHITE","RED","GREY",(100,100),True)
+mymenu = asset.Menu(gameui.font_24, [asset.MenuStruct("START"), asset.MenuStruct("OPTION"), asset.MenuStruct(
+    "MUSIC ROOM", True), asset.MenuStruct("EXIT")], "WHITE", "RED", "GREY", (100, 100), True)
 while not done:
+    screen.fill((0, 0, 0))
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -1344,6 +1441,8 @@ while not done:
                 id = mymenu.choose()
                 if id == 0:
                     gameloop()
+                if id == 1:
+                    option()
                 if id == 3:
                     exit()
     mymenu.optiongroup.update()

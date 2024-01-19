@@ -91,6 +91,11 @@ class Menu():
     def choose(self):
         return self.exactchoice
     
+    def getelementbyid(self,id): # 东施效颦
+        for element in self.optiongroup:
+            if element.id == id:
+                return element
+
     class MenuSprite(pygame.sprite.Sprite):
         def __init__(self,owner,struct:MenuStruct,id):
             super().__init__()
@@ -105,6 +110,13 @@ class Menu():
             self.image = self.owner.font.render(struct.text,True,self.color)
             self.rect = self.image.get_rect()
             self.rect.x,self.rect.y = self.owner.posvec[0], self.owner.posvec[1] + (self.image.get_height() + 5) * id
+
+        def refresh(self): #强制重新渲染图片
+            self.image = self.owner.font.render(self.struct.text,True,self.color)
+
+        def settext(self,text):
+            self.struct.text = text
+            self.refresh()
 
         def update(self):
             if self.struct.isdisabled == True:
