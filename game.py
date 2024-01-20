@@ -8,7 +8,7 @@ import time
 import gzip
 pygame.init()
 pygame.mixer.set_num_channels(40)
-
+pygame.display.set_caption('STGGAME')
 # posvec：位置向量 speedvec：速度向量
 
 
@@ -1126,7 +1126,7 @@ def sprite_disappear(sprite: pygame.sprite.Sprite, disappeartime: int):
 
 
 def create_setting():  # 生成配置文件
-    settings = {"replay": False, "powersave": False}
+    settings = {"powersave": False, "sevol":0.2, "bgmvol":0.2}
     with open("settings.json", "w") as file:
         file.write(json.dumps(settings))
     return settings
@@ -1156,7 +1156,8 @@ recorder = TimeRecorder()
 framerecorder = TimeRecorder()
 picloader = asset.PicLoader()
 
-if settings["replay"] == True:
+#if settings["replay"] == True:
+if False:
     with gzip.open('rep.rpy', 'rb') as f:
         jsondict = json.loads(gzip.decompress(f.read()).decode(), strict=False)
     seed = jsondict["metadata"]["seed"]
@@ -1256,7 +1257,39 @@ baka = Enemy(5000, pygame.math.Vector2(gameZoneCenterX, 100))
 enemyGroup.add(baka)
 clock = pygame.time.Clock()
 
-
+def pause():
+    se.play("pause")
+    screenshot = screen.copy()
+    pausemaskgroup = pygame.sprite.Group()
+    pausemask = pygame.Surface((590,675))
+    pausemask.set_alpha(128)
+    mymenu = asset.Menu(gameui.font_24, 
+                        [
+                            asset.MenuStruct("游戏暂停！",True), 
+                            asset.MenuStruct("解除游戏暂停"),
+                            asset.MenuStruct("保存录像并退出"), 
+                            asset.MenuStruct("不保存录像并退出")
+                        ], "WHITE", "RED", "GREY", (250, 250), True,1)
+    while True:
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    se.play("select")
+                    mymenu.up()
+                if event.key == pygame.K_DOWN:
+                    se.play("select")
+                    mymenu.down()
+                if event.key == pygame.K_z:
+                    se.play("confirm")
+                    return mymenu.choose()
+        screen.blit(screenshot,(0,0))
+        screen.blit(pausemask,(30,20))
+        mymenu.optiongroup.update()
+        mymenu.optiongroup.draw(screen)
+        pygame.display.flip()
 def gameloop():
     done = False
     tick = 0
@@ -1275,12 +1308,21 @@ def gameloop():
                 255 / item.disappeartime * item.nowdisappeartime)
             item.nowdisappeartime -= 1
         recorder.stop("disapper group", True)
-        if not settings["replay"]:  # 记录原始录像数据
+        #if not settings["replay"]:  # 记录原始录像数据
+        if True:
             input_event_list.append([])
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     done = True
                 elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        choice = pause()
+                        if choice == 2:
+                            done = True
+                            replay = True
+                        if choice == 3:
+                            done = True
+                            replay = False
                     characterctl.keydown(event.key)
                     input_event_list[tick - 1].append(
                         {"t": tick, "type": event.type, "key": event.key})
@@ -1335,8 +1377,7 @@ def gameloop():
                              clock, score)
             recorder.stop("UI after draw", True)
             pygame.display.flip()
-    done = True
-    if not settings["replay"]:
+    if not replay:
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
         new_input_event_list = []
         type_replace_dict = {"768": "0", "769": "1"}
@@ -1372,29 +1413,35 @@ def gameloop():
 
 
 def option():
-    screen.fill((0, 0, 0))
     done = False
+    global settings
     mymenu = asset.Menu(gameui.font_24, 
                         [
                             asset.MenuStruct("SE Volume: {0:.0f}%".format(settings["sevol"]*100)), 
                             asset.MenuStruct("BGM Volume: {0:.0f}%".format(settings["bgmvol"]*100)), 
                             asset.MenuStruct("目标帧率: {0} FPS".format("30" if settings["powersave"] else "60")), 
                             asset.MenuStruct("Save & Exit")
-                        ], "WHITE", "RED", "GREY", (300, 300), True)
+                        ], "WHITE", "RED", "GREY", (350, 250), True)
+    tmpsetting = settings.copy() # 暂存现有设置
     while not done:
         clock.tick(60)
         screen.fill((0, 0, 0))
+        if mymenu.choose() == 0 and not pygame.mixer.Channel(se.VOLUME_TEST_CHANNEL).get_busy():
+            se.play("miss",se.VOLUME_TEST_CHANNEL) # 循环播放测试音
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
+                    se.play("select")
                     mymenu.up()
                 if event.key == pygame.K_DOWN:
+                    se.play("select")
                     mymenu.down()
                 if event.key == pygame.K_LEFT:
                     if mymenu.choose() == 0:
                         settings["sevol"] = max(settings["sevol"] - 0.05, 0)
+                        se.soundasset["test"].set_volume(settings["sevol"])
                         mymenu.getelementbyid(0).settext("SE Volume: {0:.0f}%".format(settings["sevol"]*100)) # 完全不规范的面向对象编程
                     if mymenu.choose() == 1:
                         settings["bgmvol"] = max(settings["bgmvol"] - 0.05, 0)
@@ -1404,19 +1451,24 @@ def option():
                         mymenu.getelementbyid(2).settext("目标帧率: {0} FPS".format("30" if settings["powersave"] else "60"))
                 if event.key == pygame.K_RIGHT:
                     if mymenu.choose() == 0:
-                        settings["sevol"] = min(settings["sevol"] + 0.05, 100)
+                        settings["sevol"] = min(settings["sevol"] + 0.05, 1)
+                        se.soundasset["test"].set_volume(settings["sevol"])
                         mymenu.getelementbyid(0).settext("SE Volume: {0:.0f}%".format(settings["sevol"]*100))
                     if mymenu.choose() == 1:
-                        settings["bgmvol"] = min(settings["bgmvol"] + 0.05, 100)
+                        settings["bgmvol"] = min(settings["bgmvol"] + 0.05, 1)
                         mymenu.getelementbyid(1).settext("BGM Volume: {0:.0f}%".format(settings["bgmvol"]*100))
                     if mymenu.choose() == 2:
                         settings["powersave"] = not settings["powersave"]
                         mymenu.getelementbyid(2).settext("目标帧率: {0} FPS".format("30" if settings["powersave"] else "60"))
                 if event.key == pygame.K_z and mymenu.choose() == 3:
-                    with open("settings.json", "w") as file:
+                    se.setvolume(settings["sevol"]) # 应用设置
+                    with open("settings.json", "w") as file: 
                         file.write(json.dumps(settings))
                         return
-
+                if event.key == pygame.K_x: # 丢弃设置
+                    se.play("cancel")
+                    settings = tmpsetting.copy()
+                    return
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         pygame.display.flip()
@@ -1425,7 +1477,7 @@ def option():
 done = False
 tick = 0
 mymenu = asset.Menu(gameui.font_24, [asset.MenuStruct("START"), asset.MenuStruct("OPTION"), asset.MenuStruct(
-    "MUSIC ROOM", True), asset.MenuStruct("EXIT")], "WHITE", "RED", "GREY", (100, 100), True)
+    "MUSIC ROOM", True), asset.MenuStruct("EXIT")], "WHITE", "RED", "GREY", (100, 450), True)
 while not done:
     screen.fill((0, 0, 0))
     clock.tick(60)
@@ -1434,16 +1486,20 @@ while not done:
             done = True
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
+                se.play("select")
                 mymenu.up()
             if event.key == pygame.K_DOWN:
+                se.play("select")
                 mymenu.down()
             if event.key == pygame.K_z:
+                se.play("confirm")
                 id = mymenu.choose()
                 if id == 0:
                     gameloop()
                 if id == 1:
                     option()
                 if id == 3:
+                    pygame.time.wait(200) # 等待音效播放完成
                     exit()
     mymenu.optiongroup.update()
     mymenu.optiongroup.draw(screen)

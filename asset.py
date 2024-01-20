@@ -8,6 +8,7 @@ class SEPlayer():
     ENEMY_SPELL_CHANNEL = 35
     ENEMY_DESTORY_CHANNEL = 36
     SPELL_EXTEND_CHANNEL = 37
+    VOLUME_TEST_CHANNEL = 37
     def __init__(self):
         self.channel = 0
         self.soundasset = {}
@@ -16,11 +17,15 @@ class SEPlayer():
         self.soundasset["destory"] = pygame.mixer.Sound("SE/destory.wav")
         self.soundasset["graze"] = pygame.mixer.Sound("SE/graze.wav")
         self.soundasset["item"] = pygame.mixer.Sound("SE/item.wav")
-        self.soundasset["miss"] = pygame.mixer.Sound("SE/miss.wav")
+        self.soundasset["test"] = self.soundasset["miss"] = pygame.mixer.Sound("SE/miss.wav")
         self.soundasset["pause"] = pygame.mixer.Sound("SE/pause.wav")
         self.soundasset["timeout"] = pygame.mixer.Sound("SE/timeout.wav")
         self.soundasset["shoot"] = pygame.mixer.Sound("SE/shoot.wav")
         self.soundasset["bomb"] = pygame.mixer.Sound("SE/bomb.wav")
+        self.soundasset["select"] = pygame.mixer.Sound("SE/select.wav")
+        self.soundasset["confirm"] = pygame.mixer.Sound("SE/confirm.wav")
+        self.soundasset["cancel"] = pygame.mixer.Sound("SE/cancel.wav")
+        self.soundasset["invalid"] = pygame.mixer.Sound("SE/invalid.wav")
         self.soundasset["enemyst01"] = pygame.mixer.Sound("SE/enemyst01.wav")
         self.soundasset["enemyst02"] = pygame.mixer.Sound("SE/enemyst02.wav")
         self.soundasset["spellextend"] = pygame.mixer.Sound("SE/spellextend.wav")
@@ -60,14 +65,14 @@ class MenuStruct():
         self.isdisabled = isdisabled
 
 class Menu():
-    def __init__(self,font:pygame.font.Font,menulist,defaultcolor,choicecolor,disablecolor,posvec,iscirculute = False):
+    def __init__(self,font:pygame.font.Font,menulist,defaultcolor,choicecolor,disablecolor,posvec,iscirculute = False,defaultchoice = 0):
         self.font = font
         self.menulist = menulist
         self.defaultcolor = defaultcolor
         self.choicecolor = choicecolor
         self.disablecolor = disablecolor
-        self.choice = 0
-        self.exactchoice = 0
+        self.choice = defaultchoice
+        self.exactchoice = defaultchoice
         self.iscirculute = iscirculute
         self.posvec = posvec
         self.optiongroup = pygame.sprite.Group()
@@ -103,7 +108,7 @@ class Menu():
             self.owner = owner
             self.struct = struct
             self.color = self.owner.defaultcolor
-            if self.id == 0: # 默认选第一个
+            if self.id == self.owner.exactchoice: # 默认选择
                 self.color = self.owner.choicecolor
             if struct.isdisabled:
                 self.color = self.owner.disablecolor
@@ -163,7 +168,7 @@ class GameUI():
         self.fpsTimer = 0
         self.fpslist = []
         self.versiontext = self.font_16.render(
-                "DEV 240107 早期开发版本", True, "WHITE")
+                "DEV 240120 早期开发版本", True, "WHITE")
         self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
         self.framework.blit(self.lifetext,(620,170))
         self.framework.blit(self.spelltext,(620,210))
