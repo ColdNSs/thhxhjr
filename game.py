@@ -288,7 +288,7 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
         if choosecharacter == "Marisa":
             if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 黑白激光
                 selfBulletGroup.add(Bullet(0, (255, 255, 128), 10, 300, pygame.math.Vector2(self.rect.x + 13,
-                                                                                            self.rect.y - 10), pygame.math.Vector2(0, -120), 1, self, False, pygame.math.Vector2(0, 0)))
+                                                                                            self.rect.y + 160), pygame.math.Vector2(0, -300), 1, self, False, pygame.math.Vector2(0, 0)))
                 self.attackCoolDown = 0
                 return
             elif self.slow == True and self.slowattackSpeed < self.attackCoolDown:  # 黑白导弹
@@ -448,6 +448,8 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.rect.centerx, self.rect.centery = posvec
         self.damage = damage
         self.free = free  # 0产生跟随子机y轴移动的激光
+        if self.free:
+            self.image.set_alpha(128)
         self.track = track
         if track:
             self.lifetime = 0  # 为了实现诱导弹诱导效果逐渐加强
@@ -786,9 +788,11 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self, selfBulletGroup, False)  # 伤害判定
         for item in list:
             if self.HP/self.spelldata[self.spell].hp < 0.1:
-                se.play("damageloud")
+                if not item.free:
+                    se.play("damageloud")
             else:
-                se.play("damage")
+                if not item.free:
+                    se.play("damage")
             self.HP -= item.damage
             player_Character.temperature += item.damage  # 子弹打出伤害加温度
             if not item.free:
@@ -862,7 +866,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             self.spell8_bulletrotate = 3
 
     def recover(self):
-        pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
+        pygame.sprite.spritecollide(self, selfBulletGroup, False)  # 无敌
         self.HP += self.spelldata[self.spell].hp / 60  # 恢复完成则继续正常行动
         for item in enemyBulletGroup:
             if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < ((self.HP / self.spelldata[self.spell].hp) * 4 * 900)**2:
