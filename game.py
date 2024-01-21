@@ -507,7 +507,7 @@ class MarisaBomb(pygame.sprite.Sprite):  # 抄袭自灵梦Bomb类型 别问我�
         self.posvec += self.speedvec
         self.rect.centerx, self.rect.centery = self.posvec
         if not self.trigger:
-            if pygame.sprite.collide_rect(self, baka):
+            if pygame.sprite.collide_circle(self, baka):
                 self.trigger = 1  # 击中则被触发
                 if not baka.recovering:
                     baka.HP -= self.damage
@@ -1216,11 +1216,9 @@ se = asset.SEPlayer()
 clock = pygame.time.Clock()
 choosecharacter = "Reimu"
 def reset():  
-    global choosecharacter, recorder, framerecorder, picloader, seed, input_event_list, jsondict,score 
+    global choosecharacter, picloader, seed, input_event_list, jsondict,score 
     global disappear_group, self_group, enemyGroup, selfBulletGroup, enemyBulletGroup, bombgroup, effectgroup, itemGroup
     global player_Character, player_CharacterImage, player_CharacterOptionLeft, player_CharacterOptionRight, baka,characterctl,tempbar,player_bomb_pictures
-    recorder = TimeRecorder()
-    framerecorder = TimeRecorder()
     picloader = asset.PicLoader()
     score = 0
     # if settings["replay"] == True:
@@ -1439,10 +1437,7 @@ def gameloop():
     input_event_list = []
 
     while not done:
-        clock.tick(60)
-        print("="*10, tick, "="*10)
-        framerecorder.stop("Frame total", True)
-        recorder.start()
+        clock.tick(600)
         tick += 1
         for item in disappear_group:
             if item.nowdisappeartime <= 0:
@@ -1451,7 +1446,6 @@ def gameloop():
             item.image.set_alpha(
                 255 / item.disappeartime * item.nowdisappeartime)
             item.nowdisappeartime -= 1
-        recorder.stop("disapper group", True)
         # if not settings["replay"]:  # 记录原始录像数据
         if True:
             input_event_list.append([])
@@ -1490,36 +1484,27 @@ def gameloop():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     done = True
-        recorder.stop("replay", True)
         player_Character.update(choosecharacter)
         player_CharacterImage.update()
         player_CharacterOptionLeft.update()
         player_CharacterOptionRight.update()
         enemyGroup.update()
-        recorder.stop("Character calculate", True)
         enemyBulletGroup.update()
         selfBulletGroup.update()
-        recorder.stop("Bullet calculate", True)
         bombgroup.update()
         effectgroup.update()
         itemGroup.update()
-        recorder.stop("Other calculate", True)
         if tick % 2 or not settings["powersave"]:
             gameui.drawBefore(screen)
-            recorder.stop("UI draw", True)
             self_group.draw(screen)
             enemyGroup.draw(screen)
-            recorder.stop("Character draw", True)
             selfBulletGroup.draw(screen)
             enemyBulletGroup.draw(screen)
-            recorder.stop("Bullet draw", True)
             bombgroup.draw(screen)
             effectgroup.draw(screen)
             itemGroup.draw(screen)
-            recorder.stop("Other draw", True)
             gameui.drawAfter(screen, baka, player_Character, se,
                              clock, score)
-            recorder.stop("UI after draw", True)
             pygame.display.flip()
     if not replay:
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项

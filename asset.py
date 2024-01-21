@@ -154,7 +154,6 @@ class GameUI():
         self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
         self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
-        self.title = self.picLoader.load("Picture/title.png")
         self.test = self.picLoader.load("Picture/test.png")
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
         self.reimu = self.picLoader.load("Picture/reimu.png",360,540,True)
