@@ -16,9 +16,17 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
     def __init__(self, radius, speed, speedMultiplier, QTElimit, attackspeed, temperature, tempdownspeed, spellcardname, drawsprite):
         super().__init__()
         self.image = pygame.Surface([radius * 2, radius * 2])
+        self.image.fill('BLUE')
+        self.image.set_colorkey("BLUE")
         self.rect = self.image.get_rect()
-        self.posvec = pygame.math.Vector2(455, 600)
         self.radius = radius
+        pygame.draw.circle(self.image, 'WHITE',
+                            (self.radius, self.radius), self.radius-3)
+        self.mask = pygame.mask.from_surface(self.image) # 使得实际判定遮罩比判定点更小
+        self.posvec = pygame.math.Vector2(455, 600)
+        self.rect = self.image.get_rect()
+        self.image.fill('BLUE')
+        self.image.set_colorkey("BLUE")
         self.rect.centerx = 455
         self.rect.centery = 600
         self.nowattackspeed = self.attackSpeed = attackspeed
@@ -46,7 +54,6 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.temperature = temperature
         self.keeptemptime = 60
         self.tempdownspeed = tempdownspeed
-
     def setmode(self, mode):  # 设置子机位置
         if mode == 1:
             self.slow = self.speedMultiplier
@@ -206,7 +213,9 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                 sprite_disappear(effect, 20)
                 score += 2000
                 item.alreadyGraze = True  # 擦过的弹不能再擦
-            if pygame.sprite.collide_circle_ratio(0.5)(item, self):
+            offset=(item.rect.x-self.rect.x,item.rect.y-self.rect.y)    #被减数和减数次序不能交换
+            if self.mask.overlap(item.mask,offset): 
+            #if pygame.sprite.collide_circle_ratio(0.5)(item, self):
                 self.iscoll = item
                 break
         if self.iscoll:
@@ -456,7 +465,7 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.width = width
         self.height = height
         self.alreadyGraze = False
-
+        self.mask = pygame.mask.from_surface(self.image)
     def update(self):
         self.posvec += self.speedvec
         self.speedvec += self.accvec
@@ -748,7 +757,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             Spellcard("草&雪符「忍冬草」", 4000, True, 2400, 1),
             Spellcard("冰符「Grand Ice Ball」", 4000, True, 2400, 1)
         ]
-        self.spell = 1
+        self.spell = 3
         self.HP = self.spelldata[self.spell].hp
         self.image = picloader.load("Picture/cirno.bmp")
         self.rect = self.image.get_rect()
@@ -955,6 +964,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 if not self.isfreeze:  # Perfect Freeze!
                     self.isfreeze = True
                     for item in enemyBulletGroup:
+                        item.isfreezebullet = True
                         pygame.draw.circle(
                             item.image, (240, 240, 240), (item.width/2, item.height/2), item.width/2)
                         pygame.draw.circle(
@@ -1215,6 +1225,15 @@ gameui = asset.GameUI(settings)
 se = asset.SEPlayer()
 clock = pygame.time.Clock()
 choosecharacter = "Reimu"
+mainbgposy = 0
+mainbgspeedy = 0
+def mainbgdraw():
+    global mainbgposy
+    screen.blit(gameui.mainbackground, (0, mainbgposy))
+    mainbgposy += mainbgspeedy
+    mainbgposy = min(0,mainbgposy)
+    mainbgposy = max(-720,mainbgposy)
+
 def reset():  
     global choosecharacter, picloader, seed, input_event_list, jsondict,score 
     global disappear_group, self_group, enemyGroup, selfBulletGroup, enemyBulletGroup, bombgroup, effectgroup, itemGroup
@@ -1268,7 +1287,7 @@ def reset():
 
     if choosecharacter == "Reimu":
         player_Character = playerCharacter(
-            5, 8, 0.5, 10, 3, 30000, 27, "梦符「梦想封印·彩」", gameui.reimu)
+            5, 8, 0.4, 10, 3, 30000, 27, "梦符「梦想封印·彩」", gameui.reimu)
         player_CharacterImage = playerCharacterImage(
             picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
         player_CharacterOptionRight = playerOption(
@@ -1292,7 +1311,7 @@ def reset():
 
     if choosecharacter == "Marisa":
         player_Character = playerCharacter(
-            6, 9, 0.4, 9, 6, 30000, 30, "魔符「Blasting Star」", gameui.marisa)
+            6, 9, 0.3, 9, 6, 30000, 30, "魔符「Blasting Star」", gameui.marisa)
         player_Character.bulletimage = picloader.load(
             "Picture/marisa_fire.bmp", 20, 36)
         player_CharacterImage = playerCharacterImage(
@@ -1305,7 +1324,7 @@ def reset():
             "Picture/marisa_missile.bmp")
         colors = ["red", "green", "yellow"]
         player_bomb_pictures = {"red": [], "yellow": [], "green": []}
-        for color in colors:
+        for color in colors: 
             filename = "Picture/bigstar_" + color + ".bmp"
             picture = picloader.load(filename)
             for i in range(121):
@@ -1318,28 +1337,28 @@ def reset():
     self_group.add(player_Character)
     characterctl = Characterctl(player_Character, player_CharacterOptionLeft,
                                 player_CharacterOptionRight, player_CharacterImage)
-    tempbar = Tempbar(gameui.tempbar, (550, 680), -1, player_Character)
+    tempbar = Tempbar(gameui.tempbar, (550, 670), -1, player_Character)
     effectgroup.add(tempbar)
     baka = Enemy(5000, pygame.math.Vector2(gameZoneCenterX, 100))
     enemyGroup.add(baka)
 
 def charactermenu():
-    mainmenureimu.disappear()
     global choosecharacter
     choosecharacter = "Reimu"
     appeareffectgroup = pygame.sprite.Group()
     title = LimitTimePic(gameui.font_36.render("Player Select",True,"WHITE"),(130,50))
-    reimupic = PictureAppearEffect(gameui.reimu,10,pygame.math.Vector2(500,120),False,200,"appeared") # 还能有比以下若干行代码更屎山的玩意吗。。。
-    marisapic = PictureAppearEffect(gameui.marisa,10,pygame.math.Vector2(500,120),False,200,"disappeared")
-    reimuname = PictureAppearEffect(gameui.font_28.render("博丽灵梦",True,"RED"),13,pygame.math.Vector2(600,100),False,250,"appeared")
+    reimupic = PictureAppearEffect(gameui.mainmenureimu,10,pygame.math.Vector2(500,120),False,200,"appearing") # 还能有比以下若干行代码更屎山的玩意吗。。。
+    marisapic = PictureAppearEffect(gameui.mainmenumarisa,10,pygame.math.Vector2(500,120),False,200,"disappeared")
+    reimuname = PictureAppearEffect(gameui.font_28.render("博丽灵梦",True,"RED"),13,pygame.math.Vector2(600,100),False,250,"appearing")
     marisaname = PictureAppearEffect(gameui.font_28.render("雾雨魔理沙",True,"YELLOW"),13,pygame.math.Vector2(550,100),False,250,"disappeared")
-    reimutitle = PictureAppearEffect(gameui.font_20.render("乐园的可爱巫女",True,"WHITE"),15,pygame.math.Vector2(550,80),False,300,"appeared")
+    reimutitle = PictureAppearEffect(gameui.font_20.render("乐园的可爱巫女",True,"WHITE"),15,pygame.math.Vector2(550,80),False,300,"appearing")
     marisatitle = PictureAppearEffect(gameui.font_20.render("东洋的西洋魔法使",True,"WHITE"),15,pygame.math.Vector2(500,80),False,300,"disappeared")
-    reimudesc = PictureAppearEffect(gameui.reimudesc,15,pygame.math.Vector2(120,200),False,300,"appeared")
+    reimudesc = PictureAppearEffect(gameui.reimudesc,15,pygame.math.Vector2(120,200),True,300,"appearing")
     marisadesc = PictureAppearEffect(gameui.marisadesc,15,pygame.math.Vector2(120,200),False,300,"disappeared")
     belongtomarisa = [marisadesc,marisapic,marisaname,marisatitle]
     belongtoreimu = [reimudesc,reimupic,reimuname,reimutitle]
     appeareffectgroup.add(reimupic,marisapic,reimuname,marisaname,reimutitle,marisatitle,reimudesc,marisadesc,title)
+    waittick = 0
     def changetomarisa(lefttoright):
         global choosecharacter
         choosecharacter = "Marisa"
@@ -1369,8 +1388,12 @@ def charactermenu():
             item.disappear()
 
     while True:
-        screen.blit(gameui.mainbackground, (0, 0))
+        mainbgdraw()
         clock.tick(60)
+        waittick += 1
+        if waittick < 36: # 等待画面完全落下
+            pygame.display.flip()
+            continue
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
@@ -1437,15 +1460,18 @@ def gameloop():
     input_event_list = []
 
     while not done:
-        clock.tick(600)
+        clock.tick(60)
         tick += 1
-        for item in disappear_group:
+        for item in disappear_group: # 屎山之一 控制disappear分组
             if item.nowdisappeartime <= 0:
                 item.kill()
                 continue
-            item.image.set_alpha(
-                255 / item.disappeartime * item.nowdisappeartime)
+            nowalpha = 255 / item.disappeartime * item.nowdisappeartime
+            item.image.set_alpha(nowalpha)
+            if nowalpha < 64 and hasattr(item,"isfreezebullet"):
+                item.mask.clear()
             item.nowdisappeartime -= 1
+
         # if not settings["replay"]:  # 记录原始录像数据
         if True:
             input_event_list.append([])
@@ -1541,7 +1567,6 @@ def gameloop():
             file.write(replay_gzip)
 
 def option():
-    mainmenureimu.disappear()
     done = False
     global settings
     mymenu = asset.Menu(gameui.font_24,
@@ -1553,11 +1578,11 @@ def option():
                             asset.MenuStruct("目标帧率: {0} FPS".format(
                                 "30" if settings["powersave"] else "60")),
                             asset.MenuStruct("Save & Exit")
-                        ], "WHITE", "RED", "GREY", (350, 250), True)
+                        ], "BLACK", "RED", "GREY", (350, 250), True)
     tmpsetting = settings.copy()  # 暂存现有设置
     while not done:
         clock.tick(60)
-        screen.blit(gameui.mainbackground, (0, 0))
+        mainbgdraw()
         if mymenu.choose() == 0 and not pygame.mixer.Channel(se.VOLUME_TEST_CHANNEL).get_busy():
             se.play("miss", se.VOLUME_TEST_CHANNEL)  # 循环播放测试音
         for event in pygame.event.get():
@@ -1607,21 +1632,16 @@ def option():
                     se.play("cancel")
                     settings = tmpsetting.copy()
                     return
-        reimugroup.update()
-        reimugroup.draw(screen)
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         pygame.display.flip()
 
 
 tick = 0
-reimugroup = pygame.sprite.Group()
-mainmenureimu = PictureAppearEffect(gameui.reimu,4,pygame.math.Vector2(500,190),False,100)
-reimugroup.add(mainmenureimu)
 mymenu = asset.Menu(gameui.font_24, [asset.MenuStruct("START"), asset.MenuStruct("OPTION"), asset.MenuStruct(
     "MUSIC ROOM", True), asset.MenuStruct("EXIT")], "WHITE", "RED", "GREY", (100, 450), True)
 while True:
-    screen.blit(gameui.mainbackground, (0, 0))
+    mainbgdraw()
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -1637,17 +1657,15 @@ while True:
                 se.play("confirm")
                 id = mymenu.choose()
                 if id == 0:
+                    mainbgspeedy = -20
                     charactermenu()
-                    mainmenureimu.appear()
+                    mainbgspeedy = 20
                     continue
                 if id == 1:
                     option()
-                    mainmenureimu.appear()
                 if id == 3:
                     pygame.time.wait(200)  # 等待音效播放完成
                     exit()
-    reimugroup.update()
-    reimugroup.draw(screen)
     mymenu.optiongroup.update()
     mymenu.optiongroup.draw(screen)
     pygame.display.flip()

@@ -156,6 +156,8 @@ class GameUI():
         self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
         self.test = self.picLoader.load("Picture/test.png")
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
+        self.mainmenureimu = self.picLoader.load("Picture/reimu.png",hasalpha=True)
+        self.mainmenumarisa = self.picLoader.load("Picture/marisa.png",hasalpha=True)
         self.reimu = self.picLoader.load("Picture/reimu.png",360,540,True)
         self.marisa = self.picLoader.load("Picture/marisa.png",360,540,True)
         self.cirno = self.picLoader.load("Picture/cirno.png",360,540,True)
