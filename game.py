@@ -6,6 +6,8 @@ import json
 import asset
 import time
 import gzip
+import os
+
 pygame.init()
 pygame.mixer.set_num_channels(40)
 pygame.display.set_caption('STGGAME')
@@ -1227,6 +1229,7 @@ clock = pygame.time.Clock()
 choosecharacter = "Reimu"
 mainbgposy = 0
 mainbgspeedy = 0
+
 def mainbgdraw():
     global mainbgposy
     screen.blit(gameui.mainbackground, (0, mainbgposy))
@@ -1234,29 +1237,14 @@ def mainbgdraw():
     mainbgposy = min(0,mainbgposy)
     mainbgposy = max(-720,mainbgposy)
 
-def reset():  
-    global choosecharacter, picloader, seed, input_event_list, jsondict,score 
+def reset(playreplay = False):  
+    global choosecharacter, picloader, seed, input_event_list, jsondict,score,replayeventcount
     global disappear_group, self_group, enemyGroup, selfBulletGroup, enemyBulletGroup, bombgroup, effectgroup, itemGroup
     global player_Character, player_CharacterImage, player_CharacterOptionLeft, player_CharacterOptionRight, baka,characterctl,tempbar,player_bomb_pictures
     picloader = asset.PicLoader()
     score = 0
-    # if settings["replay"] == True:
-    if False:
-        with gzip.open('rep.rpy', 'rb') as f:
-            jsondict = json.loads(gzip.decompress(
-                f.read()).decode(), strict=False)
+    if playreplay:
         seed = jsondict["metadata"]["seed"]
-        type_replace_dict = {"0": 768, "1": 769}
-        key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
-                            "3": 1073741903, "4": 122, "5": 120, "6": 1073742049, "7": 99}
-        # 将自定义格式转换为pygame事件和按键编号
-        for eachtypelist in jsondict["replaybody"]["type"]:
-            for i, eachtype in enumerate(eachtypelist):
-                eachtypelist[i] = type_replace_dict[eachtype]
-        for eachkeylist in jsondict["replaybody"]["key"]:
-            for i, eachkey in enumerate(eachkeylist):
-                eachkeylist[i] = key_replace_dict[eachkey]
-        replayeventcount = 0
     else:
         seed = random.randint(1000000000, 9999999999)  # 下面在为replay做准备
         input_event_list = []
@@ -1267,7 +1255,8 @@ def reset():
                 "character": choosecharacter,
                 "time": int(time.time()),
                 "avgfps": 57,
-                "score": 0
+                "score": 0,
+                "playername":"TJUGERKFER"
             },
             "replaybody": {
                 "tick": [],
@@ -1343,7 +1332,7 @@ def reset():
     enemyGroup.add(baka)
 
 def charactermenu():
-    global choosecharacter
+    global choosecharacter,jsondict
     choosecharacter = "Reimu"
     appeareffectgroup = pygame.sprite.Group()
     title = LimitTimePic(gameui.font_36.render("Player Select",True,"WHITE"),(130,50))
@@ -1409,6 +1398,7 @@ def charactermenu():
                     else:
                         changetoreimu(False)
                 if event.key == pygame.K_z:
+                    jsondict = False
                     reset()
                     gameloop()
                     return
@@ -1418,19 +1408,27 @@ def charactermenu():
         appeareffectgroup.draw(screen)
         pygame.display.flip()
 
-def pause():
+def pause(playreplay):
     se.play("pause")
     screenshot = screen.copy()
     pausemaskgroup = pygame.sprite.Group()
     pausemask = pygame.Surface((590, 675))
     pausemask.set_alpha(128)
-    mymenu = asset.Menu(gameui.font_24,
-                        [
-                            asset.MenuStruct("游戏暂停！", True),
-                            asset.MenuStruct("解除游戏暂停"),
-                            asset.MenuStruct("保存录像并退出"),
-                            asset.MenuStruct("不保存录像并退出")
-                        ], "WHITE", "RED", "GREY", (250, 250), True, 1)
+    if not playreplay:
+        mymenu = asset.Menu(gameui.font_24,
+                            [
+                                asset.MenuStruct("游戏暂停！", True),
+                                asset.MenuStruct("解除游戏暂停"),
+                                asset.MenuStruct("保存录像并退出"),
+                                asset.MenuStruct("不保存录像并退出")
+                            ], "WHITE", "RED", "GREY", (250, 250), iscirculute=True)
+    else:
+        mymenu = asset.Menu(gameui.font_24,
+                            [
+                                asset.MenuStruct("游戏暂停！", True),
+                                asset.MenuStruct("解除游戏暂停"),
+                                asset.MenuStruct("结束录像播放")
+                            ], "WHITE", "RED", "GREY", (250, 250), iscirculute=True)
     while True:
         clock.tick(60)
         for event in pygame.event.get():
@@ -1454,13 +1452,14 @@ def pause():
         mymenu.optiongroup.draw(screen)
         pygame.display.flip()
 
-def gameloop():
+def gameloop(playreplay = False):
     done = False
     tick = 0
     input_event_list = []
-
+    replayeventcount = 0
+    tps = 60
     while not done:
-        clock.tick(60)
+        clock.tick(tps)
         tick += 1
         for item in disappear_group: # 屎山之一 控制disappear分组
             if item.nowdisappeartime <= 0:
@@ -1472,15 +1471,14 @@ def gameloop():
                 item.mask.clear()
             item.nowdisappeartime -= 1
 
-        # if not settings["replay"]:  # 记录原始录像数据
-        if True:
+        if not playreplay:
             input_event_list.append([])
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     done = True
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        choice = pause()
+                        choice = pause(playreplay)
                         if choice == 2:
                             done = True
                             replay = True
@@ -1499,7 +1497,7 @@ def gameloop():
             if nexteventtick == tick:
                 replayeventcount += 1
                 if replayeventcount == len(jsondict["replaybody"]["tick"]) - 1:
-                    done = True
+                    return
                 for i, eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
                     if eventtype == pygame.KEYDOWN:
                         characterctl.keydown(
@@ -1509,7 +1507,15 @@ def gameloop():
                             jsondict["replaybody"]["key"][replayeventcount - 1][i])
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    done = True
+                    exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pause(playreplay)
+                    if event.key == pygame.K_LCTRL:
+                        tps = 360 # ctrl加速录像播放
+                elif event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LCTRL:
+                        tps = 60
         player_Character.update(choosecharacter)
         player_CharacterImage.update()
         player_CharacterOptionLeft.update()
@@ -1532,7 +1538,7 @@ def gameloop():
             gameui.drawAfter(screen, baka, player_Character, se,
                              clock, score)
             pygame.display.flip()
-    if not replay:
+    if replay:
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
         new_input_event_list = []
         type_replace_dict = {"768": "0", "769": "1"}
@@ -1562,6 +1568,8 @@ def gameloop():
             jsondict["replaybody"]["type"].append(tmptypelist)
         jsondict["metadata"]["avgfps"] = sum(
             gameui.fpslist)/len(gameui.fpslist)
+        gameui.fpslist = [] # 清空帧率记录数组
+        jsondict["metadata"]["score"] = score
         replay_gzip = gzip.compress(json.dumps(jsondict).encode())
         with gzip.open('rep.rpy', 'wb') as file:
             file.write(replay_gzip)
@@ -1578,7 +1586,7 @@ def option():
                             asset.MenuStruct("目标帧率: {0} FPS".format(
                                 "30" if settings["powersave"] else "60")),
                             asset.MenuStruct("Save & Exit")
-                        ], "BLACK", "RED", "GREY", (350, 250), True)
+                        ], "BLACK", "RED", "GREY", (350, 250), iscirculute=True)
     tmpsetting = settings.copy()  # 暂存现有设置
     while not done:
         clock.tick(60)
@@ -1636,10 +1644,72 @@ def option():
         mymenu.optiongroup.draw(screen)
         pygame.display.flip()
 
+def replay():
+    global jsondict
+    jsondictlist = [False for i in range(25)]
+    menustructlist = [asset.MenuStruct("NO." + str(i).zfill(2),True) for i in range(26)] # 菜单第一项存放表头
+    menustructlist[0] = asset.MenuStruct("NO.XX" + "   " + "     TIME     " + "   "+ "PLAYERNAME"  + " CHARACTER  " + "  SCORE    " + "   " + "PLR ",True)
+    for i in range(24):
+        if not os.path.exists("./replay/thxxx_"+str(i+1).zfill(2)+".rpy") :
+            continue
+        with gzip.open("./replay/thxxx_"+str(i+1).zfill(2)+".rpy", 'rb') as f:
+            jsondictlist[i]=json.loads(gzip.decompress(
+                f.read()).decode(), strict=False)
+        if i==24:break
+    for i,e in enumerate(jsondictlist):
+        if not jsondictlist[i]: # 第一项用来放表头了
+            menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + "--/--/-- --:--" + "   "+ "----------" + "   " + "------" + "   " + "----------" + "   " + "---%",True)
+            continue
+        menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + time.strftime("%y/%m/%d %H:%M", time.localtime(e["metadata"]["time"])) + "   "+ e["metadata"]["playername"].ljust(10) + "   " + e["metadata"]["character"].ljust(6) + "   " + str(e["metadata"]["score"]).zfill(10)+ "   " + "{0:.1f}%".format((1 - min(1,e["metadata"]["avgfps"]/60))*100))
+        if i==25:break
+    mymenu = asset.Menu(gameui.font_mono_20,menustructlist, (20,20,20), "RED", (60,60,60), (100, 100),linesep=-5)
+    while True:
+        mainbgdraw()
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    se.play("select")
+                    mymenu.up()
+                if event.key == pygame.K_DOWN:
+                    se.play("select")
+                    mymenu.down()
+                if event.key == pygame.K_z:
+                    # 将自定义格式转换为pygame事件和按键编号
+                    type_replace_dict = {"0": 768, "1": 769}
+                    key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
+                                        "3": 1073741903, "4": 122, "5": 120, "6": 1073742049, "7": 99}
+                    # 第一项用来放表头所以-1
+                    jsondict = json.loads(json.dumps(jsondictlist[mymenu.choose() - 1])) # 我恨浅拷贝  用json迫真实现深拷贝
+                    for eachtypelist in jsondict["replaybody"]["type"]:
+                        for i, eachtype in enumerate(eachtypelist):
+                            eachtypelist[i] = type_replace_dict[eachtype]
+                    for eachkeylist in jsondict["replaybody"]["key"]:
+                        for i, eachkey in enumerate(eachkeylist):
+                            eachkeylist[i] = key_replace_dict[eachkey]
+                    reset(True)
+                    gameloop(True)
+                if event.key == pygame.K_x:
+                    se.play("cancel")
+                    return
+        mymenu.optiongroup.update()
+        mymenu.optiongroup.draw(screen)
+        pygame.display.flip()
+
+
 
 tick = 0
-mymenu = asset.Menu(gameui.font_24, [asset.MenuStruct("START"), asset.MenuStruct("OPTION"), asset.MenuStruct(
-    "MUSIC ROOM", True), asset.MenuStruct("EXIT")], "WHITE", "RED", "GREY", (100, 450), True)
+mymenu = asset.Menu(gameui.font_24, [
+    asset.MenuStruct("START"), 
+    asset.MenuStruct("PRACTISE START",True), 
+    asset.MenuStruct("REPLAY"),
+    asset.MenuStruct("MANUAL"),
+    asset.MenuStruct("OPTION"), 
+    asset.MenuStruct("MUSIC ROOM", True), 
+    asset.MenuStruct("EXIT")
+    ], "WHITE", "RED", "GREY", (100, 450), iscirculute=True)
 while True:
     mainbgdraw()
     clock.tick(60)
@@ -1661,9 +1731,11 @@ while True:
                     charactermenu()
                     mainbgspeedy = 20
                     continue
-                if id == 1:
+                if id == 2:
+                    replay()
+                if id == 4:
                     option()
-                if id == 3:
+                if id == 6:
                     pygame.time.wait(200)  # 等待音效播放完成
                     exit()
     mymenu.optiongroup.update()

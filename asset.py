@@ -65,7 +65,7 @@ class MenuStruct():
         self.isdisabled = isdisabled
 
 class Menu():
-    def __init__(self,font:pygame.font.Font,menulist,defaultcolor,choicecolor,disablecolor,posvec,iscirculute = False,defaultchoice = 0):
+    def __init__(self,font:pygame.font.Font,menulist,defaultcolor,choicecolor,disablecolor,posvec,iscirculute = False,defaultchoice = 0,linesep = 5):
         self.font = font
         self.menulist = menulist
         self.defaultcolor = defaultcolor
@@ -75,6 +75,7 @@ class Menu():
         self.exactchoice = defaultchoice
         self.iscirculute = iscirculute
         self.posvec = posvec
+        self.linesep = linesep
         self.optiongroup = pygame.sprite.Group()
         self.choiceablelist = []
         for i, struct in enumerate(self.menulist):
@@ -108,13 +109,13 @@ class Menu():
             self.owner = owner
             self.struct = struct
             self.color = self.owner.defaultcolor
-            if self.id == self.owner.exactchoice: # 默认选择
+            if self.id == self.owner.choice: # 默认选择
                 self.color = self.owner.choicecolor
             if struct.isdisabled:
                 self.color = self.owner.disablecolor
             self.image = self.owner.font.render(struct.text,True,self.color)
             self.rect = self.image.get_rect()
-            self.rect.x,self.rect.y = self.owner.posvec[0], self.owner.posvec[1] + (self.image.get_height() + 5) * id
+            self.rect.x,self.rect.y = self.owner.posvec[0], self.owner.posvec[1] + (self.image.get_height() + self.owner.linesep) * id
 
         def refresh(self): #强制重新渲染图片
             self.image = self.owner.font.render(self.struct.text,True,self.color)
@@ -126,7 +127,7 @@ class Menu():
         def update(self):
             if self.struct.isdisabled == True:
                 return
-            if self.id == self.owner.exactchoice: 
+            if self.id == self.owner.choiceablelist[self.owner.choice]: 
                 if self.color != self.owner.choicecolor: # 说明是刚刚变动的
                     self.color = self.owner.choicecolor
                     self.image = self.owner.font.render(self.struct.text,True,self.color)
@@ -164,12 +165,14 @@ class GameUI():
         self.marisadesc = self.picLoader.load("Picture/marisadesc.png",hasalpha=True)
         self.reimudesc = self.picLoader.load("Picture/reimudesc.png",hasalpha=True)
         self.mainbackground = self.picLoader.load("Picture/mainbackground.png")
+
         self.font_36 = pygame.font.Font("fonts/fonts.ttf", 36)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
         self.font_20 = pygame.font.Font("fonts/fonts.ttf", 20)
         self.font_16 = pygame.font.Font("fonts/fonts.ttf", 16)
         self.font_12 = pygame.font.Font("fonts/fonts.ttf", 12)
+        self.font_mono_20 = pygame.font.Font("fonts/fonts_mono.ttf", 20)
         self.settings = settings
         self.fpsTimer = 0
         self.fpslist = []
