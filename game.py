@@ -759,7 +759,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             Spellcard("草&雪符「忍冬草」", 4000, True, 2400, 1),
             Spellcard("冰符「Grand Ice Ball」", 4000, True, 2400, 1)
         ]
-        self.spell = 3
+        self.spell = 1
         self.HP = self.spelldata[self.spell].hp
         self.image = picloader.load("Picture/cirno.bmp")
         self.rect = self.image.get_rect()
@@ -1189,46 +1189,17 @@ def relative_direction(sprite1: pygame.sprite.Sprite, sprite2: pygame.sprite.Spr
         return pygame.math.Vector2(random.uniform(-0.001, 0.001), random.uniform(0.001, -0.001))
     return pygame.math.Vector2(sprite2.rect.centerx - sprite1.rect.centerx, sprite2.rect.centery - sprite1.rect.centery).normalize()
 
-
 # 令sprite在disappeartime里逐渐消失
 def sprite_disappear(sprite: pygame.sprite.Sprite, disappeartime: int):
     if not sprite in disappear_group:
         sprite.disappeartime = sprite.nowdisappeartime = disappeartime
         disappear_group.add(sprite)
 
-
 def create_setting():  # 生成配置文件
     settings = {"powersave": False, "sevol": 0.2, "bgmvol": 0.2}
     with open("settings.json", "w") as file:
         file.write(json.dumps(settings))
     return settings
-
-
-try:
-    with open('settings.json') as f:
-        try:
-            settings = json.load(f, strict=False)
-        except json.JSONDecodeError:
-            raise FileNotFoundError
-except FileNotFoundError:
-    settings = create_setting()
-score = 0
-screenX = 960
-screenY = 720
-gameZoneLeft = 30
-gameZoneRight = 620
-gameZoneUp = 20
-gameZoneDown = 695
-gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
-gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
-size = (screenX, screenY)
-screen = pygame.display.set_mode(size)
-gameui = asset.GameUI(settings)
-se = asset.SEPlayer()
-clock = pygame.time.Clock()
-choosecharacter = "Reimu"
-mainbgposy = 0
-mainbgspeedy = 0
 
 def mainbgdraw():
     global mainbgposy
@@ -1245,6 +1216,7 @@ def reset(playreplay = False):
     score = 0
     if playreplay:
         seed = jsondict["metadata"]["seed"]
+        choosecharacter = jsondict["metadata"]["character"]
     else:
         seed = random.randint(1000000000, 9999999999)  # 下面在为replay做准备
         input_event_list = []
@@ -1335,8 +1307,11 @@ def charactermenu():
     global choosecharacter,jsondict
     choosecharacter = "Reimu"
     appeareffectgroup = pygame.sprite.Group()
-    title = LimitTimePic(gameui.font_36.render("Player Select",True,"WHITE"),(130,50))
-    reimupic = PictureAppearEffect(gameui.mainmenureimu,10,pygame.math.Vector2(500,120),False,200,"appearing") # 还能有比以下若干行代码更屎山的玩意吗。。。
+    titleENG = LimitTimePic(gameui.font_36.render("Player Select",True,"WHITE"),(130,50)) # 还能有比以下若干行代码更屎山的玩意吗。。。
+    titleENGS = LimitTimePic(gameui.font_36.render("Player Select",True,"BLACK"),(128,48))
+    titleZHS = LimitTimePic(gameui.font_24.render("选择人类",True,"GREY"),(130,80))
+    titleZHSS = LimitTimePic(gameui.font_24.render("选择人类",True,"BLACK"),(128,78))
+    reimupic = PictureAppearEffect(gameui.mainmenureimu,10,pygame.math.Vector2(500,120),False,200,"appearing") 
     marisapic = PictureAppearEffect(gameui.mainmenumarisa,10,pygame.math.Vector2(500,120),False,200,"disappeared")
     reimuname = PictureAppearEffect(gameui.font_28.render("博丽灵梦",True,"RED"),13,pygame.math.Vector2(600,100),False,250,"appearing")
     marisaname = PictureAppearEffect(gameui.font_28.render("雾雨魔理沙",True,"YELLOW"),13,pygame.math.Vector2(550,100),False,250,"disappeared")
@@ -1346,7 +1321,7 @@ def charactermenu():
     marisadesc = PictureAppearEffect(gameui.marisadesc,15,pygame.math.Vector2(120,200),False,300,"disappeared")
     belongtomarisa = [marisadesc,marisapic,marisaname,marisatitle]
     belongtoreimu = [reimudesc,reimupic,reimuname,reimutitle]
-    appeareffectgroup.add(reimupic,marisapic,reimuname,marisaname,reimutitle,marisatitle,reimudesc,marisadesc,title)
+    appeareffectgroup.add(reimupic,marisapic,reimuname,marisaname,reimutitle,marisatitle,reimudesc,marisadesc,titleENGS,titleENG,titleZHSS,titleZHS)
     waittick = 0
     def changetomarisa(lefttoright):
         global choosecharacter
@@ -1408,10 +1383,147 @@ def charactermenu():
         appeareffectgroup.draw(screen)
         pygame.display.flip()
 
+def loadreplaydata():
+    jsondictlist = [False for i in range(25)]
+    for i in range(24):
+        if not os.path.exists("./replay/thxxx_"+str(i+1).zfill(2)+".rpy") :
+            continue
+        with gzip.open("./replay/thxxx_"+str(i+1).zfill(2)+".rpy", 'rb') as f:
+            jsondictlist[i]=json.loads(gzip.decompress(
+                f.read()).decode(), strict=False)
+    return jsondictlist
+
+def savereplay(screenshot,endmask):
+    global jsondict
+    def reload():
+        jsondictlist = loadreplaydata()
+        menustructlist = [asset.MenuStruct("NO." + str(i).zfill(2),True) for i in range(26)] # 菜单第一项存放表头
+        menustructlist[0] = asset.MenuStruct("NO.XX" + "   " + "  TIME   " + "  "+ "PLAYERNAME"  + " CHARACTER  " + "PLR ",True)
+        for i,e in enumerate(jsondictlist):
+            if not jsondictlist[i]: # 第一项用来放表头了
+                menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + "--/--/--" + "   "+ "----------" + "   " + "------" + "   " + "---%")
+                continue
+            menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + time.strftime("%y/%m/%d", time.localtime(e["metadata"]["time"])) + "   "+ e["metadata"]["playername"].ljust(10) + "   " + e["metadata"]["character"].ljust(6) + "   "  + "{0:.1f}%".format((1 - min(1,e["metadata"]["avgfps"]/60))*100))
+            if i==25:break
+        mymenu = asset.Menu(gameui.font_mono_20,menustructlist,"WHITE", "YELLOW","GREY",(50, 100),linesep=-5)
+        titleENG = LimitTimePic(gameui.font_24.render("Slot Select",True,"WHITE"),(130,50)) # repetition good
+        titleENGS = LimitTimePic(gameui.font_24.render("Slot Select",True,"BLACK"),(128,48))
+        titleZHS = LimitTimePic(gameui.font_24.render("选择一个槽位",True,"GREY"),(130,85))
+        titleZHSS = LimitTimePic(gameui.font_24.render("选择一份槽位",True,"BLACK"),(128,83))
+        mymenu.optiongroup.add(titleENGS,titleENG,titleZHSS,titleZHS)
+        return mymenu
+    mymenu = reload()
+    while True:
+        save = False
+        screen.blit(screenshot,(0,0))
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    se.play("select")
+                    mymenu.up()
+                if event.key == pygame.K_DOWN:
+                    se.play("select")
+                    mymenu.down()
+                if event.key == pygame.K_z: 
+                    se.play("select")
+                    slot = mymenu.choose()
+                    done = False
+                    tmpplayername = ""
+
+                    while not done: # 开始噩梦嵌套 全屎山最屎代码
+                        mymenu.getelementbyid(slot).settext("NO." + str(slot).zfill(2) + "   " + time.strftime("%y/%m/%d", time.localtime(jsondict["metadata"]["time"])) + "   "+ tmpplayername.ljust(10,"_") + "   " + jsondict["metadata"]["character"].ljust(6) + "   "  + "{0:.1f}%".format((1 - min(1,jsondict["metadata"]["avgfps"]/60))*100))
+                        screen.blit(screenshot,(0,0))
+                        clock.tick(60)
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                exit()
+                            elif event.type == pygame.KEYDOWN:
+                                if event.key == pygame.K_RETURN:
+                                    se.play("extend")
+                                    jsondict["metadata"]["playername"] = tmpplayername # 跳出循环并保存玩家机签
+                                    done = True
+                                    save = True
+                                elif event.key == pygame.K_BACKSPACE:
+                                    se.play("select")
+                                    if len(tmpplayername) == 0:continue # 长度为0就不删
+                                    tmpplayername = tmpplayername[:-1]
+                                elif event.key == pygame.K_ESCAPE: # 跳出循环并重置录像菜单
+                                    se.play("cancel")
+                                    mymenu = reload()
+                                    done = True
+                                else:
+                                    se.play("select")
+                                    tmpplayername += event.unicode
+                                    if len(tmpplayername) > 10:
+                                        tmpplayername = tmpplayername[:10] # 限制玩家机签长度
+                        screen.blit(screenshot, (0, 0))
+                        screen.blit(endmask, (30, 20))
+                        mymenu.optiongroup.update()
+                        mymenu.optiongroup.draw(screen)
+                        pygame.display.flip()
+                    if save: # 如果刚刚在屎山循环里选择了保存
+                        replay_gzip = gzip.compress(json.dumps(jsondict).encode())
+                        with gzip.open('./replay/thxxx_'+ str(slot).zfill(2) +'.rpy', 'wb') as file:
+                            file.write(replay_gzip)
+                        mymenu = reload() # 重载录像菜单
+
+                if event.key == pygame.K_x:
+                    se.play("cancel")
+                    return
+        screen.blit(screenshot, (0, 0))
+        screen.blit(endmask, (30, 20))
+        mymenu.optiongroup.update()
+        mymenu.optiongroup.draw(screen)
+        pygame.display.flip()
+
+def gameend(playreplay):
+    screenshot = screen.copy()
+    endmask = pygame.Surface((590, 675))
+    endmask.set_alpha(128)
+    if not playreplay:
+        endmask.fill("RED")
+        mymenu = asset.Menu(gameui.font_24,
+                            [
+                                asset.MenuStruct("满身疮痍！", True),
+                                asset.MenuStruct("保存录像并退出"),
+                                asset.MenuStruct("不保存录像并退出")
+                            ], "WHITE", "RED", "GREY", (250, 250),defaultchoice=1, iscirculute=True)
+    else:
+        mymenu = asset.Menu(gameui.font_24,
+                            [
+                                asset.MenuStruct("录像播放结束！", True),
+                                asset.MenuStruct("结束录像播放")
+                            ], "WHITE", "RED", "GREY", (250, 250),defaultchoice=1, iscirculute=True)
+    while True:
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    se.play("select")
+                    mymenu.up()
+                if event.key == pygame.K_DOWN:
+                    se.play("select")
+                    mymenu.down()
+                if event.key == pygame.K_z:
+                    se.play("confirm")
+                    choice = mymenu.choose()
+                    return choice,screenshot,endmask
+                if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
+                    return 0
+        screen.blit(screenshot, (0, 0))
+        screen.blit(endmask, (30, 20))
+        mymenu.optiongroup.update()
+        mymenu.optiongroup.draw(screen)
+        pygame.display.flip()
+
 def pause(playreplay):
     se.play("pause")
     screenshot = screen.copy()
-    pausemaskgroup = pygame.sprite.Group()
     pausemask = pygame.Surface((590, 675))
     pausemask.set_alpha(128)
     if not playreplay:
@@ -1443,9 +1555,9 @@ def pause(playreplay):
                     mymenu.down()
                 if event.key == pygame.K_z:
                     se.play("confirm")
-                    return mymenu.choose()
+                    return mymenu.choose(),screenshot,pausemask
                 if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
-                    return 0
+                    return 0,screenshot,pausemask
         screen.blit(screenshot, (0, 0))
         screen.blit(pausemask, (30, 20))
         mymenu.optiongroup.update()
@@ -1478,7 +1590,7 @@ def gameloop(playreplay = False):
                     done = True
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        choice = pause(playreplay)
+                        choice,screenshot,endmask = pause(playreplay)
                         if choice == 2:
                             done = True
                             replay = True
@@ -1492,11 +1604,16 @@ def gameloop(playreplay = False):
                     characterctl.keyup(event.key)
                     input_event_list[tick - 1].append(
                         {"t": tick, "type": event.type, "key": event.key})
+                if player_Character.HP < 0:
+                    done = True
+                    choice,screenshot,endmask = gameend(playreplay)
+                    replay = True if choice == 1 else False
         else:  # 播放录像
             nexteventtick = jsondict["replaybody"]["tick"][replayeventcount]
             if nexteventtick == tick:
                 replayeventcount += 1
                 if replayeventcount == len(jsondict["replaybody"]["tick"]) - 1:
+                    gameend(playreplay)
                     return
                 for i, eventtype in enumerate(jsondict["replaybody"]["type"][replayeventcount - 1]):
                     if eventtype == pygame.KEYDOWN:
@@ -1510,7 +1627,8 @@ def gameloop(playreplay = False):
                     exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        pause(playreplay)
+                        if pause(playreplay) == 2:
+                            return
                     if event.key == pygame.K_LCTRL:
                         tps = 360 # ctrl加速录像播放
                 elif event.type == pygame.KEYUP:
@@ -1538,7 +1656,7 @@ def gameloop(playreplay = False):
             gameui.drawAfter(screen, baka, player_Character, se,
                              clock, score)
             pygame.display.flip()
-    if replay:
+    if replay: # 如果选择保存录像
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
         new_input_event_list = []
         type_replace_dict = {"768": "0", "769": "1"}
@@ -1570,9 +1688,7 @@ def gameloop(playreplay = False):
             gameui.fpslist)/len(gameui.fpslist)
         gameui.fpslist = [] # 清空帧率记录数组
         jsondict["metadata"]["score"] = score
-        replay_gzip = gzip.compress(json.dumps(jsondict).encode())
-        with gzip.open('rep.rpy', 'wb') as file:
-            file.write(replay_gzip)
+        savereplay(screenshot,endmask)
 
 def option():
     done = False
@@ -1633,6 +1749,7 @@ def option():
                             "30" if settings["powersave"] else "60"))
                 if event.key == pygame.K_z and mymenu.choose() == 3:
                     se.setvolume(settings["sevol"])  # 应用设置
+                    gameui.updatesettings(settings)
                     with open("settings.json", "w") as file:
                         file.write(json.dumps(settings))
                         return
@@ -1646,16 +1763,9 @@ def option():
 
 def replay():
     global jsondict
-    jsondictlist = [False for i in range(25)]
+    jsondictlist = loadreplaydata()
     menustructlist = [asset.MenuStruct("NO." + str(i).zfill(2),True) for i in range(26)] # 菜单第一项存放表头
     menustructlist[0] = asset.MenuStruct("NO.XX" + "   " + "     TIME     " + "   "+ "PLAYERNAME"  + " CHARACTER  " + "  SCORE    " + "   " + "PLR ",True)
-    for i in range(24):
-        if not os.path.exists("./replay/thxxx_"+str(i+1).zfill(2)+".rpy") :
-            continue
-        with gzip.open("./replay/thxxx_"+str(i+1).zfill(2)+".rpy", 'rb') as f:
-            jsondictlist[i]=json.loads(gzip.decompress(
-                f.read()).decode(), strict=False)
-        if i==24:break
     for i,e in enumerate(jsondictlist):
         if not jsondictlist[i]: # 第一项用来放表头了
             menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + "--/--/-- --:--" + "   "+ "----------" + "   " + "------" + "   " + "----------" + "   " + "---%",True)
@@ -1663,6 +1773,12 @@ def replay():
         menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + time.strftime("%y/%m/%d %H:%M", time.localtime(e["metadata"]["time"])) + "   "+ e["metadata"]["playername"].ljust(10) + "   " + e["metadata"]["character"].ljust(6) + "   " + str(e["metadata"]["score"]).zfill(10)+ "   " + "{0:.1f}%".format((1 - min(1,e["metadata"]["avgfps"]/60))*100))
         if i==25:break
     mymenu = asset.Menu(gameui.font_mono_20,menustructlist, (20,20,20), "RED", (60,60,60), (100, 100),linesep=-5)
+    titleENG = LimitTimePic(gameui.font_36.render("Replay Select",True,"WHITE"),(130,50)) # repetition good
+    titleENGS = LimitTimePic(gameui.font_36.render("Replay Select",True,"BLACK"),(128,48))
+    titleZHS = LimitTimePic(gameui.font_24.render("选择一份录像",True,"GREY"),(130,85))
+    titleZHSS = LimitTimePic(gameui.font_24.render("选择一份录像",True,"BLACK"),(128,83))
+    mymenu.optiongroup.add(titleENGS,titleENG,titleZHSS,titleZHS)
+    mymenu.down()
     while True:
         mainbgdraw()
         clock.tick(60)
@@ -1681,7 +1797,6 @@ def replay():
                     type_replace_dict = {"0": 768, "1": 769}
                     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
                                         "3": 1073741903, "4": 122, "5": 120, "6": 1073742049, "7": 99}
-                    # 第一项用来放表头所以-1
                     jsondict = json.loads(json.dumps(jsondictlist[mymenu.choose() - 1])) # 我恨浅拷贝  用json迫真实现深拷贝
                     for eachtypelist in jsondict["replaybody"]["type"]:
                         for i, eachtype in enumerate(eachtypelist):
@@ -1699,7 +1814,31 @@ def replay():
         pygame.display.flip()
 
 
-
+try:
+    with open('settings.json') as f:
+        try:
+            settings = json.load(f, strict=False)
+        except json.JSONDecodeError:
+            raise FileNotFoundError
+except FileNotFoundError:
+    settings = create_setting()
+score = 0
+screenX = 960
+screenY = 720
+gameZoneLeft = 30
+gameZoneRight = 620
+gameZoneUp = 20
+gameZoneDown = 695
+gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
+gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
+size = (screenX, screenY)
+screen = pygame.display.set_mode(size)
+gameui = asset.GameUI(settings)
+se = asset.SEPlayer()
+clock = pygame.time.Clock()
+choosecharacter = "Reimu"
+mainbgposy = 0
+mainbgspeedy = 0
 tick = 0
 mymenu = asset.Menu(gameui.font_24, [
     asset.MenuStruct("START"), 

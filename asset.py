@@ -29,6 +29,7 @@ class SEPlayer():
         self.soundasset["enemyst01"] = pygame.mixer.Sound("SE/enemyst01.wav")
         self.soundasset["enemyst02"] = pygame.mixer.Sound("SE/enemyst02.wav")
         self.soundasset["spellextend"] = pygame.mixer.Sound("SE/spellextend.wav")
+        self.soundasset["extend"] = pygame.mixer.Sound("SE/extend.wav")
         self.setvolume(0.5)
 
     def play(self, effect, channel=-1):
@@ -184,7 +185,9 @@ class GameUI():
         self.framework.blit(self.grazetext,(642,250))
         self.framework.blit(self.versiontext, (0, 700))
     
-
+    def updatesettings(self,settings):
+        self.settings = settings
+        
     def drawBefore(self, screen):
         screen.blit(self.background, (30, 20))
 
