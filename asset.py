@@ -136,7 +136,55 @@ class Menu():
                 if self.color != self.owner.defaultcolor: # 说明是刚刚变动的
                     self.color = self.owner.defaultcolor
                     self.image = self.owner.font.render(self.struct.text,True,self.color)
-            
+
+class ManualContent():
+    class Struct():
+        def __init__(self,text,color="WHITE"):
+            self.text = text
+            self.color = color
+    
+    textlist = [[
+            Struct("1.游戏的简要介绍:"),
+            Struct("这是一款东方同人弹幕射击游戏，目标是操纵主角打倒敌人。"),
+            Struct(""),
+            Struct("背景故事:"),
+            Struct("红魔馆旁的雾之湖，似乎受到了某种奇怪异变的影响。"),
+            Struct("即使在盛夏阳光的照耀下散去雾气的湖面，也散发着不自然的冷气。"),
+            Struct("以雾之湖为基地，由自然力量具象出的冰之小妖精琪露诺，"),
+            Struct("也因为这异变的影响变得更加的强大和躁动了起来。"),
+            Struct("而灵梦和魔理沙，也已在前往雾之湖一探究竟的路上。")
+            # 纯属瞎编 没有后续
+        ],[
+            Struct("2.操作方法:"),
+            Struct("自机移动:↑ ↓ ← →"),
+            Struct("确定/射击:Z"),
+            Struct("取消/释放符卡:X"),
+            Struct("特殊按键:C（后述）"),
+            Struct("需要注意的是:在存储录像输入机签时使用ESC取消，ENTER确认。","RED")
+        ],[
+            Struct("3.游戏界面:"),
+            Struct("剩余人数:剩余可以MISS的次数，当所有星星消失后再次MISS游戏结束","RED"),
+            Struct("剩余符卡:可以使用BOMB的次数","GREEN"),
+            Struct("GRAZE:擦弹数，通过擦弹可以得到分数和增加温度槽（后述）"),
+            Struct("SCORE/HISCORE:当前得分和历史最高得分"),
+            Struct("温度槽:右下角的指示器,用于指示当前温度")
+        ],[
+            Struct("4.小心低温！:"),
+            Struct("雾之湖正出奇的寒冷，而妖精身上也时刻散发着非比寻常的寒气",(32,64,255)),
+            Struct("体温时刻在降低，作为人类的灵梦和魔理沙并不能长时间的身处这种环境下战斗。"),
+            Struct("好在借助河童的科技装置，主角们可以通过各种方式提升自己的体温。"),
+            Struct("说明:右下角的温度槽指示着自机的当前温度，同时分别具有红蓝两个标记。"),
+            Struct("当温度高于红色标记时,擦弹将会有额外得分，"),
+            Struct("当温度溢出后，获得的温度将转化为分数，并增加生命恢复槽，生命恢复槽满则残机+1；"),
+            Struct("反之，当温度低于蓝色标记时，自机将无法使用BOMB，且视野逐渐变暗"),
+            Struct("当温度归零后，副机将无法进行射击。"),
+            Struct("可以随时通过使用河童的供暖装置（按下C键），将目前持有的一个BOMB转化成温度"),
+            Struct("以下事件会影响温度:"),
+            Struct("+ 擦弹、获取分数道具、收取符卡、造成伤害","GREEN"),
+            Struct("- 随时间自然减少、MISS","RED"),
+            Struct("切记管理好自己的体温，避免陷入苦战的恶性循环！")
+        ]]
+
 class GameUI():
     picLoader = PicLoader()
 
@@ -166,7 +214,7 @@ class GameUI():
         self.marisadesc = self.picLoader.load("Picture/marisadesc.png",hasalpha=True)
         self.reimudesc = self.picLoader.load("Picture/reimudesc.png",hasalpha=True)
         self.mainbackground = self.picLoader.load("Picture/mainbackground.png")
-
+        self.enemypos = self.picLoader.load("Picture/enemypos.png",hasalpha=True)
         self.font_36 = pygame.font.Font("fonts/fonts.ttf", 36)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
@@ -178,7 +226,7 @@ class GameUI():
         self.fpsTimer = 0
         self.fpslist = []
         self.versiontext = self.font_16.render(
-                "DEV 240120 早期开发版本", True, "WHITE")
+                "DEV 240125 早期开发版本", True, "WHITE")
         self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
         self.framework.blit(self.lifetext,(620,170))
         self.framework.blit(self.spelltext,(620,210))
@@ -230,8 +278,7 @@ class GameUI():
         screen.blit(self.font_24.render("{0}".format(
             player_Character.graze), True, (240, 240, 240)), (740, 250))
         # 敌人位置显示
-        screen.blit(self.font_16.render(
-            "| ENEMY |", True, (255, 0, 0)), (baka.rect.x, 700))
+        screen.blit(self.enemypos, (baka.rect.x, 696))
         # 剩余时间显示
         self.lefttime = int(
             (baka.spelldata[baka.spell].time - baka.spelltick) / 6)
