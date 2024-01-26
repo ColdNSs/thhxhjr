@@ -208,7 +208,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         for item in enemyBulletGroup:
             global score
             if pygame.sprite.collide_circle_ratio(2)(item, self) and not item.alreadyGraze:
-                self.temperature += 200  # 擦弹加温度
+                if self.status == "alive": # 防止东方擦擦乐
+                    self.temperature += 200  # 擦弹加温度
                 player_Character.keeptemptime = 60  # 重置保温计数器
                 self.graze += 1
                 se.play("graze")
@@ -604,6 +605,11 @@ class LimitTimePic(pygame.sprite.Sprite):  # 图片精灵
         self.rect.center = self.posvec = posvec
         self.lifetime = self.lastlifetime = lifetime
 
+    def setimage(self,image):
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.center = self.posvec
+
     def update(self):
         if self.lifetime == -1:
             return
@@ -634,13 +640,12 @@ class PictureAppearEffect(pygame.sprite.Sprite):
             self.image.set_alpha(0)
     def appear(self):
         self.status = "appearing"
-        if self.speed.x != 0:
-            if self.reverse:
-                self.rect.x = self.originposvec.x + self.distance.x
-                self.rect.y = self.originposvec.y + self.distance.y
-            else:
-                self.rect.x = self.originposvec.x - self.distance.x
-                self.rect.y = self.originposvec.y - self.distance.y
+        if self.reverse:
+            self.rect.x = self.originposvec.x + self.distance.x
+            self.rect.y = self.originposvec.y + self.distance.y
+        else:
+            self.rect.x = self.originposvec.x - self.distance.x
+            self.rect.y = self.originposvec.y - self.distance.y
                 
     def disappear(self):
         self.status = "disappearing"
@@ -1224,6 +1229,13 @@ def create_setting():  # 生成配置文件
         file.write(json.dumps(settings))
     return settings
 
+def create_playerdata():  # 生成玩家数据
+    playerdata = {"reimu":[], "marisa":[]}
+    playerdata_gzip = gzip.compress(json.dumps(playerdata).encode())
+    with gzip.open('./player.dat', 'wb') as file:
+        file.write(playerdata_gzip)
+    return playerdata
+
 def mainbgdraw():
     global mainbgposy
     screen.blit(gameui.mainbackground, (0, mainbgposy))
@@ -1593,6 +1605,8 @@ def gameloop(playreplay = False):
     input_event_list = []
     replayeventcount = 0
     tps = 60
+    coldmask = pygame.Surface([590,675])
+    coldmask.fill((0,64,255))
     while not done:
         clock.tick(tps)
         tick += 1
@@ -1678,6 +1692,9 @@ def gameloop(playreplay = False):
             itemGroup.draw(screen)
             gameui.drawAfter(screen, baka, player_Character, se,
                              clock, score)
+            if player_Character.temperature<20000: # 寒冷特效遮罩
+                coldmask.set_alpha((20000-player_Character.temperature)/200)
+                screen.blit(coldmask,(30,20))
             pygame.display.flip()
     if replay: # 如果选择保存录像
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
@@ -1811,12 +1828,22 @@ def replay():
                 exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
+                    if len(mymenu.choiceablelist) == 0: 
+                        se.play("invalid")
+                        continue # 录像列表为空防止报错
                     se.play("select")
                     mymenu.up()
                 if event.key == pygame.K_DOWN:
+                    if len(mymenu.choiceablelist) == 0: 
+                        se.play("invalid")
+                        continue
                     se.play("select")
                     mymenu.down()
                 if event.key == pygame.K_z:
+                    if len(mymenu.choiceablelist) == 0: 
+                        se.play("invalid")
+                        continue
+                    se.play("select")
                     # 将自定义格式转换为pygame事件和按键编号
                     type_replace_dict = {"0": 768, "1": 769}
                     key_replace_dict = {"0": 1073741906, "1": 1073741905, "2": 1073741904,
@@ -1837,25 +1864,27 @@ def replay():
         mymenu.optiongroup.draw(screen)
         pygame.display.flip()
 
-def showmanual(page):
+def showmanual(page,readmask):
     def reloadmanualcontent(page):
         pagesurface = pygame.Surface([960,720])
         pagesurface.fill("GREY")
         pagesurface.set_colorkey("GREY")
         for i,sentence in enumerate(asset.ManualContent.textlist[page]):
-            pagesurface.blit(gameui.font_20.render(sentence.text,True,sentence.color),(50,100+25*i))
+            pagesurface.blit(gameui.font_24.render(sentence.text,True,"BLACK"),(99,29+40*i))
+            pagesurface.blit(gameui.font_24.render(sentence.text,True,sentence.color),(100,30+40*i))
         return pagesurface
     drawgroup = pygame.sprite.Group()
-    pageeffect1 = PictureAppearEffect(reloadmanualcontent(page),V2(0,10),V2(50,100),False,V2(0,100))
-    pageeffect2 = PictureAppearEffect(reloadmanualcontent(page),V2(0,10),V2(50,100),False,V2(0,100))
-    titleENG = LimitTimePic(gameui.font_24.render("Manual",True,"WHITE"),(130,50)) # repetition good
-    titleENGS = LimitTimePic(gameui.font_24.render("Manual",True,"BLACK"),(128,48))
+    pageeffect1 = PictureAppearEffect(reloadmanualcontent(page),V2(0,20),V2(50,100),False,V2(0,360),"appearing")
+    pageeffect2 = PictureAppearEffect(reloadmanualcontent(page),V2(0,20),V2(50,100),False,V2(0,360),"disappeared")
+    titleENG = LimitTimePic(gameui.font_36.render("Manual",True,"WHITE"),(130,50)) # repetition good
+    titleENGS = LimitTimePic(gameui.font_36.render("Manual",True,"BLACK"),(128,48))
     titleZHS = LimitTimePic(gameui.font_24.render("游戏使用说明书",True,"GREY"),(130,85))
     titleZHSS = LimitTimePic(gameui.font_24.render("游戏使用说明书",True,"BLACK"),(128,83))
     drawgroup.add(titleENGS,titleENG,titleZHSS,titleZHS,pageeffect1,pageeffect2)
     nowpagebuffer = True
     while True:
         mainbgdraw()
+        screen.blit(readmask,(0,0))
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1863,7 +1892,8 @@ def showmanual(page):
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     se.play("select")
-                    page = max(0,page-1)
+                    if page == 0: continue
+                    page -= 1
                     if nowpagebuffer:
                         pageeffect1.reverse = True
                         pageeffect2.reverse = True
@@ -1879,8 +1909,8 @@ def showmanual(page):
                     nowpagebuffer = not nowpagebuffer
                 if event.key == pygame.K_DOWN:
                     se.play("select")
-                    page = min(len(asset.ManualContent.textlist)-1,page+1)
-                    reloadmanualcontent(page)
+                    if page == len(asset.ManualContent.textlist)-1: continue
+                    page += 1
                     if nowpagebuffer:
                         pageeffect1.reverse = False
                         pageeffect2.reverse = False
@@ -1889,34 +1919,38 @@ def showmanual(page):
                         pageeffect2.appear()
                     else:
                         pageeffect1.reverse = False
-                        pageeffect1.reverse = False
+                        pageeffect2.reverse = False
                         pageeffect1.image = reloadmanualcontent(page)
-                        pageeffect2.appear()
+                        pageeffect1.appear()
                         pageeffect2.disappear()
                     nowpagebuffer = not nowpagebuffer
                 if event.key == pygame.K_z:
                     se.play("confirm")
                 if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
-                    return
+                    return page
         drawgroup.update()
         drawgroup.draw(screen)
         pygame.display.flip()
 
 def manual():
-    mymenu = asset.Menu(gameui.font_28,
+    mymenu = asset.Menu(gameui.font_36,
                     [
                         asset.MenuStruct("1.游戏的简要介绍"),
                         asset.MenuStruct("2.操作方法"),
                         asset.MenuStruct("3.游戏界面"),
                         asset.MenuStruct("4.小心低温！")
-                    ], "WHITE", "RED", "GREY", (250, 250), iscirculute=True,linesep=10)
-    titleENG = LimitTimePic(gameui.font_24.render("Manual",True,"WHITE"),(130,50)) # repetition good
-    titleENGS = LimitTimePic(gameui.font_24.render("Manual",True,"BLACK"),(128,48))
+                    ], "WHITE", "RED", "GREY", (350, 250), iscirculute=True,linesep=15)
+    titleENG = LimitTimePic(gameui.font_36.render("Manual",True,"WHITE"),(130,50)) # repetition good
+    titleENGS = LimitTimePic(gameui.font_36.render("Manual",True,"BLACK"),(128,48))
     titleZHS = LimitTimePic(gameui.font_24.render("游戏使用说明书",True,"GREY"),(130,85))
     titleZHSS = LimitTimePic(gameui.font_24.render("游戏使用说明书",True,"BLACK"),(128,83))
     mymenu.optiongroup.add(titleENGS,titleENG,titleZHSS,titleZHS)
+    readmask = pygame.Surface([960,720])
+    readmask.fill("BLACK")
+    readmask.set_alpha(96)
     while True:
         mainbgdraw()
+        screen.blit(readmask,(0,0))
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1930,14 +1964,58 @@ def manual():
                     mymenu.down()
                 if event.key == pygame.K_z:
                     se.play("confirm")
-                    showmanual(mymenu.choose())
+                    mymenu.jumpto(showmanual(mymenu.choose(),readmask))
                 if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
                     return
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         pygame.display.flip()
 
+def showplayerdata():
+    drawgroup = pygame.sprite.Group()
+    charactertitlepiclist = [gameui.font_28.render("博丽灵梦",True,"RED"),gameui.font_28.render("雾雨魔理沙",True,"YELLOW")]
+    charactertitle = LimitTimePic(charactertitlepiclist[0],(480,100))
+    datalist = [{"playername":"----------","score":"------","time":"--/--/-- --:--:--"} for i in range(20)]
+    characterdatalist = [json.loads(json.dumps(datalist)),json.loads(json.dumps(datalist))] # 前灵梦后魔理沙 迫真深拷贝
+    for i,seq in playerdata["reimu"][:20]:
+        characterdatalist[0][i] = seq.copy()
+        seq.time = time.strftime("%y/%m/%d", time.localtime(seq.time))
+    for i,seq in playerdata["marisa"][:20]:
+        characterdatalist[1][i] = seq.copy()
+        seq.time = time.strftime("%y/%m/%d", time.localtime(seq.time))
+    nowcharacter = False # 假灵梦真魔理沙 尝试船新低可读性写法
+    titleENG = LimitTimePic(gameui.font_36.render("PlayerData",True,"WHITE"),(130,50)) # repetition good
+    titleENGS = LimitTimePic(gameui.font_36.render("PlayerData",True,"BLACK"),(128,48))
+    titleZHS = LimitTimePic(gameui.font_24.render("查看历史记录",True,"GREY"),(130,85))
+    titleZHSS = LimitTimePic(gameui.font_24.render("查看历史记录",True,"BLACK"),(128,83))
+    datapanel = LimitTimePic(pygame.Surface([960,500]),(480,300))
+    datapanel.image.fill("GREY")
+    datapanel.image.set_colorkey("GREY")
+    drawgroup.add(charactertitle,titleENGS,titleENG,titleZHSS,titleZHS,datapanel)
+    for i,seq in enumerate(characterdatalist[nowcharacter]):
+            datapanel.image.blit(gameui.font_mono_20.render(seq["playername"]+"     "+seq["score"]+"     "+seq["time"],True,"BLACK"),(200,150+20*i)) 
 
+    while True:
+        mainbgdraw()
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
+                    se.play("select")
+                    nowcharacter = not nowcharacter
+                    charactertitle.setimage(charactertitlepiclist[nowcharacter])
+                    datapanel.image.fill("GREY")
+
+                    for i,seq in enumerate(characterdatalist[nowcharacter]):
+                        datapanel.image.blit(gameui.font_mono_20.render(seq["playername"]+"     "+seq["score"]+"     "+seq["time"],True,"BLACK"),(200,150+20*i)) 
+                if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
+                    se.play("cancel")
+                    return
+        drawgroup.update()
+        drawgroup.draw(screen)
+        pygame.display.flip()
 try:
     with open('settings.json') as f:
         try:
@@ -1946,6 +2024,19 @@ try:
             raise FileNotFoundError
 except FileNotFoundError:
     settings = create_setting()
+
+ 
+
+try:
+    with gzip.open("./player.dat", 'rb') as f:
+        try:
+            playerdata=json.loads(gzip.decompress(
+                f.read()).decode(), strict=False)
+        except json.JSONDecodeError:
+            raise FileNotFoundError
+except FileNotFoundError:
+    playerdata = create_playerdata()
+
 score = 0
 screenX = 960
 screenY = 720
@@ -1967,18 +2058,19 @@ tick = 0
 mymenu = asset.Menu(gameui.font_24, [
     asset.MenuStruct("START"), 
     asset.MenuStruct("PRACTISE START",True), 
+    asset.MenuStruct("PLAYER DATA"),
     asset.MenuStruct("REPLAY"),
     asset.MenuStruct("MANUAL"),
     asset.MenuStruct("OPTION"), 
     asset.MenuStruct("MUSIC ROOM", True), 
     asset.MenuStruct("EXIT")
-    ], "WHITE", "RED", "GREY", (100, 450), iscirculute=True)
+    ], "WHITE", "RED", "GREY", (100, 400), iscirculute=True)
 while True:
     mainbgdraw()
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            done = True
+            exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 se.play("select")
@@ -1995,12 +2087,14 @@ while True:
                     mainbgspeedy = 20
                     continue
                 if id == 2:
-                    replay()
+                    showplayerdata()
                 if id == 3:
-                    manual()
+                    replay()
                 if id == 4:
+                    manual()
+                if id == 5:
                     option()
-                if id == 6:
+                if id == 7:
                     pygame.time.wait(200)  # 等待音效播放完成
                     exit()
     mymenu.optiongroup.update()

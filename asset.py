@@ -95,6 +95,11 @@ class Menu():
         self.choice = min(len(self.choiceablelist) - 1,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
         self.exactchoice = self.choiceablelist[self.choice]
     
+    def jumpto(self,id):
+        self.choice = id
+        self.exactchoice = self.choiceablelist[self.choice]
+        
+
     def choose(self):
         return self.exactchoice
     
