@@ -9,6 +9,7 @@ class SEPlayer():
     ENEMY_DESTORY_CHANNEL = 36
     SPELL_EXTEND_CHANNEL = 37
     VOLUME_TEST_CHANNEL = 37
+    EXTEND_CHANNEL = 38
     def __init__(self):
         self.channel = 0
         self.soundasset = {}

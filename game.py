@@ -53,7 +53,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.QTETime = 0
         self.QTElimit = QTElimit
         self.status = "alive"
-        self.mode = 0
+        self.mode = 1
         self.missinthisspell = False
         self.graze = 0
         self.temperature = temperature
@@ -68,22 +68,21 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                                (self.radius, self.radius), self.radius)
             pygame.draw.circle(self.image, 'RED',
                                (self.radius, self.radius), self.radius, 1)
-            player_CharacterOptionRight.x = 27
-            player_CharacterOptionRight.y = 28
-            player_CharacterOptionLeft.x = -27
-            player_CharacterOptionLeft.y = 28
-        if mode == 0:
-            self.slow = 1
-            self.image.fill('BLUE')
-            self.image.set_colorkey("BLUE")
             player_CharacterOptionRight.x = 16
             player_CharacterOptionRight.y = -23
             player_CharacterOptionLeft.x = -16
             player_CharacterOptionLeft.y = -23
+        if mode == 0:
+            self.slow = 1
+            self.image.fill('BLUE')
+            self.image.set_colorkey("BLUE")
+            player_CharacterOptionRight.x = 27
+            player_CharacterOptionRight.y = 28
+            player_CharacterOptionLeft.x = -27
+            player_CharacterOptionLeft.y = 28
         self.mode = mode
 
     def update(self, choosecharacter):
-        self.temperature += 100
         global score
         assert (self.keeptemptime >= 0)
         if self.keeptemptime == 0:  # 保温时间已过
@@ -98,7 +97,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         if self.liferecprog > self.liferectotal: # 攒满生命恢复槽
             self.liferecprog = 0
             self.liferectotal += 20000 # 增加难度
-            se.play("extend")
+            se.play("extend",se.SPELL_EXTEND_CHANNEL)
             if self.HP < 9:
                 self.HP += 1 
             else: 
@@ -232,7 +231,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                     random.uniform(-1, 1), random.uniform(-1, 1)).normalize()*4, 0, 0, False, V2(0, 0))
                 effectgroup.add(effect)
                 sprite_disappear(effect, 20)
-                score += 2000
+                score += 2000 if self.temperature <60000 else 2500
                 item.alreadyGraze = True  # 擦过的弹不能再擦
             offset=(item.rect.x-self.rect.x,item.rect.y-self.rect.y)    #被减数和减数次序不能交换
             if self.mask.overlap(item.mask,offset): 
@@ -445,8 +444,7 @@ class bulletitem(pygame.sprite.Sprite):  # 道具类
         if pygame.sprite.collide_circle(self, player_Character):
             se.play("shoot")
             global score
-            score += 100
-            player_Character.temperature += 30  # 点数加温度
+            player_Character.temperature += 50  # 点数加温度
             self.kill()
 
 
@@ -493,9 +491,13 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.rect.centerx, self.rect.centery = self.posvec  # 这行及上两行实现非整数坐标
         if self.track:  # 诱导弹
             self.lifetime += 1
-            self.speedvec = relative_direction(self, baka)
-            self.speedvec.scale_to_length(
-                self.inputspeedvec.length())  # 速度向量转化为长度与输入速度一致
+            if self.lifetime <= 20: # 20帧的诱导过程
+                self.speedvec = (self.lifetime*relative_direction(self, baka) + (20-self.lifetime)*self.inputspeedvec.normalize())
+                self.speedvec.scale_to_length(self.inputspeedvec.length())
+            else:
+                self.speedvec = relative_direction(self, baka)
+                self.speedvec.scale_to_length(
+                    self.inputspeedvec.length())  # 速度向量转化为长度与输入速度一致
             self.image = pygame.transform.rotate(
                 self.originimage, -V2(0, -1).angle_to(self.speedvec))
             self.rect = self.image.get_rect(
@@ -547,8 +549,8 @@ class MarisaBomb(pygame.sprite.Sprite):  # 抄袭自灵梦Bomb类型 别问我�
             self.image = pygame.transform.scale(self.image, (self.image.get_width(
             ) * (1 + 0.04 * self.trigger), self.image.get_height() * (1 + 0.04 * self.trigger)))
             self.trigger += 1
-            self.image.set_alpha(255 - self.trigger * 10)
-        if self.trigger > 25:
+            self.image.set_alpha(255 - self.trigger * 15)
+        if self.trigger > 20:
             self.kill()
         if not self.lifetime:  # 超过生命周期也消失
             self.kill()
@@ -584,8 +586,12 @@ class ReimuBomb(pygame.sprite.Sprite):
             if self.angle > 360:
                 self.angle = 0  # 使我的阴阳玉旋转
             self.image = pygame.transform.rotate(self.originimage, self.angle)
-            self.speedvec = (self.speedvec + relative_direction(self, baka)*3).normalize() * (
-                self.inputspeedvec.length() + 0.08 * (self.tracktime - self.lifetime))
+            if not self.trigger:
+                self.speedvec = (self.speedvec + relative_direction(self, baka)*3).normalize() * (
+                    self.inputspeedvec.length() + 0.08 * (self.tracktime - self.lifetime))
+            else:
+                self.speedvec = (self.speedvec + relative_direction(self, baka)*5).normalize() * (
+                    self.inputspeedvec.length() + 0.08 * (self.tracktime - self.lifetime))
             self.rect = self.image.get_rect(center=self.rect.center)
             self.posvec.x, self.posvec.y = self.rect.centerx, self.rect.centery
             self.posvec += self.speedvec
@@ -860,7 +866,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     spellscore = (
                         self.spelldata[self.spell].time - self.spelltick) * 1000
                     score += spellscore
-                    player_Character.temperature += 3000 + spellscore / 200  # 收卡加温度
+                    player_Character.temperature += 3000 + spellscore / 100  # 收卡加温度
                     effectgroup.add(LimitTimePic(
                         gameui.bonustext, (gameZoneRight-(gameZoneRight-gameZoneLeft)/2, 270), 120))
                     scoretext = gameui.font_24.render(
@@ -1302,9 +1308,9 @@ def reset(playreplay = False):
         player_CharacterImage = playerCharacterImage(
             picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
         player_CharacterOptionRight = playerOption(
-            picloader.load("Picture/reimu_option.bmp"), 16, -23, 9, 6)
+            picloader.load("Picture/reimu_option.bmp"), 27, 28, 9, 6)
         player_CharacterOptionLeft = playerOption(
-            picloader.load("Picture/reimu_option.bmp"), -16, -23, 9, 6)
+            picloader.load("Picture/reimu_option.bmp"), -27, 28, 9, 6)
         player_Character.spell_image = picloader.load(
             "Picture/reimu_spell.bmp")
         player_Character.spell_purple_image = picloader.load(
@@ -1328,9 +1334,9 @@ def reset(playreplay = False):
         player_CharacterImage = playerCharacterImage(
             picloader.load("Picture/marisa_new.bmp", 35, 50), picloader.load("Picture/marisa_newl.bmp", 35, 50), picloader.load("Picture/marisa_newr.bmp", 35, 50))
         player_CharacterOptionRight = playerOption(
-            picloader.load("Picture/marisa_option.bmp", hasalpha=True), 16, -23, 0, 8)
+            picloader.load("Picture/marisa_option.bmp", hasalpha=True), 27, 28, 0, 8)
         player_CharacterOptionLeft = playerOption(picloader.load(
-            "Picture/marisa_option.bmp", hasalpha=True), -16, -23, 0, 8)
+            "Picture/marisa_option.bmp", hasalpha=True), -27, 28, 0, 8)
         player_Character.missile_image = picloader.load(
             "Picture/marisa_missile.bmp")
         colors = ["red", "green", "yellow"]
@@ -1910,14 +1916,14 @@ def showmanual(page,readmask):
                     if page == 0: continue
                     page -= 1
                     if nowpagebuffer:
-                        pageeffect1.reverse = True
-                        pageeffect2.reverse = True
+                        pageeffect1.reverse = False
+                        pageeffect2.reverse = False
                         pageeffect2.image = reloadmanualcontent(page)
                         pageeffect1.disappear()
                         pageeffect2.appear()
                     else:
-                        pageeffect1.reverse = True
-                        pageeffect2.reverse = True
+                        pageeffect1.reverse = False
+                        pageeffect2.reverse = False
                         pageeffect1.image = reloadmanualcontent(page)
                         pageeffect1.appear()
                         pageeffect2.disappear()
@@ -1927,14 +1933,14 @@ def showmanual(page,readmask):
                     if page == len(asset.ManualContent.textlist)-1: continue
                     page += 1
                     if nowpagebuffer:
-                        pageeffect1.reverse = False
-                        pageeffect2.reverse = False
+                        pageeffect1.reverse = True
+                        pageeffect2.reverse = True
                         pageeffect2.image = reloadmanualcontent(page)
                         pageeffect1.disappear()
                         pageeffect2.appear()
                     else:
-                        pageeffect1.reverse = False
-                        pageeffect2.reverse = False
+                        pageeffect1.reverse = True
+                        pageeffect2.reverse = True
                         pageeffect1.image = reloadmanualcontent(page)
                         pageeffect1.appear()
                         pageeffect2.disappear()
