@@ -73,7 +73,6 @@ class Menu():
         self.choicecolor = choicecolor
         self.disablecolor = disablecolor
         self.choice = defaultchoice
-        self.exactchoice = defaultchoice
         self.iscirculute = iscirculute
         self.posvec = posvec
         self.linesep = linesep
@@ -84,7 +83,7 @@ class Menu():
             if not struct.isdisabled:
                 self.choiceablelist.append(i) # 维护一个可选择选项的索引
         pass
-
+        self.exactchoice = self.choiceablelist[self.choice]
     def up(self):
         self.choice -= 1
         self.choice = max(0,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
@@ -133,7 +132,7 @@ class Menu():
         def update(self):
             if self.struct.isdisabled == True:
                 return
-            if self.id == self.owner.choiceablelist[self.owner.choice]: 
+            if self.id == self.owner.exactchoice: 
                 if self.color != self.owner.choicecolor: # 说明是刚刚变动的
                     self.color = self.owner.choicecolor
                     self.image = self.owner.font.render(self.struct.text,True,self.color)
@@ -181,8 +180,8 @@ class ManualContent():
             Struct("说明:右下角的温度槽指示着自机的当前温度，同时分别具有红蓝两个标记。"),
             Struct("当温度高于红色标记时,擦弹将会有额外得分，"),
             Struct("当温度溢出后，获得的温度将转化为分数，并增加生命恢复槽，生命恢复槽满则残机+1；"),
-            Struct("反之，当温度低于蓝色标记时，自机将无法使用BOMB，且视野逐渐变暗"),
-            Struct("当温度归零后，副机将无法进行射击。"),
+            Struct("反之，当温度低于蓝色标记时，副机将无法进行射击，且视野逐渐变暗"),
+            Struct("当温度归零后，自机将无法使用BOMB。"),
             Struct("可以随时通过使用河童的供暖装置（按下C键），将目前持有的一个BOMB转化成温度"),
             Struct("以下事件会影响温度:"),
             Struct("+ 擦弹、获取分数道具、收取符卡、造成伤害","GREEN"),
@@ -208,6 +207,7 @@ class GameUI():
         self.grazetext = self.picLoader.load("Picture/graze.png",hasalpha=True)
         self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
+        self.nextlifetext = self.picLoader.load("Picture/nextlife.png",hasalpha=True)
         self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
         self.test = self.picLoader.load("Picture/test.png")
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
@@ -220,6 +220,8 @@ class GameUI():
         self.reimudesc = self.picLoader.load("Picture/reimudesc.png",hasalpha=True)
         self.mainbackground = self.picLoader.load("Picture/mainbackground.png")
         self.enemypos = self.picLoader.load("Picture/enemypos.png",hasalpha=True)
+        self.liferecbox = self.picLoader.load("Picture/liferecbox.png")
+        self.liferecbar = self.picLoader.load("Picture/liferecbar.png")
         self.font_36 = pygame.font.Font("fonts/fonts.ttf", 36)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
@@ -236,6 +238,8 @@ class GameUI():
         self.framework.blit(self.lifetext,(620,170))
         self.framework.blit(self.spelltext,(620,210))
         self.framework.blit(self.grazetext,(642,250))
+        self.framework.blit(self.nextlifetext,(622,290))
+        self.framework.blit(self.liferecbox,(742,290))
         self.framework.blit(self.versiontext, (0, 700))
     
     def updatesettings(self,settings):
@@ -282,6 +286,9 @@ class GameUI():
         # 擦弹数量显示
         screen.blit(self.font_24.render("{0}".format(
             player_Character.graze), True, (240, 240, 240)), (740, 250))
+        # 生命恢复槽显示
+        screen.blit(pygame.transform.scale(self.liferecbar, (
+            123*player_Character.liferecprog/player_Character.liferectotal, 28)), (743, 291))
         # 敌人位置显示
         screen.blit(self.enemypos, (baka.rect.x, 696))
         # 剩余时间显示

@@ -59,6 +59,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.temperature = temperature
         self.keeptemptime = 60
         self.tempdownspeed = tempdownspeed
+        self.liferecprog = 0
+        self.liferectotal = 100000 # 初始恢复槽上限为100000
     def setmode(self, mode):  # 设置子机位置
         if mode == 1:
             self.slow = self.speedMultiplier
@@ -81,13 +83,26 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.mode = mode
 
     def update(self, choosecharacter):
+        self.temperature += 100
+        global score
         assert (self.keeptemptime >= 0)
         if self.keeptemptime == 0:  # 保温时间已过
             self.temperature = max(
                 self.temperature - self.tempdownspeed, 0)  # 温度限制
         else:
             self.keeptemptime -= 1
-        self.temperature = min(self.temperature, 80000)
+        if self.temperature > 80000: # 溢出温度转化为生命恢复槽进度和分数
+            self.liferecprog += (self.temperature - 80000)
+            score += (self.temperature - 80000)
+            self.temperature = 80000
+        if self.liferecprog > self.liferectotal: # 攒满生命恢复槽
+            self.liferecprog = 0
+            self.liferectotal += 20000 # 增加难度
+            se.play("extend")
+            if self.HP < 9:
+                self.HP += 1 
+            else: 
+                self.Bomb += 1
         if choosecharacter == "Marisa":
             for item in bombgroup:
                 item.angle += 3
@@ -182,7 +197,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             self.status = "invincible"
             self.invincibleTime = 120
             self.HP -= 1
-            self.temperature = max(self.temperature - 10000, 10000)
+            self.temperature = max(self.temperature - 10000, self.temperature/2)
             self.missinthisspell = True
             self.clearradius = 10
             self.diecenter = self.rect.center
@@ -209,7 +224,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             global score
             if pygame.sprite.collide_circle_ratio(2)(item, self) and not item.alreadyGraze:
                 if self.status == "alive": # 防止东方擦擦乐
-                    self.temperature += 200  # 擦弹加温度
+                    self.temperature += 1000  # 擦弹加温度
                 player_Character.keeptemptime = 60  # 重置保温计数器
                 self.graze += 1
                 se.play("graze")
@@ -284,7 +299,7 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
             self.angle = 0
         if self.shoot == False:  # 未射击直接返回
             return
-        if player_Character.temperature == 0:  # 温度为0禁止副机射击
+        if player_Character.temperature < 10000:  # 温度小于10000禁止副机射击
             return
         if choosecharacter == "Reimu":
             if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 红白诱导
@@ -1176,7 +1191,7 @@ class Characterctl():
             self.characterOptionLeft.shoot = True
             self.characterOptionRight.shoot = True
         if key == pygame.K_x:
-            if not self.character.status == "bombing" and self.character.Bomb > 0 and self.character.temperature > 10000:  # 低于10000温度不能放B
+            if not self.character.status == "bombing" and self.character.Bomb > 0 and self.character.temperature > 0:  # 温度为0不能放b
                 self.character.status = "usebomb"
         if key == pygame.K_LSHIFT:
             self.character.setmode(mode=1)
@@ -1186,10 +1201,10 @@ class Characterctl():
             global done
             done = True
         if key == pygame.K_c:
-            if self.character.temperature > 65000:
-                self.character.Bomb += 1
+            if self.character.temperature < 50000 and self.character.Bomb > 0:
+                self.character.Bomb -= 1
                 se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
-                self.character.temperature -= 30000
+                self.character.temperature += 30000
 
     def keyup(self, key):
         if key == pygame.K_UP:
@@ -1440,7 +1455,7 @@ def savereplay(screenshot,endmask):
                 continue
             menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + time.strftime("%y/%m/%d", time.localtime(e["metadata"]["time"])) + "   "+ e["metadata"]["playername"].ljust(10) + "   " + e["metadata"]["character"].ljust(6) + "   "  + "{0:.1f}%".format((1 - min(1,e["metadata"]["avgfps"]/60))*100))
             if i==25:break
-        mymenu = asset.Menu(gameui.font_mono_20,menustructlist,"WHITE", "YELLOW","GREY",(50, 100),linesep=-5)
+        mymenu = asset.Menu(gameui.font_mono_20,menustructlist,"WHITE", "YELLOW","GREY",(50, 100),linesep=-5,defaultchoice=1)
         titleENG = LimitTimePic(gameui.font_24.render("Slot Select",True,"WHITE"),(130,50)) # repetition good
         titleENGS = LimitTimePic(gameui.font_24.render("Slot Select",True,"BLACK"),(128,48))
         titleZHS = LimitTimePic(gameui.font_24.render("选择一个槽位",True,"GREY"),(130,85))
@@ -1525,13 +1540,13 @@ def gameend(playreplay):
                                 asset.MenuStruct("满身疮痍！", True),
                                 asset.MenuStruct("保存录像并退出"),
                                 asset.MenuStruct("不保存录像并退出")
-                            ], "WHITE", "RED", "GREY", (250, 250),defaultchoice=1, iscirculute=True)
+                            ], "WHITE", "RED", "GREY", (250, 250), iscirculute=True)
     else:
         mymenu = asset.Menu(gameui.font_24,
                             [
                                 asset.MenuStruct("录像播放结束！", True),
                                 asset.MenuStruct("结束录像播放")
-                            ], "WHITE", "RED", "GREY", (250, 250),defaultchoice=1, iscirculute=True)
+                            ], "WHITE", "RED", "GREY", (250, 250), iscirculute=True)
     while True:
         clock.tick(60)
         for event in pygame.event.get():
@@ -1568,7 +1583,7 @@ def pause(playreplay):
                                 asset.MenuStruct("解除游戏暂停"),
                                 asset.MenuStruct("保存录像并退出"),
                                 asset.MenuStruct("不保存录像并退出")
-                            ], "WHITE", "RED", "GREY", (250, 250), iscirculute=True)
+                            ], "WHITE", "RED", "GREY", (250, 250),iscirculute=True)
     else:
         mymenu = asset.Menu(gameui.font_24,
                             [
@@ -1664,8 +1679,8 @@ def gameloop(playreplay = False):
                     exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        if pause(playreplay) == 2:
-                            return
+                        choice = pause(playreplay)[0]
+                        if choice == 2:return
                     if event.key == pygame.K_LCTRL:
                         tps = 360 # ctrl加速录像播放
                 elif event.type == pygame.KEYUP:
@@ -1694,7 +1709,7 @@ def gameloop(playreplay = False):
                              clock, score)
             if player_Character.temperature<20000: # 寒冷特效遮罩
                 coldmask.set_alpha((20000-player_Character.temperature)/200)
-                screen.blit(coldmask,(30,20))
+                screen.blit(coldmask,(gameZoneLeft,gameZoneUp))
             pygame.display.flip()
     if replay: # 如果选择保存录像
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
@@ -2090,6 +2105,7 @@ while True:
                     showplayerdata()
                 if id == 3:
                     replay()
+                    continue
                 if id == 4:
                     manual()
                 if id == 5:
