@@ -96,8 +96,7 @@ class Menu():
         self.exactchoice = self.choiceablelist[self.choice]
     
     def jumpto(self,id):
-        self.choice = id
-        self.exactchoice = self.choiceablelist[self.choice]
+        self.exactchoice = id
         
 
     def choose(self):
