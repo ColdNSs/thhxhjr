@@ -12,7 +12,7 @@ import os
 
 pygame.init()
 pygame.mixer.set_num_channels(40)
-pygame.display.set_caption('STGGAME')
+pygame.display.set_caption('东方槐夏寒晶 ~ Cold Lake In Scorching Gensokyo  Ver 0.0.1a')
 V2 = pygame.math.Vector2
 # posvec：位置向量 speedvec：速度向量
 
