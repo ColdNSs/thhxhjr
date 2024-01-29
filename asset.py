@@ -229,6 +229,7 @@ class GameUI():
         self.fpslist = []
         self.framework.blit(self.fontasset,(620,95))
         self.framework.blit(self.liferecbox,(742,290))
+
     def updatesettings(self,settings):
         self.settings = settings
         

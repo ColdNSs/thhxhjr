@@ -44,7 +44,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.speedMultiplier = speedMultiplier
         self.shoot = False
         self.HP = 5
-        self.Bomb = 2
+        self.Bomb = 10
         self.leftspeed = 0
         self.rightspeed = 0
         self.upspeed = 0
@@ -1262,7 +1262,7 @@ def sprite_disappear(sprite: pygame.sprite.Sprite, disappeartime: int):
         disappear_group.add(sprite)
 
 def create_setting():  # 生成配置文件
-    settings = {"powersave": False, "sevol": 0.2, "bgmvol": 0.2}
+    settings = {"powersave": False, "sevol": 0.2, "bgmvol": 0.2,"fullscreen":False}
     with open("settings.json", "w") as file:
         file.write(json.dumps(settings))
     return settings
@@ -1381,6 +1381,14 @@ def reset(playreplay = False):
         hiscore = playerdata[choosecharacter][0]["score"]
     else:
         hiscore = 0
+
+def gameflip():
+    if settings["fullscreen"]:
+        displayscreen.blit(screen,(160,0))
+    else:
+        displayscreen.blit(screen,(0,0))
+    pygame.display.flip()
+
 def charactermenu():
     global choosecharacter,jsondict
     choosecharacter = "Reimu"
@@ -1434,7 +1442,7 @@ def charactermenu():
         clock.tick(60)
         waittick += 1
         if waittick < 36: # 等待画面完全落下
-            pygame.display.flip()
+            gameflip()
             continue
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -1460,14 +1468,14 @@ def charactermenu():
                     return
         appeareffectgroup.update()
         appeareffectgroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def loadreplaydata():
     jsondictlist = [False for i in range(25)]
     for i in range(24):
-        if not os.path.exists("./replay/thxxx_"+str(i+1).zfill(2)+".rpy") :
+        if not os.path.exists("./replay/thhxhj_"+str(i+1).zfill(2)+".rpy") :
             continue
-        with gzip.open("./replay/thxxx_"+str(i+1).zfill(2)+".rpy", 'rb') as f:
+        with gzip.open("./replay/thhxhj_"+str(i+1).zfill(2)+".rpy", 'rb') as f:
             jsondictlist[i]=json.loads(gzip.decompress(
                 f.read()).decode(), strict=False)
     return jsondictlist
@@ -1542,10 +1550,10 @@ def savereplay(screenshot,endmask):
                         screen.blit(endmask, (30, 20))
                         mymenu.optiongroup.update()
                         mymenu.optiongroup.draw(screen)
-                        pygame.display.flip()
+                        gameflip()
                     if save: # 如果刚刚在屎山循环里选择了保存
                         replay_gzip = gzip.compress(json.dumps(jsondict).encode())
-                        with gzip.open('./replay/thxxx_'+ str(slot).zfill(2) +'.rpy', 'wb') as file:
+                        with gzip.open('./replay/thhxhj_'+ str(slot).zfill(2) +'.rpy', 'wb') as file:
                             file.write(replay_gzip)
                         mymenu = reload() # 重载录像菜单
 
@@ -1556,7 +1564,7 @@ def savereplay(screenshot,endmask):
         screen.blit(endmask, (30, 20))
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def gameend(playreplay,clear=False):
     screenshot = screen.copy()
@@ -1607,7 +1615,7 @@ def gameend(playreplay,clear=False):
         screen.blit(endmask, (30, 20))
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def pause(playreplay):
     se.play("pause")
@@ -1650,9 +1658,10 @@ def pause(playreplay):
         screen.blit(pausemask, (30, 20))
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def gameloop(playreplay = False):
+    #screen.blit(gameui.fullscreenmask,(0,0))
     done = False
     global score
     tick = 0
@@ -1761,7 +1770,7 @@ def gameloop(playreplay = False):
             if player_Character.temperature<20000: # 寒冷特效遮罩
                 coldmask.set_alpha((20000-player_Character.temperature)/200)
                 screen.blit(coldmask,(gameZoneLeft,gameZoneUp))
-            pygame.display.flip()
+            gameflip()
     if replay: # 如果选择保存录像
         input_event_list = [x for x in input_event_list if x != []]  # 清除所有空项
         new_input_event_list = []
@@ -1807,7 +1816,10 @@ def option():
                                 settings["bgmvol"]*100)),
                             asset.MenuStruct("目标帧率: {0} FPS".format(
                                 "30" if settings["powersave"] else "60")),
-                            asset.MenuStruct("Save & Exit")
+                            asset.MenuStruct("显示模式: {0}".format(
+                                "全屏" if settings["fullscreen"] else "窗口化")),
+                            asset.MenuStruct("Save & Exit"),
+
                         ], "BLACK", "RED", "GREY", (350, 250), iscirculute=True)
     tmpsetting = settings.copy()  # 暂存现有设置
     while not done:
@@ -1839,6 +1851,11 @@ def option():
                         settings["powersave"] = not settings["powersave"]
                         mymenu.getelementbyid(2).settext("目标帧率: {0} FPS".format(
                             "30" if settings["powersave"] else "60"))
+                    if mymenu.choose() == 3:
+                        settings["fullscreen"] = not settings["fullscreen"]
+                        setdisplaymode()
+                        mymenu.getelementbyid(3).settext("显示模式: {0}".format(
+                                "全屏" if settings["fullscreen"] else "窗口化"))
                 if event.key == pygame.K_RIGHT:
                     if mymenu.choose() == 0:
                         settings["sevol"] = min(settings["sevol"] + 0.05, 1)
@@ -1853,7 +1870,12 @@ def option():
                         settings["powersave"] = not settings["powersave"]
                         mymenu.getelementbyid(2).settext("目标帧率: {0} FPS".format(
                             "30" if settings["powersave"] else "60"))
-                if event.key == pygame.K_z and mymenu.choose() == 3:
+                    if mymenu.choose() == 3:
+                        settings["fullscreen"] = not settings["fullscreen"]
+                        setdisplaymode()
+                        mymenu.getelementbyid(3).settext("显示模式: {0}".format(
+                                "全屏" if settings["fullscreen"] else "窗口化"))
+                if event.key == pygame.K_z and mymenu.choose() == 4:
                     se.setvolume(settings["sevol"])  # 应用设置
                     gameui.updatesettings(settings)
                     with open("settings.json", "w") as file:
@@ -1862,10 +1884,11 @@ def option():
                 if event.key == pygame.K_x:  # 丢弃设置
                     se.play("cancel")
                     settings = tmpsetting.copy()
+                    setdisplaymode()
                     return
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def replay():
     global jsondict
@@ -1926,7 +1949,7 @@ def replay():
                     return
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def showmanual(page,readmask):
     def reloadmanualcontent(page):
@@ -1995,7 +2018,7 @@ def showmanual(page,readmask):
                     return page
         drawgroup.update()
         drawgroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def manual():
     mymenu = asset.Menu(gameui.font_36,
@@ -2035,7 +2058,7 @@ def manual():
                     return
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
 
 def sortplayerdata():
     playerdata["Reimu"] = sorted(playerdata["Reimu"], key=lambda x: int(x["score"]),reverse=True)
@@ -2078,7 +2101,7 @@ def saveplayerdata():
     screen.blit(endmask, (30, 20))
     panelgroup.update()
     panelgroup.draw(screen)
-    pygame.display.flip()
+    gameflip()
     while not done: 
         clock.tick(60)
         for event in pygame.event.get():
@@ -2106,7 +2129,7 @@ def saveplayerdata():
                 screen.blit(endmask, (30, 20))
                 panelgroup.update()
                 panelgroup.draw(screen)
-                pygame.display.flip()
+                gameflip()
     playerdata_gzip = gzip.compress(json.dumps(playerdata).encode())
     with gzip.open('./player.dat', 'wb') as file:
         file.write(playerdata_gzip)
@@ -2150,7 +2173,32 @@ def showplayerdata():
                     return
         drawgroup.update()
         drawgroup.draw(screen)
-        pygame.display.flip()
+        gameflip()
+
+def setdisplaymode():
+    global displayscreen,size
+    if settings["fullscreen"]:
+        screenX = 1280
+        screenY = 720
+        size = (screenX, screenY)
+        displayscreen = pygame.display.set_mode(size,pygame.FULLSCREEN|pygame.HWSURFACE)
+    else:
+        screenX = 960
+        screenY = 720
+        size = (screenX, screenY)
+        displayscreen = pygame.display.set_mode(size)
+
+def showbanner(clock):
+    tick = 0
+    banner = pygame.image.load("./Picture/banner.png")
+    banner.set_alpha(0)
+    while tick < 180:
+        clock.tick(60)
+        screen.fill("BLACK")
+        banner.set_alpha(min(255,tick*4))
+        screen.blit(banner,(0,0))
+        gameflip()
+        tick += 1
 try:
     with open('settings.json') as f:
         try:
@@ -2173,19 +2221,22 @@ except FileNotFoundError:
     playerdata = create_playerdata()
 
 score = 0
-screenX = 960
-screenY = 720
+
 gameZoneLeft = 30
 gameZoneRight = 620
 gameZoneUp = 20
 gameZoneDown = 695
 gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
 gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
-size = (screenX, screenY)
-screen = pygame.display.set_mode(size)
+screen = pygame.Surface([960,720])
+setdisplaymode()
+clock = pygame.time.Clock()
+showbanner(clock)
+pygame.time.wait(2000)
 gameui = asset.GameUI(settings)
 se = asset.SEPlayer()
-clock = pygame.time.Clock()
+
+
 choosecharacter = "Reimu"
 mainbgposy = 0
 mainbgspeedy = 0
@@ -2221,7 +2272,7 @@ while True:
                 if mymenu.choose() != 7:
                     mymenu.jumpto(7)
                 else:
-                    pygame.time.wait(100)  # 等待音效播放完成
+                    pygame.time.wait(200)  # 等待音效播放完成
                     exit()
             if event.key == pygame.K_z:
                 se.play("confirm")
@@ -2241,8 +2292,8 @@ while True:
                 if id == 5:
                     option()
                 if id == 7:
-                    pygame.time.wait(100)  # 等待音效播放完成
+                    pygame.time.wait(200)  # 等待音效播放完成
                     exit()
     mymenu.optiongroup.update()
     mymenu.optiongroup.draw(screen)
-    pygame.display.flip()
+    gameflip()
