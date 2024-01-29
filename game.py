@@ -1282,9 +1282,9 @@ def mainbgdraw():
     mainbgposy = max(-720,mainbgposy)
 
 def reset(playreplay = False):  
-    global choosecharacter, picloader, seed, input_event_list, jsondict,score,replayeventcount,defeated
+    global choosecharacter, picloader, seed, input_event_list, jsondict,score,replayeventcount,defeated,hiscore
     global disappear_group, self_group, enemyGroup, selfBulletGroup, enemyBulletGroup, bombgroup, effectgroup, itemGroup
-    global player_Character, player_CharacterImage, player_CharacterOptionLeft, player_CharacterOptionRight, baka,characterctl,tempbar,player_bomb_pictures
+    global player_Character, player_CharacterImage, player_CharacterOptionLeft, player_CharacterOptionRight, baka,characterctl,tempbar,player_bomb_pictures,playerdata
     defeated = False
     picloader = asset.PicLoader()
     score = 0
@@ -1376,7 +1376,11 @@ def reset(playreplay = False):
     effectgroup.add(tempbar)
     baka = Enemy(5000, V2(gameZoneCenterX, 100))
     enemyGroup.add(baka)
-
+    if len(playerdata[choosecharacter]):
+        playerdata[choosecharacter] = sorted(playerdata[choosecharacter], key=lambda x: int(x["score"]),reverse=True)
+        hiscore = playerdata[choosecharacter][0]["score"]
+    else:
+        hiscore = 0
 def charactermenu():
     global choosecharacter,jsondict
     choosecharacter = "Reimu"
@@ -1753,7 +1757,7 @@ def gameloop(playreplay = False):
             effectgroup.draw(screen)
             itemGroup.draw(screen)
             gameui.drawAfter(screen, baka, player_Character, se,
-                             clock, score)
+                             clock, score,hiscore)
             if player_Character.temperature<20000: # 寒冷特效遮罩
                 coldmask.set_alpha((20000-player_Character.temperature)/200)
                 screen.blit(coldmask,(gameZoneLeft,gameZoneUp))

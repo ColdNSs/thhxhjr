@@ -200,16 +200,10 @@ class GameUI():
         self.bomb = self.picLoader.load("Picture/star_green.bmp",25,25)
         self.HP = self.picLoader.load("Picture/star_red.bmp",25,25)
         self.time_panel = self.picLoader.load("Picture/time_panel.bmp")
-        self.lifetext = self.picLoader.load("Picture/lifetext.png",hasalpha=True)
-        self.spelltext = self.picLoader.load("Picture/spelltext.png",hasalpha=True)
-        self.hiscoretext = self.picLoader.load("Picture/hiscore.png",hasalpha=True)
-        self.scoretext = self.picLoader.load("Picture/score.png",hasalpha=True)
-        self.grazetext = self.picLoader.load("Picture/graze.png",hasalpha=True)
         self.bonustext = self.picLoader.load("Picture/spellbonus.png",hasalpha=True)
         self.bonusfailedtext = self.picLoader.load("Picture/bounsfailed.png",hasalpha=True)
-        self.nextlifetext = self.picLoader.load("Picture/nextlife.png",hasalpha=True)
         self.tempbar = self.picLoader.load("Picture/tempbar.bmp")
-        self.test = self.picLoader.load("Picture/test.png")
+        self.fontasset = self.picLoader.load("Picture/fontasset.png",hasalpha=True)
         self.ice = self.picLoader.load("Picture/ice.bmp",16,16)
         self.mainmenureimu = self.picLoader.load("Picture/reimu.png",hasalpha=True)
         self.mainmenumarisa = self.picLoader.load("Picture/marisa.png",hasalpha=True)
@@ -229,26 +223,19 @@ class GameUI():
         self.font_16 = pygame.font.Font("fonts/fonts.ttf", 16)
         self.font_12 = pygame.font.Font("fonts/fonts.ttf", 12)
         self.font_mono_20 = pygame.font.Font("fonts/fonts_mono.ttf", 20)
+        self.font_mono_24 = pygame.font.Font("fonts/fonts_mono.ttf", 24)
         self.settings = settings
         self.fpsTimer = 0
         self.fpslist = []
-        self.versiontext = self.font_16.render(
-                "DEV 240125 早期开发版本", True, "WHITE")
-        self.framework.blit(self.scoretext,(642,130)) # 将文字绘制到背景
-        self.framework.blit(self.lifetext,(620,170))
-        self.framework.blit(self.spelltext,(620,210))
-        self.framework.blit(self.grazetext,(642,250))
-        self.framework.blit(self.nextlifetext,(622,290))
+        self.framework.blit(self.fontasset,(620,95))
         self.framework.blit(self.liferecbox,(742,290))
-        self.framework.blit(self.versiontext, (0, 700))
-    
     def updatesettings(self,settings):
         self.settings = settings
         
     def drawBefore(self, screen):
         screen.blit(self.background, (30, 20))
 
-    def drawAfter(self, screen, baka, player_Character, se, clock, score):
+    def drawAfter(self, screen, baka, player_Character, se, clock, score,hiscore):
         # 游戏UI背景
         screen.blit(self.framework, (0, 0))
         # 帧率显示
@@ -274,9 +261,18 @@ class GameUI():
             if spell.isspell:
                 spellcount += 1
                 screen.blit(self.ice, (80+16*spellcount, 60))
-        # 分数显示
-        screen.blit(self.font_24.render("{0:0>10}".format(
-            score), True, (240, 240, 240)), (740, 130))
+        # 分数和最高分显示 非等宽坏文明
+        hiscoretext = "{0:0>10}".format(max(score,hiscore))
+        scoretext = "{0:0>10}".format(score)
+        for i in range(10):
+            if hiscoretext[i] == "1":
+                screen.blit(self.font_24.render(hiscoretext[i], True, (240, 240, 240)), (740+16*i+7, 90))
+            else:
+                screen.blit(self.font_24.render(hiscoretext[i], True, (240, 240, 240)), (740+16*i, 90))
+            if scoretext[i] == "1":
+                screen.blit(self.font_24.render(scoretext[i], True, (240, 240, 240)), (740+16*i+7, 130))
+            else:
+                screen.blit(self.font_24.render(scoretext[i], True, (240, 240, 240)), (740+16*i, 130))
         # 残机显示
         for i in range(player_Character.HP):
             screen.blit(self.HP, (740+i*25, 172))
