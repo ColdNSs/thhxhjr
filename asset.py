@@ -10,7 +10,7 @@ class SEPlayer():
     SPELL_EXTEND_CHANNEL = 37
     VOLUME_TEST_CHANNEL = 37
     EXTEND_CHANNEL = 38
-    def __init__(self):
+    def __init__(self,settings):
         self.channel = 0
         self.soundasset = {}
         self.soundasset["damage"] = pygame.mixer.Sound("SE/damage.wav")
@@ -31,7 +31,8 @@ class SEPlayer():
         self.soundasset["enemyst02"] = pygame.mixer.Sound("SE/enemyst02.wav")
         self.soundasset["spellextend"] = pygame.mixer.Sound("SE/spellextend.wav")
         self.soundasset["extend"] = pygame.mixer.Sound("SE/extend.wav")
-        self.setvolume(0.5)
+        self.soundasset["defeat"] = pygame.mixer.Sound("SE/defeat.wav")
+        self.setvolume(settings["sevol"])
 
     def play(self, effect, channel=-1):
         sound = self.soundasset[effect]
@@ -216,6 +217,8 @@ class GameUI():
         self.enemypos = self.picLoader.load("Picture/enemypos.png",hasalpha=True)
         self.liferecbox = self.picLoader.load("Picture/liferecbox.png")
         self.liferecbar = self.picLoader.load("Picture/liferecbar.png")
+        self.whitestar = self.picLoader.load("Picture/bigstar_white.bmp")
+        self.gameclear = self.picLoader.load("Picture/gameclear.png",hasalpha=True)
         self.font_36 = pygame.font.Font("fonts/fonts.ttf", 36)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
@@ -248,6 +251,7 @@ class GameUI():
                 fpscolor = (255, 0, 0)
             self.fpstext = self.font_20.render(str("{0:.2f}".format(
                 nowfps/2 if self.settings["powersave"] else nowfps)), True, fpscolor)
+            nowfps = min(60,nowfps) # 防止超过60的帧率影响处理落率的计算
             self.fpslist.append(nowfps/2 if self.settings["powersave"] else nowfps)
             self.fpsTimer = 60
         screen.blit(self.fpstext, (900, 680))
