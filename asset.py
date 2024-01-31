@@ -185,9 +185,9 @@ class ManualContent():
             Struct("说明:右下角的温度槽指示着自机的当前温度，同时分别具有红蓝两个标记。"),
             Struct("当温度高于红色标记时,擦弹将会有额外得分，"),
             Struct("当温度溢出后，获得的温度将转化为分数，并增加生命恢复槽，生命恢复槽满则残机+1；"),
-            Struct("反之，当温度低于蓝色标记时，副机将无法进行射击，且视野逐渐变暗"),
+            Struct("反之，当温度很低时，视野会逐渐变暗，低于蓝色标记时，副机将无法进行射击。"),
             Struct("当温度归零后，自机将无法使用BOMB。"),
-            Struct("可以随时通过使用河童的供暖装置（按下C键），将目前持有的一个BOMB转化成温度"),
+            Struct("温度较低时，可通过使用河童的供暖装置（按下C键），将一个BOMB用来提升温度"),
             Struct("以下事件会影响温度:"),
             Struct("+ 擦弹、获取分数道具、收取符卡、造成伤害","GREEN"),
             Struct("- 随时间自然减少、MISS","RED"),
@@ -223,6 +223,7 @@ class GameUI():
         self.liferecbar = self.picLoader.load("Picture/liferecbar.png")
         self.whitestar = self.picLoader.load("Picture/bigstar_white.bmp")
         self.gameclear = self.picLoader.load("Picture/gameclear.png",hasalpha=True)
+        self.title = self.picLoader.load("Picture/title.png",hasalpha=True)
         self.font_36 = pygame.font.Font("fonts/fonts.ttf", 36)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)

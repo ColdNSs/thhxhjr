@@ -2431,9 +2431,10 @@ mymenu = asset.Menu(gameui.font_24, [
     asset.MenuStruct("OPTION"),
     asset.MenuStruct("MUSIC ROOM", True),
     asset.MenuStruct("EXIT")
-], "WHITE", "RED", "GREY", (100, 400), iscirculute=True)
+], "WHITE", "RED", "GREY", (50, 400), iscirculute=True)
 while True:
     mainbgdraw()
+    screen.blit(gameui.title,(0,0))
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
