@@ -85,7 +85,10 @@ class Menu():
             if not struct.isdisabled:
                 self.choiceablelist.append(i) # 维护一个可选择选项的索引
         pass
-        self.exactchoice = self.choiceablelist[self.choice]
+        # 无可选项菜单的错误处理
+        if len(self.choiceablelist):
+            self.exactchoice = self.choiceablelist[self.choice] 
+        else: self.exactchoice = 0
     def up(self):
         self.choice -= 1
         self.choice = max(0,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
@@ -172,10 +175,11 @@ class ManualContent():
             Struct("剩余符卡:可以使用BOMB的次数","GREEN"),
             Struct("GRAZE:擦弹数，通过擦弹可以得到分数和增加温度槽（后述）"),
             Struct("SCORE/HISCORE:当前得分和历史最高得分"),
+            Struct("NEXTLIFE:温度溢出后增加的指示槽，当攒满后剩余人数+1"),
             Struct("温度槽:右下角的指示器,用于指示当前温度")
         ],[
             Struct("4.小心低温！:"),
-            Struct("雾之湖正出奇的寒冷，而妖精身上也时刻散发着非比寻常的寒气",(32,64,255)),
+            Struct("雾之湖正出奇的寒冷，而妖精身上也时刻散发着非比寻常的寒气。",(32,64,255)),
             Struct("体温时刻在降低，作为人类的灵梦和魔理沙并不能长时间的身处这种环境下战斗。"),
             Struct("好在借助河童的科技装置，主角们可以通过各种方式提升自己的体温。"),
             Struct("说明:右下角的温度槽指示着自机的当前温度，同时分别具有红蓝两个标记。"),

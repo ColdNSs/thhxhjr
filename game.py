@@ -114,6 +114,9 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         if self.speedvec.length():
             self.speedvec.scale_to_length(
                 self.speed * self.slow)  # 算出速度方向并乘以速度标量
+            if choosecharacter == "Marisa" and self.status == "bombing":
+                self.speedvec.scale_to_length(
+                self.speed * 0.2) # 魔理沙开符卡强制减速
             self.posvec += self.speedvec
             self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
             self.posvec.x = max(40, self.posvec.x)
@@ -186,7 +189,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         if choosecharacter == "Marisa":
             color = random.choice(["red", "green", "yellow"])
             bombgroup.add(MarisaBomb(player_bomb_pictures[color][0], V2(
-                self.rect.centerx, self.rect.centery - 40), V2(random.uniform(-1.5, 1.5), random.uniform(-3.5, -5.5)), 8, color))
+                self.rect.centerx, self.rect.centery - 40), V2(random.uniform(-1.5, 1.5), random.uniform(-3.5, -5.5)), 15, color))
         if not self.bombingTime:
             self.status = "alive"
 
@@ -239,7 +242,6 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                 item.alreadyGraze = True  # 擦过的弹不能再擦
             offset = (item.rect.x-self.rect.x, item.rect.y-self.rect.y)
             if self.mask.overlap(item.mask, offset):
-                # if pygame.sprite.collide_circle_ratio(0.5)(item, self):
                 self.iscoll = item
                 break
         if self.iscoll:
@@ -249,6 +251,11 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                 self.QTETime = 10
                 self.status = "dying"
                 pygame.draw.circle(self.image, 'RED', (5, 5), 5)
+        if pygame.sprite.collide_circle(self,baka) and self.status == "alive": # 体术判定
+            se.play("miss", se.MISS_CHANNEL)
+            self.QTETime = 10
+            self.status = "dying"
+            pygame.draw.circle(self.image, 'RED', (5, 5), 5)
 
 
 class playerCharacterImage(pygame.sprite.Sprite):  # 自机点阵图
@@ -552,12 +559,12 @@ class MarisaBomb(pygame.sprite.Sprite):  # 抄袭自灵梦Bomb类型 别问我�
 
     def update(self):
         self.lifetime -= 1
-        if self.lifetime % 2 == 0:  # 尝试每两帧旋转一次降低开销
-            self.angle += 3
-            if self.angle > 360:
-                self.angle = 0  # 使我的星星旋转
-            self.image = player_bomb_pictures[self.color][int(self.angle/3)]
-            self.rect = self.image.get_rect(center=self.rect.center)
+    #if self.lifetime % 2 == 0:  # 尝试每两帧旋转一次降低开销
+        self.angle += 3
+        if self.angle > 360:
+            self.angle = 0  # 使我的星星旋转
+        self.image = player_bomb_pictures[self.color][int(self.angle/3)]
+        self.rect = self.image.get_rect(center=self.rect.center)
         # self.posvec.x , self.posvec.y = self.rect.centerx , self.rect.centery 没这行有问题 有这行更有问题
         self.posvec += self.speedvec
         self.rect.centerx, self.rect.centery = self.posvec
@@ -568,7 +575,7 @@ class MarisaBomb(pygame.sprite.Sprite):  # 抄袭自灵梦Bomb类型 别问我�
                     baka.HP -= self.damage
             if not self.lifetime:
                 self.trigger = 1
-        if self.trigger and self.lifetime % 2 == 0:  # 逐渐变大消失
+        if self.trigger:  # 逐渐变大消失
             self.image = pygame.transform.scale(self.image, (self.image.get_width(
             ) * (1 + 0.04 * self.trigger), self.image.get_height() * (1 + 0.04 * self.trigger)))
             self.trigger += 1
@@ -577,8 +584,7 @@ class MarisaBomb(pygame.sprite.Sprite):  # 抄袭自灵梦Bomb类型 别问我�
             self.kill()
         if not self.lifetime:  # 超过生命周期也消失
             self.kill()
-        for item in enemyBulletGroup:
-            if pygame.sprite.collide_circle(self, item):
+        for item in pygame.sprite.spritecollide(self, enemyBulletGroup, False):
                 sprite_disappear(item, 5)
 
 
@@ -625,19 +631,18 @@ class ReimuBomb(pygame.sprite.Sprite):
                 self.trigger = 1  # 击中则被触发
         self.lifetime -= 1
         if self.trigger:  # 逐渐变大消失
-            self.image = pygame.transform.scale(self.image, (min(2000, self.image.get_width(
-            ) * (1 + 0.03 * self.trigger)), min(2000, self.image.get_height() * (1 + 0.03 * self.trigger))))
+            self.image = pygame.transform.scale(self.image, (min(500, self.image.get_width(
+            ) * (1 + 0.03 * self.trigger)), min(500, self.image.get_height() * (1 + 0.03 * self.trigger))))
             self.trigger += 1
             self.image.set_alpha(255 - self.trigger * 4)
         if self.trigger > 63:
             if not baka.recovering:
-                baka.HP -= 120
+                baka.HP -= 100
                 se.play("destory")
             self.kill()
         if not self.lifetime:  # 超过生命周期也消失
-            self.kill()
-        for item in enemyBulletGroup:
-            if pygame.sprite.collide_circle(self, item):
+            self.kill()    
+        for item in pygame.sprite.spritecollide(self, enemyBulletGroup, False):
                 sprite_disappear(item, 5)
 
 
@@ -945,9 +950,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 MoveData.MoveInTime(
                     300, (gameZoneRight - 100, gameZoneUp - 100)),
                 MoveData.MoveInTime(
-                    300, (gameZoneRight - 100, gameZoneDown + 400)),
+                    300, (gameZoneRight - 100, gameZoneDown - 400)),
                 MoveData.MoveInTime(
-                    300, (gameZoneLeft + 100, gameZoneDown + 400)),
+                    300, (gameZoneLeft + 100, gameZoneDown - 400)),
                 MoveData.MoveInTime(
                     300, (gameZoneLeft + 100, gameZoneUp - 100))
             ])
@@ -1103,9 +1108,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
 
         if self.spell == 6:  # 转圈弹
             enemyBulletGroup.add(
-                Bullet(1, (0, 100, 240), 15, 15, V2(self.posvec.x, self.posvec.y), V2(
+                Bullet(1, (0, 100, 240), 20, 20, V2(self.posvec.x, self.posvec.y), V2(
                     0, 2).rotate(self.spelltick * 18), 1, 0, 0, V2(0, 0)),
-                Bullet(1, (0, 100, 240), 15, 15, V2(self.posvec.x, self.posvec.y), V2(
+                Bullet(1, (0, 100, 240), 20, 20, V2(self.posvec.x, self.posvec.y), V2(
                     0, 2).rotate(self.spelltick * 9), 1, 0, 0, V2(0, 0))
             )
             if self.spelltick % 90 == 0:  # 1颗自机狙
@@ -1368,7 +1373,7 @@ def reset(playreplay=False):
 
     if choosecharacter == "Reimu":
         player_Character = playerCharacter(
-            5, 8, 0.4, 15, 3, 30000, 27, "梦符「梦想封印·彩」", gameui.reimu)
+            5, 8, 0.4, 16, 3, 30000, 27, "梦符「梦想封印·彩」", gameui.reimu)
         player_CharacterImage = playerCharacterImage(
             picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
         player_CharacterOptionRight = playerOption(
@@ -1392,7 +1397,7 @@ def reset(playreplay=False):
 
     if choosecharacter == "Marisa":
         player_Character = playerCharacter(
-            6, 9, 0.3, 13, 6, 30000, 30, "魔符「Blasting Star」", gameui.marisa)
+            6, 9, 0.3, 14, 6, 30000, 30, "魔符「Blasting Star」", gameui.marisa)
         player_Character.bulletimage = picloader.load(
             "Picture/marisa_fire.bmp", 20, 36)
         player_CharacterImage = playerCharacterImage(
@@ -2395,6 +2400,8 @@ try:
 except FileNotFoundError:
     playerdata = create_playerdata()
 
+if not os.path.exists('replay'):
+    os.mkdir('replay')
 score = 0
 
 gameZoneLeft = 30
