@@ -44,7 +44,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.drawsprite = drawsprite
         self.speedMultiplier = speedMultiplier
         self.shoot = False
-        self.HP = 4
+        self.HP = 2
         self.Bomb = 2
         self.leftspeed = 0
         self.rightspeed = 0
@@ -61,7 +61,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
         self.keeptemptime = 60
         self.tempdownspeed = tempdownspeed
         self.liferecprog = 0
-        self.liferectotal = 100000  # 初始恢复槽上限为100000
+        self.liferectotal = 50000  # 初始恢复槽上限为50000
 
     def setmode(self, mode):  # 设置子机位置
         if mode == 1:
@@ -70,17 +70,17 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                                (self.radius, self.radius), self.radius)
             pygame.draw.circle(self.image, 'RED',
                                (self.radius, self.radius), self.radius, 1)
-            player_CharacterOptionRight.x = 16
+            player_CharacterOptionRight.x = 19
             player_CharacterOptionRight.y = -23
-            player_CharacterOptionLeft.x = -16
+            player_CharacterOptionLeft.x = -19
             player_CharacterOptionLeft.y = -23
         if mode == 0:
             self.slow = 1
             self.image.fill('BLUE')
             self.image.set_colorkey("BLUE")
-            player_CharacterOptionRight.x = 27
+            player_CharacterOptionRight.x = 30
             player_CharacterOptionRight.y = 28
-            player_CharacterOptionLeft.x = -27
+            player_CharacterOptionLeft.x = -30
             player_CharacterOptionLeft.y = 28
         self.mode = mode
 
@@ -98,7 +98,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             self.temperature = 80000
         if self.liferecprog > self.liferectotal:  # 攒满生命恢复槽
             self.liferecprog = 0
-            self.liferectotal += 20000  # 增加难度
+            self.liferectotal += 15000  # 增加难度
             se.play("extend", se.SPELL_EXTEND_CHANNEL)
             if self.HP < 9:
                 self.HP += 1
@@ -116,7 +116,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                 self.speed * self.slow)  # 算出速度方向并乘以速度标量
             if choosecharacter == "Marisa" and self.status == "bombing":
                 self.speedvec.scale_to_length(
-                self.speed * 0.2) # 魔理沙开符卡强制减速
+                self.speed * 0.3) # 魔理沙开符卡强制减速
             self.posvec += self.speedvec
             self.posvec.x = min(gameZoneRight - self.rect.width, self.posvec.x)
             self.posvec.x = max(40, self.posvec.x)
@@ -174,8 +174,8 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             if choosecharacter == "Reimu":  # 为什么是全局变量 因为懒
                 # 红白主机子弹
                 selfBulletGroup.add(Bullet(self.spell_image, (255, 0, 0), 10, 30, V2(
-                    self.rect.centerx + 8, self.rect.y - 5), V2(0, -40), 10, 0, False, V2(0, 0)))
-                selfBulletGroup.add(Bullet(self.spell_image, (255, 0, 0), 10, 30, V2(
+                    self.rect.centerx + 8, self.rect.y - 5), V2(0, -40), 100, 0, False, V2(0, 0)))
+                selfBulletGroup.add(Bullet(self.spell_image, (255, 0, 0), 100, 30, V2(
                     self.rect.centerx - 8, self.rect.y - 5), V2(0, -40), 10, 0, False, V2(0, 0)))
             elif choosecharacter == "Marisa":
                 # 黑白主机子弹
@@ -231,7 +231,7 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                 if self.status == "alive":  # 防止东方擦擦乐
                     self.temperature += 600  # 擦弹加温度
                     score += 400 if self.temperature < 60000 else 900
-                player_Character.keeptemptime = 90  # 重置保温计数器
+                player_Character.keeptemptime = 75  # 重置保温计数器
                 self.graze += 1
                 se.play("graze")
                 effect = Bullet(2, (240, 240, 240), 8, 8, V2(self.rect.centerx, self.rect.centery), V2(
@@ -250,12 +250,12 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
                 se.play("miss", se.MISS_CHANNEL)
                 self.QTETime = 10
                 self.status = "dying"
-                pygame.draw.circle(self.image, 'RED', (5, 5), 5)
+                pygame.draw.circle(self.image, 'RED', (self.radius, self.radius), self.radius)
         if pygame.sprite.collide_circle(self,baka) and self.status == "alive": # 体术判定
             se.play("miss", se.MISS_CHANNEL)
             self.QTETime = 10
             self.status = "dying"
-            pygame.draw.circle(self.image, 'RED', (5, 5), 5)
+            pygame.draw.circle(self.image, 'RED', (self.radius, self.radius), self.radius)
 
 
 class playerCharacterImage(pygame.sprite.Sprite):  # 自机点阵图
@@ -399,9 +399,10 @@ class SpriteMover():  # 精灵移动器
             self.owner.kill()
             enemykilled = 1
             se.play("defeat")
-            for i in range(30):
+            for i in range(50):
+                tmpvec = V2(random.uniform(-2, 2), random.uniform(-2, 2))
                 tmpstar = Bullet(gameui.whitestar.copy(), (255, 0, 0), 10, 30,
-                                 V2(self.owner.posvec.x, self.owner.posvec.y),V2(random.uniform(-2, 2), random.uniform(-2, 2)) ,100, 0, False, V2(0, 0))
+                                 V2(self.owner.posvec.x, self.owner.posvec.y),tmpvec ,100, 0, False, tmpvec * 0.1)
                 effectgroup.add(tmpstar)
                 sprite_disappear(tmpstar, 50)
             pass
@@ -484,17 +485,22 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         if shape == 2:
             pygame.draw.circle(self.image, color, (width/2, height/2), width/2)
             self.image.set_colorkey('BLACK')
+            self.mask = pygame.mask.from_surface(self.image)
         elif shape == 1:
+            self.image.set_colorkey('BLACK')
+            pygame.draw.circle(self.image, color, (width/2, height/2), width/2.5)
+            self.mask = pygame.mask.from_surface(self.image)  # 使得实际判定遮罩比判定点更小
             pygame.draw.circle(self.image, color, (width/2, height/2), width/2)
             pygame.draw.circle(
                 self.image, (color[0]+14, color[1]+14, color[2]+14), (width/2, height/2), width/3)
             pygame.draw.circle(self.image, 'WHITE',
                                (width/2, height/2), width/2-2, 1)
-            self.image.set_colorkey('BLACK')
         elif shape == 0:
             self.image.fill(color)
+            self.mask = pygame.mask.from_surface(self.image)
         else:
             self.originimage = self.image = self.shape
+            self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.posvec = posvec
         self.speedvec = speedvec
@@ -510,7 +516,6 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
         self.width = width
         self.height = height
         self.alreadyGraze = False
-        self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
         self.posvec += self.speedvec
@@ -830,15 +835,15 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
         self.ice_cone_image = picloader.load("Picture/ice_cone.bmp")
         self.spelldata = [
             Spellcard("缺省", 8000, False, 3600, 1),  # 符卡从第一张开始算 所以从[1]开始访问
-            Spellcard("缺省", 8000, False, 3600, 1),
-            Spellcard("冷符「冷冻锁链」", 8000, True, 3600, 10),
+            Spellcard("缺省", 6000, False, 3600, 1),
+            Spellcard("冷符「冷冻锁链」", 4000, True, 3000, 10),
             Spellcard("符卡1", 8000, False, 3600, 4),
             Spellcard("冻符「超完美冻结」", 8000, True, 3600, 1),
             Spellcard("符卡1", 8000, False, 3600, 1),
-            Spellcard("寒符「幻想乡的寒极」", 8000, True, 3600, 1),
+            Spellcard("经纬「幻想乡的寒极」", 8000, True, 3600, 1),
             Spellcard("符卡1", 8000, False, 3600, 1),
-            Spellcard("草&雪符「忍冬草」", 8000, True, 3600, 1),
-            Spellcard("冰符「Grand Ice Ball」", 8000, True, 3600, 1),
+            Spellcard("花&雪符「寒冰之花」", 8000, True, 3600, 1),
+            Spellcard("冰符「Grand Ice Ball」", 6000, True, 3600, 1),
             Spellcard("击破动画", 40000000, False, 3600, 1)
         ]
         self.spell = 0
@@ -961,6 +966,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 MoveData.MoveInTime(60, (gameZoneCenterX, gameZoneCenterY))
             ])
             self.mover.reload([
+                MoveData.SetSpeed(V2(0,0)),
                 MoveData.Sleep(60)
             ])
         if self.spell == 7:
@@ -971,6 +977,24 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 MoveData.Sleep(60)
             ])
         if self.spell == 8:
+            self.recovermover.reload([
+                MoveData.MoveInTime(60, (gameZoneCenterX, 200))
+            ])
+            self.mover.reload([
+                MoveData.SetSpeed(V2(0,0)),
+                MoveData.Sleep(60)
+            ])
+            self.spell8_bulletrotate = 3
+        
+        if self.spell == 9:
+            self.recovermover.reload([
+                MoveData.MoveInTime(60, (gameZoneCenterX, 100))
+            ])
+            self.mover.reload([
+                MoveData.SetSpeed(V2(0,0)),
+                MoveData.Sleep(60)
+            ])
+
             self.spell8_bulletrotate = 3
 
         if self.spell == len(self.spelldata) - 1:
@@ -983,7 +1007,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             ])
 
     def recover(self):
-        pygame.sprite.spritecollide(self, selfBulletGroup, False)  # 无敌
+        pygame.sprite.spritecollide(self, selfBulletGroup, True)  # 无敌
         self.HP += self.spelldata[self.spell].hp / 60  # 恢复完成则继续正常行动
         for item in enemyBulletGroup:
             if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < ((self.HP / self.spelldata[self.spell].hp) * 4 * 900)**2:
@@ -1086,7 +1110,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             if self.spelltick % 30 == 0:
                 for i in range(60):
                     bullet = Bullet(1, (0, 100, 240), 20, 20, V2(
-                        i * 60, 0), V2(0, 2), 1, 0, 0, V2(0, 0))
+                        i * 90, 0), V2(0, 2), 1, 0, 0, V2(0, 0))
                     bullet.tracktime = 181
                     enemyBulletGroup.add(bullet)
             if self.spelltick % 30 == 0:  # 一定时间内的诱导弹
@@ -1097,7 +1121,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 enemyBulletGroup.add(bullet)
             for item in enemyBulletGroup:
                 if hasattr(item, "tracktime"):
-                    if item.tracktime > 150:  # 超过时间就停止追踪
+                    if item.tracktime > 120:  # 超过时间就停止追踪
                         continue
                     item.tracktime += 1
                     directvec = relative_direction(item, player_Character)
@@ -1108,9 +1132,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
 
         if self.spell == 6:  # 转圈弹
             enemyBulletGroup.add(
-                Bullet(1, (0, 100, 240), 20, 20, V2(self.posvec.x, self.posvec.y), V2(
+                Bullet(1, (0, 100, 240), 18, 18, V2(self.posvec.x, self.posvec.y), V2(
                     0, 2).rotate(self.spelltick * 18), 1, 0, 0, V2(0, 0)),
-                Bullet(1, (0, 100, 240), 20, 20, V2(self.posvec.x, self.posvec.y), V2(
+                Bullet(1, (0, 100, 240), 18, 18, V2(self.posvec.x, self.posvec.y), V2(
                     0, 2).rotate(self.spelltick * 9), 1, 0, 0, V2(0, 0))
             )
             if self.spelltick % 90 == 0:  # 1颗自机狙
@@ -1120,54 +1144,58 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
 
         if self.spell == 7:
             for i in range(60):
-                if self.spelltick % 15 == i:  # 开花旋转加速弹（?
+                if self.spelltick % 20 == i:  # 开花旋转加速弹（?
                     tmp_speedvec = V2(
-                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                        0, -1).rotate(i * 18 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.01)
+                    enemyBulletGroup.add(bullet)
+                if (self.spelltick + 5) % 20 == i:
+                    tmp_speedvec = V2(
+                        0, -1).rotate(i * 18 + (self.spelltick / 5) % 360)
                     bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
                                     20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.02)
                     enemyBulletGroup.add(bullet)
-                if (self.spelltick + 5) % 15 == i:
+                if (self.spelltick + 10) % 20 == i:
                     tmp_speedvec = V2(
-                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
+                        0, -1).rotate(i * 18 + (self.spelltick / 5) % 360)
+                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
+                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.03)
+                    enemyBulletGroup.add(bullet)
+                if (self.spelltick + 15) % 20 == i:
+                    tmp_speedvec = V2(
+                        0, -1).rotate(i * 18 + (self.spelltick / 5) % 360)
                     bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
                                     20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.04)
                     enemyBulletGroup.add(bullet)
-                if (self.spelltick + 10) % 15 == i:
-                    tmp_speedvec = V2(
-                        0, -1).rotate(i * 24 + (self.spelltick / 5) % 360)
-                    bullet = Bullet(1, (0, min(240 - self.spelltick % 240, self.spelltick % 240) * 2, 240),
-                                    20, 20, self.posvec + tmp_speedvec, tmp_speedvec, 1, 0, 0, tmp_speedvec * 0.06)
-                    enemyBulletGroup.add(bullet)
 
         if self.spell == 8:
-            if self.spelltick % 2 == 0:
-                self.posvec = V2(
-                    self.rect.centerx, self.rect.centery)
-                self.speedvec = V2(
-                    0, 0)  # 防止弹幕修改笨蛋位置只能每帧锁定速度了
-                bullet = Bullet(1, (0, 100, 240), 20, 20, self.posvec, V2(
-                    random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(4, 5), 1, 0, 0, V2(0, 0))
-                bullet.tracktime = 0
-                enemyBulletGroup.add(bullet)
-            if self.spelltick % 2 == 1:
-                self.posvec = V2(
-                    self.rect.centerx, self.rect.centery)
-                bullet = Bullet(1, (0, 240, 100), 20, 20, self.posvec, V2(
-                    random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(3, 4), 1, 0, 0, V2(0, 0))
-                bullet.tracktime = 0
-                enemyBulletGroup.add(bullet)
-                self.posvec = V2(
-                    self.rect.centerx, self.rect.centery)
-                bullet = Bullet(1, (240, 240, 240), 20, 20, self.posvec, V2(
-                    random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(2, 3), 1, 0, 0, V2(0, 0))
-                bullet.tracktime = 0
-                enemyBulletGroup.add(bullet)
+            self.posvec = V2(
+                self.rect.centerx, self.rect.centery)
+            self.speedvec = V2(
+                0, 0)  # 防止弹幕修改笨蛋位置只能每帧锁定速度了
+            bullet = Bullet(1, (0, 100, 240), 20, 20, self.posvec, V2(
+                random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(4, 5), 1, 0, 0, V2(0, 0))
+            bullet.tracktime = 0
+            enemyBulletGroup.add(bullet)
+            self.posvec = V2(
+                self.rect.centerx, self.rect.centery)
+            bullet = Bullet(1, (0, 240, 100), 20, 20, self.posvec, V2(
+                random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(3, 4), 1, 0, 0, V2(0, 0))
+            bullet.tracktime = 0
+            enemyBulletGroup.add(bullet)
+            self.posvec = V2(
+                self.rect.centerx, self.rect.centery)
+            bullet = Bullet(1, (240, 240, 240), 20, 20, self.posvec, V2(
+                random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * random.uniform(2, 3), 1, 0, 0, V2(0, 0))
+            bullet.tracktime = 0
+            enemyBulletGroup.add(bullet)
             for item in enemyBulletGroup:
-                if item.tracktime > 180:  # 超过时间就停止旋转
+                if item.tracktime > 90:  # 超过时间就停止旋转
                     continue
                 item.tracktime += 1
                 item.speedvec.rotate_ip(self.spell8_bulletrotate)
-            if self.spelltick % 480 == 0:
+            if self.spelltick % 240 == 0:
                 self.spell8_bulletrotate = -self.spell8_bulletrotate
                 se.play("enemyst01")
                 for item in enemyBulletGroup:
@@ -1179,14 +1207,14 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             if self.spelltick % 30 == 0:
                 for i in range(30):  # 白色奇数弹
                     tmpspeed_vec = (relative_direction(
-                        self, player_Character)*4).rotate(i * 12)
+                        self, player_Character)*2.5).rotate(i * 12)
                     bullet = Bullet(1, (240, 240, 240), 20, 20, V2(
                         self.posvec.x, self.posvec.y) + tmpspeed_vec, tmpspeed_vec, 1, 0, 0, V2(0, 0))
                     enemyBulletGroup.add(bullet)
             if self.spelltick % 30 == 15:
                 for i in range(30):  # 蓝色偶数弹
                     tmpspeed_vec = (relative_direction(
-                        self, player_Character)*4).rotate(i * 12 + 96)
+                        self, player_Character)*2.5).rotate(i * 12 + 96)
                     bullet = Bullet(1, (0, 120, 240), 20, 20, V2(
                         self.posvec.x, self.posvec.y) + tmpspeed_vec, tmpspeed_vec, 1, 0, 0, V2(0, 0))
                     enemyBulletGroup.add(bullet)
@@ -1214,22 +1242,9 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                     if hasattr(item, "specialtag_1") and item.specialtag_1 == True:
                         item.specialtag_1 = False
                         item.speedvec = relative_direction(
-                            self, player_Character)*4
+                            self, player_Character)*3
                         item.accvec = relative_direction(
                             self, player_Character)*0.1
-
-
-class TimeRecorder:  # 基于pygame计时器的性能监测类
-    _starttick = 0
-
-    def start(self):
-        self._starttick = pygame.time.get_ticks()
-
-    def stop(self, name: str, start: bool):
-        print("{0}:{1}ms".format(name, pygame.time.get_ticks()-self._starttick))
-        if start:
-            self.start()
-
 
 class Characterctl():
     def __init__(self, character, characterOptionLeft, characterOptionRight, characterImage):
@@ -1373,13 +1388,13 @@ def reset(playreplay=False):
 
     if choosecharacter == "Reimu":
         player_Character = playerCharacter(
-            5, 8, 0.4, 16, 3, 30000, 27, "梦符「梦想封印·彩」", gameui.reimu)
+            5, 8, 0.4, 16, 3, 30000, 35, "梦符「梦想封印·彩」", gameui.reimu)
         player_CharacterImage = playerCharacterImage(
             picloader.load("Picture/reimu_new.bmp", 35, 50), picloader.load("Picture/reimu_newl.bmp", 35, 50), picloader.load("Picture/reimu_newr.bmp", 35, 50))
         player_CharacterOptionRight = playerOption(
-            picloader.load("Picture/reimu_option.bmp"), 27, 28, 9, 6)
+            picloader.load("Picture/reimu_option.bmp"), 30, 28, 9, 6)
         player_CharacterOptionLeft = playerOption(
-            picloader.load("Picture/reimu_option.bmp"), -27, 28, 9, 6)
+            picloader.load("Picture/reimu_option.bmp"), -30, 28, 9, 6)
         player_Character.spell_image = picloader.load(
             "Picture/reimu_spell.bmp")
         player_Character.spell_purple_image = picloader.load(
@@ -1397,15 +1412,15 @@ def reset(playreplay=False):
 
     if choosecharacter == "Marisa":
         player_Character = playerCharacter(
-            6, 9, 0.3, 14, 6, 30000, 30, "魔符「Blasting Star」", gameui.marisa)
+            6, 9, 0.3, 14, 6, 30000, 32, "魔符「Blasting Star」", gameui.marisa)
         player_Character.bulletimage = picloader.load(
             "Picture/marisa_fire.bmp", 20, 36)
         player_CharacterImage = playerCharacterImage(
             picloader.load("Picture/marisa_new.bmp", 35, 50), picloader.load("Picture/marisa_newl.bmp", 35, 50), picloader.load("Picture/marisa_newr.bmp", 35, 50))
         player_CharacterOptionRight = playerOption(
-            picloader.load("Picture/marisa_option.bmp", hasalpha=True), 27, 28, 0, 8)
+            picloader.load("Picture/marisa_option.bmp", hasalpha=True), 30, 28, 0, 8)
         player_CharacterOptionLeft = playerOption(picloader.load(
-            "Picture/marisa_option.bmp", hasalpha=True), -27, 28, 0, 8)
+            "Picture/marisa_option.bmp", hasalpha=True), -30, 28, 0, 8)
         player_Character.missile_image = picloader.load(
             "Picture/marisa_missile.bmp")
         colors = ["red", "green", "yellow"]
@@ -2412,6 +2427,7 @@ gameZoneCenterX = (gameZoneLeft + gameZoneRight) / 2
 gameZoneCenterY = (gameZoneUp + gameZoneDown) / 2
 screen = pygame.Surface([960, 720])
 setdisplaymode()
+pygame.display.set_icon(pygame.image.load("Picture/colicon.png").convert_alpha())
 clock = pygame.time.Clock()
 showbanner(clock)
 gameui = asset.GameUI(settings)

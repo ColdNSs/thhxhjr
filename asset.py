@@ -224,6 +224,7 @@ class GameUI():
         self.whitestar = self.picLoader.load("Picture/bigstar_white.bmp")
         self.gameclear = self.picLoader.load("Picture/gameclear.png",hasalpha=True)
         self.title = self.picLoader.load("Picture/title.png",hasalpha=True)
+        self.titlemini = self.picLoader.load("Picture/titlemini.png",hasalpha=True)
         self.font_36 = pygame.font.Font("fonts/fonts.ttf", 36)
         self.font_28 = pygame.font.Font("fonts/fonts.ttf", 28)
         self.font_24 = pygame.font.Font("fonts/fonts.ttf", 24)
@@ -235,9 +236,9 @@ class GameUI():
         self.settings = settings
         self.fpsTimer = 0
         self.fpslist = []
-        self.framework.blit(self.fontasset,(620,95))
-        self.framework.blit(self.liferecbox,(742,290))
-
+        self.framework.blit(self.fontasset,(620,45))
+        self.framework.blit(self.liferecbox,(742,240))
+        self.framework.blit(self.titlemini,(620,450))
     def updatesettings(self,settings):
         self.settings = settings
         
@@ -276,25 +277,25 @@ class GameUI():
         scoretext = "{0:0>10}".format(score)
         for i in range(10):
             if hiscoretext[i] == "1":
-                screen.blit(self.font_24.render(hiscoretext[i], True, (240, 240, 240)), (740+16*i+7, 90))
+                screen.blit(self.font_24.render(hiscoretext[i], True, (240, 240, 240)), (740+16*i+7, 40))
             else:
-                screen.blit(self.font_24.render(hiscoretext[i], True, (240, 240, 240)), (740+16*i, 90))
+                screen.blit(self.font_24.render(hiscoretext[i], True, (240, 240, 240)), (740+16*i, 40))
             if scoretext[i] == "1":
-                screen.blit(self.font_24.render(scoretext[i], True, (240, 240, 240)), (740+16*i+7, 130))
+                screen.blit(self.font_24.render(scoretext[i], True, (240, 240, 240)), (740+16*i+7, 80))
             else:
-                screen.blit(self.font_24.render(scoretext[i], True, (240, 240, 240)), (740+16*i, 130))
+                screen.blit(self.font_24.render(scoretext[i], True, (240, 240, 240)), (740+16*i, 80))
         # 残机显示
         for i in range(player_Character.HP):
-            screen.blit(self.HP, (740+i*25, 172))
+            screen.blit(self.HP, (740+i*25, 122))
         # 符卡显示
         for i in range(player_Character.Bomb):
-            screen.blit(self.bomb, (740+i*25, 212))
+            screen.blit(self.bomb, (740+i*25, 162))
         # 擦弹数量显示
         screen.blit(self.font_24.render("{0}".format(
-            player_Character.graze), True, (240, 240, 240)), (740, 250))
+            player_Character.graze), True, (240, 240, 240)), (740, 200))
         # 生命恢复槽显示
         screen.blit(pygame.transform.scale(self.liferecbar, (
-            123*player_Character.liferecprog/player_Character.liferectotal, 28)), (743, 291))
+            123*player_Character.liferecprog/player_Character.liferectotal, 28)), (743, 241))
         # 敌人位置显示
         screen.blit(self.enemypos, (baka.rect.x, 696))
         # 剩余时间显示
