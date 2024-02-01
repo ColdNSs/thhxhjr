@@ -3,7 +3,7 @@ import random
 from typing import Any
 import pygame
 import json
-
+import sys
 from pygame.math import Vector2
 import asset
 import time
@@ -1548,6 +1548,7 @@ def charactermenu():
                     return
                 if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
                     se.play("cancel")
+                    appeareffectgroup.empty()
                     return
         appeareffectgroup.update()
         appeareffectgroup.draw(screen)
@@ -1602,7 +1603,7 @@ def savereplay(screenshot, endmask):
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     se.play("select")
@@ -1623,7 +1624,7 @@ def savereplay(screenshot, endmask):
                         clock.tick(60)
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
-                                exit()
+                                sys.exit()
                             elif event.type == pygame.KEYDOWN:
                                 if event.key == pygame.K_RETURN:
                                     se.play("extend")
@@ -1699,7 +1700,7 @@ def gameend(playreplay, clear=False):
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     se.play("select")
@@ -1744,7 +1745,7 @@ def pause(playreplay):
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                done = True
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     se.play("select")
@@ -1793,7 +1794,7 @@ def gameloop(playreplay=False):
             input_event_list.append([])
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    done = True
+                    sys.exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         choice, screenshot, endmask = pause(playreplay)
@@ -1861,7 +1862,7 @@ def gameloop(playreplay=False):
                             jsondict["replaybody"]["key"][replayeventcount - 1][i])
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    exit()
+                    sys.exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         choice = pause(playreplay)[0]
@@ -2050,7 +2051,7 @@ def replay():
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     if len(mymenu.choiceablelist) == 0:
@@ -2125,7 +2126,7 @@ def showmanual(page, readmask):
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     se.play("select")
@@ -2276,7 +2277,7 @@ def saveplayerdata():
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     se.play("extend")
@@ -2338,7 +2339,7 @@ def showplayerdata():
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
                     se.play("select")
@@ -2382,7 +2383,7 @@ def showbanner(clock):
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL:
                     ctrlcount += 1
@@ -2454,7 +2455,7 @@ while True:
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            exit()
+            sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 se.play("select")
@@ -2471,7 +2472,7 @@ while True:
                     mymenu.jumpto(7)
                 else:
                     pygame.time.wait(200)  # 等待音效播放完成
-                    exit()
+                    sys.exit()
             if event.key == pygame.K_z:
                 se.play("confirm")
                 id = mymenu.choose()
@@ -2491,7 +2492,7 @@ while True:
                     option()
                 if id == 7:
                     pygame.time.wait(200)  # 等待音效播放完成
-                    exit()
+                    sys.exit()
     mymenu.optiongroup.update()
     mymenu.optiongroup.draw(screen)
     gameflip()
