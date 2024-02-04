@@ -308,13 +308,19 @@ class GameUI():
                     screen.blit(self.font_20.render(".",True,"BLACK"),(79,31))
                     screen.blit(self.font_16.render(c,True,"BLACK"),(83,36))
                     return
-                screen.blit(self.font_20.render(c,True,"BLACK"),(55+12*i,31))
+                if c == "1":
+                    screen.blit(self.font_20.render(c,True,"BLACK"),(55+12*i+5,31))
+                else:
+                    screen.blit(self.font_20.render(c,True,"BLACK"),(55+12*i,31))
             return
         elif self.lefttime > 9:
             if lefttimestr[1] == "0": # 非等宽字体，只能单个绘制
                 se.play("timeout")
             screen.blit(self.font_20.render("0", True, "RED"), (55, 31))
-            screen.blit(self.font_20.render(lefttimestr[0], True, "RED"), (67, 31))
+            if lefttimestr[0] == "1":
+                screen.blit(self.font_20.render(lefttimestr[0], True, "RED"), (72, 31))
+            else:
+                screen.blit(self.font_20.render(lefttimestr[0], True, "RED"), (67, 31))
             screen.blit((self.font_20.render(".", True, "RED")), (79, 31))
             screen.blit(self.font_16.render(lefttimestr[1], True, "RED"), (83, 36))
             return
