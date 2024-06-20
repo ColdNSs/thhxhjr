@@ -9,11 +9,11 @@ import asset
 import time
 import gzip
 import os
-
+gameVersion = "0.0.1b"
 pygame.init()
 pygame.mixer.set_num_channels(40)
 pygame.display.set_caption(
-    '东方槐夏寒晶 ~ Cold Lake In Scorching Gensokyo  Ver 0.0.1a')
+    '东方槐夏寒晶 ~ Cold Lake In Scorching Gensokyo  Ver',gameVersion)
 V2 = pygame.math.Vector2
 # posvec：位置向量 velocity：速度向量
 
@@ -1538,10 +1538,12 @@ def reset(playreplay=False):
         jsondict = {  # 初始化录像数据结构
             "metadata":
             {
+                "gameversion":gameVersion,
                 "seed": seed,
                 "character": choosecharacter,
                 "time": int(time.time()),
                 "avgfps": 57,
+                "targetfps":60,
                 "score": 0,
                 "playername": "TJUGERKFER"
             },
@@ -1756,7 +1758,7 @@ def savereplay(screenshot, endmask):
                     2) + "   " + "--/--/--" + "   " + "----------" + "   " + "------" + "   " + "---%")
                 continue
             menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + time.strftime("%y/%m/%d", time.localtime(e["metadata"]["time"])) + "   " + e["metadata"]
-                                                   ["playername"].ljust(10) + "   " + e["metadata"]["character"].ljust(6) + "   " + "{0:.1f}%".format((1 - min(1, e["metadata"]["avgfps"]/60))*100))
+                                                   ["playername"].ljust(10) + "   " + e["metadata"]["character"].ljust(6) + "   " + "{0:.1f}%".format((1 - min(1, e["metadata"]["avgfps"]/(e["metadata"]["targetfps"] if  e.get('metadata', {}).get('targetfps') else 60)))*100))
             if i == 25:
                 break
         mymenu = asset.Menu(gameui.font_mono_20, menustructlist, "WHITE",
@@ -1794,7 +1796,7 @@ def savereplay(screenshot, endmask):
 
                     while not done:  # 开始噩梦嵌套 全屎山最屎代码
                         mymenu.getelementbyid(slot).settext("NO." + str(slot).zfill(2) + "   " + time.strftime("%y/%m/%d", time.localtime(jsondict["metadata"]["time"])) + "   " + tmpplayername.ljust(
-                            10, "_") + "   " + jsondict["metadata"]["character"].ljust(6) + "   " + "{0:.1f}%".format((1 - min(1, jsondict["metadata"]["avgfps"]/60))*100))
+                            10, "_") + "   " + jsondict["metadata"]["character"].ljust(6) + "   " + "{0:.1f}%".format(1 - min(1, jsondict["metadata"]["avgfps"]/(jsondict["metadata"]["targetfps"] if  jsondict.get('metadata', {}).get('targetfps') else 60))*100))
                         screen.blit(screenshot, (0, 0))
                         clock.tick(60)
                         for event in pygame.event.get():
@@ -2105,6 +2107,8 @@ def gameloop(playreplay=False):
             gameui.fpslist)/len(gameui.fpslist)
         gameui.fpslist = []  # 清空帧率记录数组
         jsondict["metadata"]["score"] = score
+        jsondict["metadata"]["targetfps"] = 30 if settings["powersave"] else 60
+        jsondict["metadata"]["gameversion"] = gameVersion
         savereplay(screenshot, endmask)
 
 
@@ -2207,7 +2211,7 @@ def replay():
                                                    "   " + "----------" + "   " + "------" + "   " + "----------" + "   " + "---%", True)
             continue
         menustructlist[i+1] = asset.MenuStruct("NO." + str(i+1).zfill(2) + "   " + time.strftime("%y/%m/%d %H:%M", time.localtime(e["metadata"]["time"])) + "   " + e["metadata"]["playername"].ljust(
-            10) + "   " + e["metadata"]["character"].ljust(6) + "   " + str(e["metadata"]["score"]).zfill(10) + "   " + "{0:.1f}%".format((1 - min(1, e["metadata"]["avgfps"]/60))*100))
+            10) + "   " + e["metadata"]["character"].ljust(6) + "   " + str(e["metadata"]["score"]).zfill(10) + "   " + "{0:.1f}%".format((1 - min(1, e["metadata"]["avgfps"]/(e["metadata"]["targetfps"] if  e.get('metadata', {}).get('targetfps') else 60)))*100))
         if i == 25:
             break
     mymenu = asset.Menu(gameui.font_mono_20, menustructlist,
