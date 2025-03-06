@@ -504,6 +504,7 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
                 self.image, (color[0]+14, color[1]+14, color[2]+14), (width/2, height/2), width/3)
             pygame.draw.circle(self.image, 'WHITE',
                                (width/2, height/2), width/2-2, 1)
+            pygame.draw.circle(self.image, 'RED', (width/2, height/2), width/2,2)
         elif shape == 0:
             self.image.fill("BLACK")
             self.image.set_colorkey("BLACK")
@@ -1095,11 +1096,12 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             for i in range(2):
                 tmp_vec1 = V2(
                     random.uniform(-1, 1), random.uniform(-1, 1)).normalize() * (2 + i)
+                # 生成两个随机数，使这三个数相加等于48
+                r = random.randint(0, 24)
+                g = random.randint(0, 24 - r)
+                b = 24
                 enemyBulletGroup.add(
-                    Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(
-                        0, 240))), 20, 20, V2(self.posvec), tmp_vec1, 1, 0, 0, V2(0, 0)),
-                    Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(
-                        0, 240))), 20, 20, V2(self.posvec), tmp_vec1, 1, 0, 0, V2(0, 0))
+                    Bullet(1, (r * 10, g * 10, b * 10), 20, 20, V2(self.posvec), tmp_vec1, 1, 0, 0, V2(0, 0))
             )
 
         if self.spell == 2:
