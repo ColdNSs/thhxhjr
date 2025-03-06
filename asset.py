@@ -1,3 +1,4 @@
+import os
 from typing import Any
 import pygame
 
@@ -48,6 +49,22 @@ class SEPlayer():
         for sound in self.soundasset:
             self.soundasset[sound].set_volume(volume)
 
+class BGMPlayer():
+    def __init__(self,settings):
+        self.bgmasset = {}
+        self.setvolume(settings["bgmvol"])
+
+    def play(self, bgmName):
+        bgm = "./BGM/" + bgmName + ".ogg"
+        if os.path.exists(bgm):
+            pygame.mixer.music.load(bgm)
+            pygame.mixer.music.play(loops=999)
+        else:
+            print("Err:BGM file not found.")
+            return
+
+    def setvolume(self, volume):
+        pygame.mixer.music.set_volume(volume)
 
 class PicLoader():
     def load(self, picname: str, width=0, height=0, hasalpha=False):
@@ -62,88 +79,120 @@ class PicLoader():
         pic.set_colorkey("BLUE")
         return pic
 
-class MenuStruct():
-    def __init__(self,text,isdisabled = False):
+class MenuStruct:
+    """菜单元素数据结构。"""
+    def __init__(self, text: str, isdisabled: bool = False):
         self.text = text
         self.isdisabled = isdisabled
 
-class Menu():
-    def __init__(self,font:pygame.font.Font,menulist,defaultcolor,choicecolor,disablecolor,posvec,iscirculute = False,defaultchoice = 0,linesep = 5):
+class MenuSprite(pygame.sprite.Sprite):
+    """单个菜单选项的精灵。"""
+    def __init__(self, owner, struct: MenuStruct, idx: int):
+        super().__init__()
+        self.owner = owner
+        self.struct = struct
+        self.id = idx
+        self.color = None
+        self.image = None
+        self.rect = None
+        self._update_color()
+        self.refresh()
+
+    def _update_color(self):
+        if self.struct.isdisabled:
+            self.color = self.owner.disablecolor
+        elif self.id == self.owner.exactchoice:
+            self.color = self.owner.choicecolor
+        else:
+            self.color = self.owner.defaultcolor
+
+    def refresh(self):
+        self.image = self.owner.font.render(self.struct.text, True, self.color)
+        self.rect = self.image.get_rect()
+        x, y = self.owner.posvec
+        self.rect.topleft = (x, y + (self.image.get_height() + self.owner.linesep) * self.id)
+
+    def settext(self, text: str):
+        self.struct.text = text
+        self.refresh()
+
+    def update(self):
+        old_color = self.color
+        self._update_color()
+        if self.color != old_color:
+            self.refresh()
+
+class Menu:
+    """管理菜单选项与选择逻辑的类。"""
+    def __init__(
+        self,
+        font: pygame.font.Font,
+        menulist,
+        defaultcolor,
+        choicecolor,
+        disablecolor,
+        posvec,
+        iscirculute=False,
+        defaultchoice=0,
+        linesep=5
+    ):
         self.font = font
         self.menulist = menulist
         self.defaultcolor = defaultcolor
         self.choicecolor = choicecolor
         self.disablecolor = disablecolor
-        self.choice = defaultchoice
-        self.iscirculute = iscirculute
         self.posvec = posvec
+        self.iscirculute = iscirculute
         self.linesep = linesep
         self.optiongroup = pygame.sprite.Group()
         self.choiceablelist = []
-        for i, struct in enumerate(self.menulist):
-            self.optiongroup.add(self.MenuSprite(self,struct,i))
+        self.choice = 0
+        self.exactchoice = 0
+
+        for i, struct in enumerate(menulist):
+            sprite = MenuSprite(self, struct, i)
+            self.optiongroup.add(sprite)
             if not struct.isdisabled:
-                self.choiceablelist.append(i) # 维护一个可选择选项的索引
-        pass
-        # 无可选项菜单的错误处理
-        if len(self.choiceablelist):
-            self.exactchoice = self.choiceablelist[self.choice] 
-        else: self.exactchoice = 0
+                self.choiceablelist.append(i)
+
+        if self.choiceablelist:
+            self.choice = min(defaultchoice, len(self.choiceablelist) - 1)
+            self.exactchoice = self.choiceablelist[self.choice]
+
     def up(self):
+        if not self.choiceablelist:
+            return
         self.choice -= 1
-        self.choice = max(0,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
+        if not self.iscirculute:
+            self.choice = max(0, self.choice)
+        else:
+            self.choice %= len(self.choiceablelist)
         self.exactchoice = self.choiceablelist[self.choice]
 
     def down(self):
+        if not self.choiceablelist:
+            return
         self.choice += 1
-        self.choice = min(len(self.choiceablelist) - 1,self.choice) if not self.iscirculute else self.choice % len(self.choiceablelist)
+        if not self.iscirculute:
+            self.choice = min(len(self.choiceablelist) - 1, self.choice)
+        else:
+            self.choice %= len(self.choiceablelist)
         self.exactchoice = self.choiceablelist[self.choice]
-    
-    def jumpto(self,id):
-        self.exactchoice = id
-        
+
+    def jumpto(self, id: int):
+        if id in self.choiceablelist:
+            self.exactchoice = id
 
     def choose(self):
         return self.exactchoice
-    
-    def getelementbyid(self,id): # 东施效颦
+
+    def getelementbyid(self, id: int):
         for element in self.optiongroup:
             if element.id == id:
                 return element
 
-    class MenuSprite(pygame.sprite.Sprite):
-        def __init__(self,owner,struct:MenuStruct,id):
-            super().__init__()
-            self.id = id
-            self.owner = owner
-            self.struct = struct
-            self.color = self.owner.defaultcolor
-            if self.id == self.owner.choice: # 默认选择
-                self.color = self.owner.choicecolor
-            if struct.isdisabled:
-                self.color = self.owner.disablecolor
-            self.image = self.owner.font.render(struct.text,True,self.color)
-            self.rect = self.image.get_rect()
-            self.rect.x,self.rect.y = self.owner.posvec[0], self.owner.posvec[1] + (self.image.get_height() + self.owner.linesep) * id
-
-        def refresh(self): #强制重新渲染图片
-            self.image = self.owner.font.render(self.struct.text,True,self.color)
-
-        def settext(self,text):
-            self.struct.text = text
-            self.refresh()
-
-        def update(self):
-            if self.struct.isdisabled == True:
-                return
-            if self.id == self.owner.exactchoice: 
-                if self.color != self.owner.choicecolor: # 说明是刚刚变动的
-                    self.color = self.owner.choicecolor
-                    self.image = self.owner.font.render(self.struct.text,True,self.color)
-            else:
-                if self.color != self.owner.defaultcolor: # 说明是刚刚变动的
-                    self.color = self.owner.defaultcolor
-                    self.image = self.owner.font.render(self.struct.text,True,self.color)
+    def update(self):
+        self.optiongroup.update()
 
 class ManualContent():
     class Struct():
@@ -187,7 +236,8 @@ class ManualContent():
             Struct("当温度溢出后，获得的温度将转化为分数，并增加生命恢复槽，生命恢复槽满则残机+1；"),
             Struct("反之，当温度很低时，视野会逐渐变暗，低于蓝色标记时，副机将无法进行射击。"),
             Struct("当温度归零后，自机将无法使用BOMB。"),
-            Struct("温度较低时，可通过使用河童的供暖装置（按下C键），将一个BOMB用来提升温度"),
+            Struct("温度较低时，可通过使用河童的供暖装置（按下C键），花费一个bomb来消除身边的弹幕并提高体温。"),
+            Struct("消除的弹幕越多，体温提升越多。"),
             Struct("以下事件会影响温度:"),
             Struct("+ 擦弹、获取分数道具、收取符卡、造成伤害","GREEN"),
             Struct("- 随时间自然减少、MISS","RED"),

@@ -13,7 +13,7 @@ gameVersion = "0.0.1c"
 pygame.init()
 pygame.mixer.set_num_channels(40)
 pygame.display.set_caption(
-    '东方槐夏寒晶 ~ Cold Lake In Scorching Gensokyo  Ver',gameVersion)
+    '东方槐夏寒晶 ~ Cold Lake In Scorching Gensokyo  Ver. ' + gameVersion)
 V2 = pygame.math.Vector2
 # posvec：位置向量 velocity：速度向量
 
@@ -945,7 +945,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                 if not item.free:
                     se.play("damage")
             self.HP -= item.damage
-            player_Character.temperature += item.damage  # 子弹打出伤害加温度
+            player_Character.temperature += item.damage * 2  # 子弹打出伤害加温度
             if not item.free:
                 item.kill()
         # 本张符卡/非符结束判定
@@ -1113,7 +1113,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             )
 
         if self.spell == 2:
-            if not self.spelltick % 300 < 20:
+            if not self.spelltick % 300 < 40:
                 for i in range(-4, 5, 1):  # 上下2*9=18条封位弹
                     enemyBulletGroup.add(
                         Bullet(1, (100, 128, 240), 20, 20, V2(
@@ -1189,6 +1189,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
                             item.image, "WHITE", (item.width/2, item.height/2), item.width/3)
                         pygame.draw.circle(
                             item.image, 'WHITE', (item.width/2, item.height/2), item.width/2-2, 1)
+                        pygame.draw.circle(item.image, 'RED', (item.width/2, item.height/2), item.width/2,2)
                         item.velocity = V2(0, 0)
 
         if self.spell == 5:
@@ -1466,10 +1467,14 @@ class Characterctl():
             global done
             done = True
         if key == pygame.K_c:
-            if self.character.temperature < 50000 and self.character.Bomb > 0:
+            if self.character.Bomb > 0:
                 self.character.Bomb -= 1
                 se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
-                self.character.temperature += 25000
+                for item in enemyBulletGroup:
+                    if (item.rect.center[0]-self.character.rect.center[0])**2 + (item.rect.center[1]-self.character.rect.center[1])**2 < 100**2 and item.clearable:
+                        item.tobulletitem()
+                        self.character.temperature += 500
+                self.character.temperature += 20000
 
     def keyup(self, key):
         if key == pygame.K_UP:
@@ -2130,7 +2135,7 @@ def option():
                             asset.MenuStruct("SE Volume: {0:.0f}%".format(
                                 settings["sevol"]*100)),
                             asset.MenuStruct("BGM Volume: {0:.0f}%".format(
-                                settings["bgmvol"]*100),True),
+                                settings["bgmvol"]*100)),
                             asset.MenuStruct("目标帧率: {0} FPS".format(
                                 "30" if settings["powersave"] else "60")),
                             asset.MenuStruct("显示模式: {0}".format(
@@ -2194,6 +2199,7 @@ def option():
                             "全屏" if settings["fullscreen"] else "窗口化"))
                 if event.key == pygame.K_z and mymenu.choose() == 4:
                     se.setvolume(settings["sevol"])  # 应用设置
+                    bgm.setvolume(settings["bgmvol"])
                     gameui.updatesettings(settings)
                     with open("settings.json", "w") as file:
                         file.write(json.dumps(settings))
@@ -2622,7 +2628,8 @@ clock = pygame.time.Clock()
 showbanner(clock)
 gameui = asset.GameUI(settings)
 se = asset.SEPlayer(settings)
-
+bgm = asset.BGMPlayer(settings)
+bgm.play("title")
 
 choosecharacter = "Reimu"
 mainbgposy = 0
@@ -2638,6 +2645,7 @@ mymenu = asset.Menu(gameui.font_24, [
     asset.MenuStruct("MUSIC ROOM", True),
     asset.MenuStruct("EXIT")
 ], "WHITE", "RED", "GREY", (50, 400), iscirculute=True)
+
 while True:
     mainbgdraw()
     screen.blit(gameui.title,(0,0))
