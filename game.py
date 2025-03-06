@@ -9,7 +9,7 @@ import asset
 import time
 import gzip
 import os
-gameVersion = "0.0.1b"
+gameVersion = "0.0.1c"
 pygame.init()
 pygame.mixer.set_num_channels(40)
 pygame.display.set_caption(
@@ -413,14 +413,22 @@ class SpriteMover():  # 精灵移动器
             pass
 
     def move(self):
-        self.owner.posvec = self.owner.posvec + self.owner.velocity
-        self.owner.posvec.x = min(
-            gameZoneRight - self.owner.rect.width, self.owner.posvec.x)
-        self.owner.posvec.x = max(self.owner.rect.width, self.owner.posvec.x)
-        self.owner.posvec.y = min(
-            gameZoneDown - self.owner.rect.height, self.owner.posvec.y)
-        self.owner.posvec.y = max(self.owner.rect.height, self.owner.posvec.y)
-        self.owner.rect.centerx, self.owner.rect.centery = self.owner.posvec
+        new_pos = self.owner.posvec + self.owner.velocity
+        # 如果新位置超出左边界且速度向左，则阻止 x 方向移动
+        if new_pos.x < self.owner.rect.width and self.owner.velocity.x < 0:
+            new_pos.x = self.owner.posvec.x
+        # 如果新位置超出右边界且速度向右，则阻止 x 方向移动
+        if new_pos.x > (gameZoneRight - self.owner.rect.width) and self.owner.velocity.x > 0:
+            new_pos.x = self.owner.posvec.x
+        # 如果新位置超出上边界且速度向上，则阻止 y 方向移动
+        if new_pos.y < self.owner.rect.height and self.owner.velocity.y < 0:
+            new_pos.y = self.owner.posvec.y
+        # 如果新位置超出下边界且速度向下，则阻止 y 方向移动
+        if new_pos.y > (gameZoneDown - self.owner.rect.height) and self.owner.velocity.y > 0:
+            new_pos.y = self.owner.posvec.y
+    
+        self.owner.posvec = new_pos
+        self.owner.rect.centerx, self.owner.rect.centery = new_pos
 
     def movebetween(self):
         nowstep = self.commandlist[self.commandcounter]  # nowstep是目前执行到的脚本指令
@@ -911,7 +919,7 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             MoveData.Sleep(60)
         ])
         self.recovermover.reload([
-            MoveData.Sleep(60)
+            MoveData.MoveInTime(60, (gameZoneCenterX, 100))
         ])
         self.spellinit()
 
@@ -1619,7 +1627,7 @@ def reset(playreplay=False):
                                 player_CharacterOptionRight, player_CharacterImage)
     tempbar = Tempbar(gameui.tempbar, (550, 670), -1, player_Character)
     effectgroup.add(tempbar)
-    baka = Enemy(5000, V2(gameZoneCenterX, 100))
+    baka = Enemy(5000, V2(gameZoneCenterX, -100))
     enemyGroup.add(baka)
     if len(playerdata[choosecharacter]):
         playerdata[choosecharacter] = sorted(
@@ -1772,7 +1780,7 @@ def savereplay(screenshot, endmask):
         titleZHS = LimitTimePic(gameui.font_24.render(
             "选择一个槽位", True, "GREY"), (130, 85))
         titleZHSS = LimitTimePic(gameui.font_24.render(
-            "选择一份槽位", True, "BLACK"), (128, 83))
+            "选择一个槽位", True, "BLACK"), (128, 83))
         mymenu.optiongroup.add(titleENGS, titleENG, titleZHSS, titleZHS)
         return mymenu
     mymenu = reload()
