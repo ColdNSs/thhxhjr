@@ -332,7 +332,7 @@ class playerOption(pygame.sprite.Sprite):  # 子机类
                 return
         if choosecharacter == "Marisa":
             if self.slow == False and self.attackSpeed < self.attackCoolDown:  # 黑白激光
-                selfBulletGroup.add(Bullet(0, (255, 255, 128), 10, 300, V2(self.rect.x + 13,
+                selfBulletGroup.add(Bullet(3, (255, 255, 128), 10, 300, V2(self.rect.x + 13,
                                                                            self.rect.y + 160), V2(0, -300), 1, self, False, V2(0, 0)))
                 self.attackCoolDown = 0
                 return
@@ -514,6 +514,12 @@ class Bullet(pygame.sprite.Sprite):  # 子弹类
                                (width/2, height/2), width/2-2, 1)
             pygame.draw.circle(self.image, 'RED', (width/2, height/2), width/2,2)
         elif shape == 0:
+            self.image.fill("BLACK")
+            self.image.set_colorkey("BLACK")
+            pygame.draw.rect(self.image,color,[0,0,width,height],0)
+            pygame.draw.rect(self.image,'RED',[0,0,width,height],1)
+            self.mask = pygame.mask.from_surface(self.image)
+        elif shape == 3:
             self.image.fill("BLACK")
             self.image.set_colorkey("BLACK")
             pygame.draw.rect(self.image,color,[0,0,width,height],0)
@@ -1116,15 +1122,15 @@ class Enemy(pygame.sprite.Sprite):  # 敌人类
             if not self.spelltick % 300 < 40:
                 for i in range(-4, 5, 1):  # 上下2*9=18条封位弹
                     enemyBulletGroup.add(
-                        Bullet(1, (100, 128, 240), 20, 20, V2(
+                        Bullet(1, (60, 60, 240), 20, 20, V2(
                             self.posvec.x, self.posvec.y), V2(i, 2), 1, 0, 0, V2(0, 0)),
-                        Bullet(1, (100, 128, 240), 20, 20, V2(
+                        Bullet(1, (60, 60, 240), 20, 20, V2(
                             self.posvec.x, self.posvec.y), V2(i, -2), 1, 0, 0, V2(0, 0))
                     )
             if self.spelltick / 10 % 3:  # 8颗朝下的随机弹
                 for i in range(8):
                     enemyBulletGroup.add(
-                        Bullet(1, ((random.randint(0, 240)), (random.randint(0, 240)), (random.randint(0, 240))), 20, 20, V2(
+                        Bullet(1, ((random.randint(3, 6))*40, (random.randint(3, 6))*40, (random.randint(0, 3))*40), 20, 20, V2(
                             self.posvec.x, self.posvec.y), V2(random.uniform(3, -3), 3), 1, 0, 0, V2(0, 0))
                     )
             if self.spelltick % 120 == 0:  # 1颗自机狙
