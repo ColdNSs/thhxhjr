@@ -53,18 +53,26 @@ class BGMPlayer():
     def __init__(self,settings):
         self.bgmasset = {}
         self.setvolume(settings["bgmvol"])
+        self.currentbgm = None
 
     def play(self, bgmName):
         bgm = "./BGM/" + bgmName + ".ogg"
         if os.path.exists(bgm):
             pygame.mixer.music.load(bgm)
             pygame.mixer.music.play(loops=999)
+            self.currentbgm = bgmName
         else:
             print("Err:BGM file not found.")
             return
 
     def setvolume(self, volume):
         pygame.mixer.music.set_volume(volume)
+
+    def stop(self):
+        pygame.mixer.music.stop()
+
+    def getnowplaying(self):
+        return self.currentbgm
 
 class PicLoader():
     def load(self, picname: str, width=0, height=0, hasalpha=False):
@@ -236,9 +244,9 @@ class ManualContent():
             Struct("当温度溢出后，获得的温度将转化为分数，并增加生命恢复槽，生命恢复槽满则残机+1；"),
             Struct("反之，当温度很低时，视野会逐渐变暗，低于蓝色标记时，副机将无法进行射击。"),
             Struct("当温度归零后，自机将无法使用BOMB。"),
-            Struct("温度较低时，可通过使用河童的供暖装置（按下C键），花费一个bomb来消除身边的弹幕并提高体温。"),
-            Struct("消除的弹幕越多，体温提升越多。"),
-            Struct("以下事件会影响温度:"),
+            Struct("温度较低时，可通过使用河童的供暖装置（按下C键）"),
+            Struct("花费一个bomb来消除身边的弹幕并提高体温。"),
+            Struct("消除的弹幕越多，体温提升越多。以下事件会影响温度:"),
             Struct("+ 擦弹、获取分数道具、收取符卡、造成伤害","GREEN"),
             Struct("- 随时间自然减少、MISS","RED"),
             Struct("切记管理好自己的体温，避免陷入苦战的恶性循环！")
@@ -345,7 +353,7 @@ class GameUI():
             player_Character.graze), True, (240, 240, 240)), (740, 200))
         # 生命恢复槽显示
         screen.blit(pygame.transform.scale(self.liferecbar, (
-            123*player_Character.liferecprog/player_Character.liferectotal, 28)), (743, 241))
+            175*player_Character.liferecprog/player_Character.liferectotal, 28)), (743, 241))
         # 敌人位置显示
         screen.blit(self.enemypos, (baka.rect.x, 696))
         # 剩余时间显示

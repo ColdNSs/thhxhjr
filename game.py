@@ -102,6 +102,10 @@ class playerCharacter(pygame.sprite.Sprite):  # 判定点类
             self.liferecprog = 0
             self.liferectotal += 20000  # 增加难度
             se.play("extend", se.SPELL_EXTEND_CHANNEL)
+            effectgroup.add(LimitTimePic(gameui.font_28.render(
+                "EXTEND!!", True, "BLACK"), (gameZoneCenterX+2, 102),120))
+            effectgroup.add(LimitTimePic(gameui.font_28.render(
+                "EXTEND!!", True, "WHITE"), (gameZoneCenterX, 100),120))
             if self.HP < 9:
                 self.HP += 1
             else:
@@ -700,7 +704,38 @@ class ReimuBomb(pygame.sprite.Sprite):
                 if item.clearable:
                     sprite_disappear(item, 5)
 
+class SpecialSkill(pygame.sprite.Sprite):  # 特殊技能类
+    def __init__(self, posvec: pygame.math.Vector2, color, character):
+        super().__init__()
+        self.image = pygame.Surface([250,250])
+        self.image.fill("BLACK")
+        self.image.set_colorkey("BLACK")
+        self.rect = self.image.get_rect()
+        self.posvec = posvec
+        self.rect.centerx, self.rect.centery = posvec
+        self.color = color
+        self.lifetime = 120
+        self.image.set_alpha(255)
+        self.radius = 0
+        self.character = character
 
+    def update(self):
+        self.lifetime -= 1
+        if self.lifetime == 0:
+            self.kill()
+        if self.lifetime > 110:
+            self.image.fill("BLACK")
+            self.radius = (120-self.lifetime)*10
+            pygame.draw.circle(self.image, self.color, (125, 125), self.radius, 3)
+        if self.lifetime < 10:
+            self.image.fill("BLACK")
+            self.radius = self.lifetime*10
+            self.image.set_alpha(self.lifetime*25)
+            pygame.draw.circle(self.image, self.color, (125, 125), self.radius, 3)
+        for item in enemyBulletGroup:
+            if (item.rect.center[0]-self.rect.center[0])**2 + (item.rect.center[1]-self.rect.center[1])**2 < self.radius**2:
+                item.tobulletitem()
+                self.character.temperature += 200
 
 class LimitTimePic(pygame.sprite.Sprite):  # 图片精灵
     def __init__(self, image, posvec, lifetime=-1):
@@ -1476,11 +1511,11 @@ class Characterctl():
             if self.character.Bomb > 0:
                 self.character.Bomb -= 1
                 se.play("spellextend", se.SPELL_EXTEND_CHANNEL)
-                for item in enemyBulletGroup:
-                    if (item.rect.center[0]-self.character.rect.center[0])**2 + (item.rect.center[1]-self.character.rect.center[1])**2 < 100**2 and item.clearable:
-                        item.tobulletitem()
-                        self.character.temperature += 500
-                self.character.temperature += 20000
+                if choosecharacter == "Reimu":
+                    effectgroup.add(SpecialSkill(self.character.rect.center, "RED",self.character))
+                if choosecharacter == "Marisa":
+                    effectgroup.add(SpecialSkill(self.character.rect.center, "YELLOW",self.character))
+                self.character.temperature += 15000
 
     def keyup(self, key):
         if key == pygame.K_UP:
@@ -1742,7 +1777,9 @@ def charactermenu():
                 if event.key == pygame.K_z:
                     jsondict = False
                     reset()
+                    bgm.play("boss")
                     gameloop()
+                    bgm.play("tltle")
                     return
                 if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
                     se.play("cancel")
@@ -1865,7 +1902,6 @@ def savereplay(screenshot, endmask):
         mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
-
 
 def gameend(playreplay, clear=False):
     screenshot = screen.copy()
@@ -2032,6 +2068,7 @@ def gameloop(playreplay=False):
                 enemykilled += 1
                 if enemykilled == 301:
                     done = True
+                    bgm.stop()
                     screenshot, endmask = saveplayerdata()
                     screen.blit(screenshot, (0, 0))
                     choice = gameend(playreplay, True)
@@ -2039,6 +2076,7 @@ def gameloop(playreplay=False):
                     break
             if player_Character.HP < 0:
                 done = True
+                bgm.stop()
                 screenshot, endmask = saveplayerdata()
                 screen.blit(screenshot, (0, 0))
                 choice = gameend(playreplay)
@@ -2131,7 +2169,6 @@ def gameloop(playreplay=False):
         jsondict["metadata"]["targetfps"] = 30 if settings["powersave"] else 60
         jsondict["metadata"]["gameversion"] = gameVersion
         savereplay(screenshot, endmask)
-
 
 def option():
     done = False
@@ -2285,7 +2322,9 @@ def replay():
                         for i, eachkey in enumerate(eachkeylist):
                             eachkeylist[i] = key_replace_dict[eachkey]
                     reset(True)
+                    bgm.play("boss")
                     gameloop(True)
+                    bgm.play("tltle")
                 if event.key == pygame.K_x:
                     se.play("cancel")
                     return
@@ -2635,7 +2674,6 @@ showbanner(clock)
 gameui = asset.GameUI(settings)
 se = asset.SEPlayer(settings)
 bgm = asset.BGMPlayer(settings)
-bgm.play("title")
 
 choosecharacter = "Reimu"
 mainbgposy = 0
@@ -2654,6 +2692,8 @@ mymenu = asset.Menu(gameui.font_24, [
 
 while True:
     mainbgdraw()
+    if not bgm.getnowplaying() == "title":
+        bgm.play("title")
     screen.blit(gameui.title,(0,0))
     clock.tick(60)
     for event in pygame.event.get():
