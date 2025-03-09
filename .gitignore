@@ -1,0 +1,9 @@
+# Python IDE cache
+.idea
+
+# Python cache
+__pycache__
+
+# Game save & settings
+player.dat
+settings.json
