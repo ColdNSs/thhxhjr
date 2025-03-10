@@ -6,7 +6,7 @@
 ## 版权声明
 代码部分遵照 MIT 协议开源。
 
-点阵图、弹幕素材、BGM 遵照 C-BY-NC-SA 4.0 共享，部分素材由 TJUGERKFER 创作。
+点阵图、弹幕素材、BGM 遵照 CC-BY-NC-SA 4.0 共享，部分素材由 TJUGERKFER 创作。
 
 使用字体为`字体圈欣意冠黑体`和`Jetbrains mono`，所有权利均为字体原作者所有。
 

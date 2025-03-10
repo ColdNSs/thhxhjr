@@ -3,7 +3,7 @@
 # New start for reborn cause I'm not building new stuff on that shit - ColdNSs 2025/03/09
 
 import pygame as pg
-from models import BannerScene
+from scenes import *
 
 RESOLUTION = (960, 720)
 
@@ -30,6 +30,9 @@ while True:
     screen.fill('green')
 
     # Scene
+    goal = current_scene.get_goal()
+    if goal:
+        current_scene = goal
     current_scene.update(events)
 
     # Update
