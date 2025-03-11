@@ -31,6 +31,9 @@ class UIElement(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = pos
 
+    def draw(self, screen: pg.surface.SurfaceType):
+        screen.blit(self.image, self.rect)
+
 
 class UIAnimation:
     def __init__(self, element: UIElement, duration: int, delay=0, linear=True):
@@ -110,9 +113,6 @@ class MenuItem(UIElement):
         self.action = action
         self.valid = valid
         self.color = 'white'
-
-    def draw(self, screen: pg.surface.SurfaceType):
-        screen.blit(self.image, self.rect)
 
     def update(self, font: pg.font.FontType, pos: tuple, color: dict, line_space: int, selected_item: int):
         if selected_item == self.id:

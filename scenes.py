@@ -115,8 +115,8 @@ class TitleScene(Scene):
         self.goal = BannerScene(self.screen)
 
     def draw(self):
-        self.screen.blit(self.assets['background'].image, self.assets['background'].rect)
-        self.screen.blit(self.assets['logo'].image, self.assets['logo'].rect)
+        self.assets['background'].draw(self.screen)
+        self.assets['logo'].draw(self.screen)
         self.menu.draw(self.screen)
 
     def update(self, events: list[pg.event.EventType]):
