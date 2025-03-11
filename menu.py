@@ -51,7 +51,7 @@ class Menu:
             color=None,
             line_space=5,
             default_item=0,
-            is_circulate=False,
+            loopable=False,
     ):
         if color is None:
             color = {'selected': 'red', 'valid': 'white', 'invalid': 'grey'}
@@ -61,7 +61,7 @@ class Menu:
         self.color = color
         self.line_space = line_space
         self.selected_item = default_item
-        self.is_circulate = is_circulate
+        self.loopable = loopable
 
     def draw(self, screen: pg.surface.SurfaceType):
         for item in self.item_list:
@@ -71,10 +71,9 @@ class Menu:
         for i in range(1, len(self.item_list)):
             goal_id = self.selected_item + i
             if goal_id > len(self.item_list) - 1:
-                if not self.is_circulate:
+                if not self.loopable:
                     return
-                else:
-                    goal_id = goal_id - len(self.item_list)
+                goal_id = goal_id - len(self.item_list)
             if self.item_list[goal_id].valid:
                 self.selected_item = goal_id
                 return
@@ -83,10 +82,9 @@ class Menu:
         for i in range(1, len(self.item_list)):
             goal_id = self.selected_item - i
             if goal_id < 0:
-                if not self.is_circulate:
+                if not self.loopable:
                     return
-                else:
-                    goal_id = goal_id + len(self.item_list)
+                goal_id = goal_id + len(self.item_list)
             if self.item_list[goal_id].valid:
                 self.selected_item = goal_id
                 return

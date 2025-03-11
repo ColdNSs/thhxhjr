@@ -5,14 +5,12 @@ import pygame as pg
 from menu import *
 
 def exit_game():
-    pg.quit()
-    exit()
+    pg.event.post(pg.event.Event(pg.QUIT))
 
 
 class Scene:
-    def __init__(self, screen: pg.surface.SurfaceType, created_by=None):
+    def __init__(self, screen: pg.surface.SurfaceType):
         self.screen = screen
-        self.created_by = created_by
         self.goal = None
         self.inputs = {'down': [], 'up': [], 'pressed': type[pg.key.ScancodeWrapper]}
         self.tick = 0
@@ -64,14 +62,14 @@ class Scene:
 
 
 class BannerScene(Scene):
-    def __init__(self, screen: pg.surface.SurfaceType, created_by=None):
-        super().__init__(screen, created_by)
+    def __init__(self, screen: pg.surface.SurfaceType):
+        super().__init__(screen)
         self.animation_tick = 0
         self.assets = {'banner': pg.image.load("./Picture/banner.png").convert()}
 
     def jump_to_title(self):
         if self.animation_tick >= 180:
-            self.goal = TitleScene(self.screen, self)
+            self.goal = TitleScene(self.screen)
 
     def draw(self):
         self.assets['banner'].set_alpha(min(255, self.animation_tick * 4))
@@ -89,8 +87,8 @@ class BannerScene(Scene):
 
 
 class TitleScene(Scene):
-    def __init__(self, screen: pg.surface.SurfaceType, created_by=None):
-        super().__init__(screen, created_by)
+    def __init__(self, screen: pg.surface.SurfaceType):
+        super().__init__(screen)
         self.assets = {'background': pg.image.load("./Picture/mainbackground.png").convert(),
                        'logo': pg.image.load('./Picture/title.png').convert_alpha(),
                        }
