@@ -3,7 +3,7 @@
 # New start for reborn cause I'm not building new stuff on that shit - ColdNSs 2025/03/09
 
 import pygame as pg
-from scenes import *
+from scenes import BannerScene
 
 RESOLUTION = (960, 720)
 

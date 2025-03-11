@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from menu import *
+from menu import MenuItem, Menu, fonts, UIElement, UIAnimationMove
 
 def exit_game():
     pg.event.post(pg.event.Event(pg.QUIT))
@@ -80,20 +80,19 @@ class BannerScene(Scene):
         self.jump_to_title()
         self.get_input(events)
         if self.key_pressed(pg.K_LCTRL):
-            self.animation_tick += 1
+            self.animation_tick += 2
         self.draw()
-        self.tick += 1
         self.animation_tick += 1
+        self.tick += 1
 
 
 class TitleScene(Scene):
     def __init__(self, screen: pg.surface.SurfaceType):
         super().__init__(screen)
-        self.assets = {'background': pg.image.load("./Picture/mainbackground.png").convert(),
-                       'logo': pg.image.load('./Picture/title.png').convert_alpha(),
+        self.assets = {
+            'background': UIElement(pg.image.load("./Picture/mainbackground.png").convert(), (0, 0)),
+            'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
                        }
-        self.selected_item = 0
-        self.background_offset = (0, 0)
         self.item_list = [
             MenuItem(0, 'START', self.jump_to_scene, True),
             MenuItem(1, 'PRACTICE START', self.jump_to_scene, False),
@@ -104,18 +103,26 @@ class TitleScene(Scene):
             MenuItem(6, 'MUSIC ROOM', self.jump_to_scene, False),
             MenuItem(7, 'EXIT', exit_game, True),
         ]
-        self.menu = Menu(self.item_list, font_24, (50, 400), None, is_circulate=True)
+        self.menu = Menu(self.item_list, fonts['font_24'], (50, 400), None, loopable=True)
+        self.animations = [
+            UIAnimationMove(self.assets['logo'], 60, 60, False, (100, 200), (300,250)),
+            # UIAnimationMove(self.item_list[0], 60, 60, False, (500, 200), (600,250))
+        ]
 
     def jump_to_scene(self):
-        pass
+        if self.menu.selected_item != 0:
+            return
+        self.goal = BannerScene(self.screen)
 
     def draw(self):
-        self.screen.blit(self.assets['background'], self.background_offset)
-        self.screen.blit(self.assets['logo'], (0, 0))
+        self.screen.blit(self.assets['background'].image, self.assets['background'].rect)
+        self.screen.blit(self.assets['logo'].image, self.assets['logo'].rect)
         self.menu.draw(self.screen)
 
     def update(self, events: list[pg.event.EventType]):
         self.get_input(events)
-        self.menu.update(self)
+        self.menu.update(self.key_down)
+        for animation in self.animations:
+            animation.update()
         self.draw()
-        self.tick = self.tick + 1
+        self.tick += 1
