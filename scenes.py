@@ -5,6 +5,7 @@ import pygame as pg
 from menu import MenuItem, Menu, fonts, UIElement, UIAnimationMove
 
 def exit_game():
+    # Post quit event. Quit is handled in the main loop instead
     pg.event.post(pg.event.Event(pg.QUIT))
 
 
@@ -16,21 +17,12 @@ class Scene:
         self.tick = 0
 
     def get_input(self, events: list[pg.event.EventType]):
-        # Get changed inputs
-        down_inputs = []
-        up_inputs = []
-        for event in events:
-            if event.type == pg.KEYDOWN:
-                down_inputs.append(event.key)
-            if event.type == pg.KEYUP:
-                up_inputs.append(event.key)
+        # GET DOWN inputs and up inputs
+        self.inputs['down'] = [event.key for event in events if event.type == pg.KEYDOWN]
+        self.inputs['up'] = [event.key for event in events if event.type == pg.KEYUP]
 
         # Get pressed inputs
-        pressed_inputs = pg.key.get_pressed()
-
-        self.inputs['down'] = down_inputs
-        self.inputs['up'] = up_inputs
-        self.inputs['pressed'] = pressed_inputs
+        self.inputs['pressed'] = pg.key.get_pressed()
 
     def key_down(self, key: int):
         if key in self.inputs['down']:
@@ -106,7 +98,7 @@ class TitleScene(Scene):
         self.menu = Menu(self.item_list, fonts['font_24'], (50, 400), None, loopable=True)
         self.animations = [
             UIAnimationMove(self.assets['logo'], 60, 60, False, (100, 200), (300,250)),
-            # UIAnimationMove(self.item_list[0], 60, 60, False, (500, 200), (600,250))
+            UIAnimationMove(self.menu, 60, 60, False, (500, 200), (600,250))
         ]
 
     def jump_to_scene(self):
@@ -122,7 +114,11 @@ class TitleScene(Scene):
     def update(self, events: list[pg.event.EventType]):
         self.get_input(events)
         self.menu.update(self.key_down)
+
+        # Clear animations that are done
+        self.animations = [animation for animation in self.animations if animation.active]
         for animation in self.animations:
             animation.update()
+
         self.draw()
         self.tick += 1

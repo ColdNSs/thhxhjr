@@ -25,13 +25,19 @@ fonts = {
 
 
 class UIElement(pg.sprite.Sprite):
-    def __init__(self, image, pos):
+    def __init__(self, image=None, pos=None):
+        if image is None:
+            image = pg.surface.Surface((16, 16))
+        if pos is None:
+            pos = (0, 0)
         super().__init__()
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.topleft = pos
+        self.pos = pos
 
     def draw(self, screen: pg.surface.SurfaceType):
+        # Use pos as the real rect coordinates, since rect.x and rect.y might be reset when rect is updated
+        self.rect.topleft = self.pos
         screen.blit(self.image, self.rect)
 
 
@@ -39,6 +45,8 @@ class UIAnimation:
     def __init__(self, element: UIElement, duration: int, delay=0, linear=True):
         if duration < 1:
             duration = 1
+        if delay < 0:
+            delay = 0
         self.element = element
         self.duration = duration
         self.delay = delay
@@ -93,28 +101,28 @@ class UIAnimationMove(UIAnimation):
         self.target_pos = target_pos
 
     def start(self):
-        self.element.rect.topleft = self.start_pos
+        self.element.pos = self.start_pos
 
     def complete(self):
-        self.element.rect.topleft = self.target_pos
+        self.element.pos = self.target_pos
 
     def animate_progress(self, progress):
         new_x = self.start_pos[0] + (self.target_pos[0] - self.start_pos[0]) * progress
         new_y = self.start_pos[1] + (self.target_pos[1] - self.start_pos[1]) * progress
-        self.element.rect.topleft = (new_x, new_y)
+        self.element.pos = (new_x, new_y)
 
 
 class MenuItem(UIElement):
     def __init__(self, assigned_id: int, caption: str, action, valid=True):
-        # Instantiate UIElement with placeholder. Call Menu.update_items() to update image, rect, x and y
-        super().__init__(pg.surface.Surface((16, 16)), (0, 0))
+        # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y
+        super().__init__()
         self.id = assigned_id
         self.caption = caption
         self.action = action
         self.valid = valid
         self.color = 'white'
 
-    def update(self, font: pg.font.FontType, pos: tuple, color: dict, line_space: int, selected_item: int):
+    def update(self, font: pg.font.FontType, color: dict, line_space: int, selected_item: int, pos=(0, 0)):
         if selected_item == self.id:
             self.color = color['selected']
         elif self.valid:
@@ -122,14 +130,13 @@ class MenuItem(UIElement):
         else:
             self.color = color['invalid']
 
+        x, y = pos
         self.image = font.render(self.caption, True, self.color)
         self.rect = self.image.get_rect()
-        x, y = pos
-        self.rect.topleft = (x, y + (self.image.get_height() + line_space) * self.id)
+        self.pos = (x, y + (self.image.get_height() + line_space) * self.id)
 
 
-# TODO: Make Menu a UIElement. A surface with items blitted on it will be its image
-class Menu:
+class Menu(UIElement):
     def __init__(
             self,
             item_list: list[MenuItem],
@@ -142,6 +149,7 @@ class Menu:
     ):
         if color is None:
             color = {'selected': 'red', 'valid': 'white', 'invalid': 'grey'}
+        super().__init__()
         self.item_list = item_list
         self.font = font
         self.pos = pos
@@ -151,10 +159,6 @@ class Menu:
         self.loopable = loopable
 
         self.update_items()
-
-    def draw(self, screen: pg.surface.SurfaceType):
-        for item in self.item_list:
-            item.draw(screen)
 
     def down(self):
         # Continue searching in one direction until a valid one is found
@@ -187,8 +191,28 @@ class Menu:
                 return
 
     def update_items(self):
+        # Update color and relative pos of each item and blit all items on menu surface
+        if not self.item_list:
+            return
+
+        max_right = 1
+        max_bottom = 1
+
         for item in self.item_list:
-            item.update(self.font, self.pos, self.color, self.line_space, self.selected_item)
+            item.update(self.font, self.color, self.line_space, self.selected_item)
+            item.rect.topleft = item.pos
+
+            # Find the largest width
+            if item.rect.right > max_right:
+                max_right = item.rect.right
+
+            # Find the height
+            max_bottom = item.rect.bottom
+
+        self.image = pg.surface.Surface((max_right, max_bottom), pg.SRCALPHA, 32)
+        self.rect = self.image.get_rect()
+        for item in self.item_list:
+            item.draw(self.image)
 
     def update(self, key_down):
         if key_down(pg.K_z):
