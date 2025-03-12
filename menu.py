@@ -112,6 +112,36 @@ class UIAnimationMove(UIAnimation):
         self.element.pos = (new_x, new_y)
 
 
+class UIAnimationAlpha(UIAnimation):
+    def __init__(self, element: UIElement, duration: int, delay=0, linear=True, start_alpha=None, target_alpha=None):
+        if start_alpha is None:
+            start_alpha = element.image.get_alpha()
+        elif start_alpha < 0:
+            start_alpha = 0
+        elif start_alpha > 255:
+            start_alpha = 255
+
+        if target_alpha is None:
+            target_alpha = element.image.get_alpha()
+        elif target_alpha < 0:
+            target_alpha = 0
+        elif target_alpha > 255:
+            target_alpha = 255
+
+        super().__init__(element, duration, delay, linear)
+        self.start_alpha = start_alpha
+        self.target_alpha = target_alpha
+
+    def start(self):
+        self.element.image.set_alpha(self.start_alpha)
+
+    def complete(self):
+        self.element.image.set_alpha(self.target_alpha)
+
+    def animate_progress(self, progress):
+        self.element.image.set_alpha(self.start_alpha + (self.target_alpha - self.start_alpha) * progress)
+
+
 class MenuItem(UIElement):
     def __init__(self, assigned_id: int, caption: str, action, valid=True):
         # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y

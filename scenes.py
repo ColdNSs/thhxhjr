@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from menu import MenuItem, Menu, fonts, UIElement, UIAnimationMove
+from menu import MenuItem, Menu, fonts, UIElement, UIAnimationMove, UIAnimationAlpha
 
 def exit_game():
     # Post quit event. Quit is handled in the main loop instead
@@ -16,7 +16,7 @@ class Scene:
         self.inputs = {'down': [], 'up': [], 'pressed': type[pg.key.ScancodeWrapper]}
         self.tick = 0
 
-    def get_input(self, events: list[pg.event.EventType]):
+    def update_inputs(self, events: list[pg.event.EventType]):
         # GET DOWN inputs and up inputs
         self.inputs['down'] = [event.key for event in events if event.type == pg.KEYDOWN]
         self.inputs['up'] = [event.key for event in events if event.type == pg.KEYUP]
@@ -48,7 +48,7 @@ class Scene:
         pass
 
     def update(self, events: list[pg.event.EventType]):
-        self.get_input(events)
+        self.update_inputs(events)
         self.draw()
         self.tick = self.tick + 1
 
@@ -57,20 +57,20 @@ class BannerScene(Scene):
     def __init__(self, screen: pg.surface.SurfaceType):
         super().__init__(screen)
         self.animation_tick = 0
-        self.assets = {'banner': pg.image.load("./Picture/banner.png").convert()}
+        self.assets = {'banner': UIElement(pg.image.load("./Picture/banner.png").convert(), (0, 0))}
 
     def jump_to_title(self):
         if self.animation_tick >= 180:
             self.goal = TitleScene(self.screen)
 
     def draw(self):
-        self.assets['banner'].set_alpha(min(255, self.animation_tick * 4))
+        self.assets['banner'].image.set_alpha(min(255, self.animation_tick * 4))
         self.screen.fill('black')
-        self.screen.blit(self.assets['banner'], (0, 0))
+        self.assets['banner'].draw(self.screen)
 
     def update(self, events: list[pg.event.EventType]):
         self.jump_to_title()
-        self.get_input(events)
+        self.update_inputs(events)
         if self.key_pressed(pg.K_LCTRL):
             self.animation_tick += 2
         self.draw()
@@ -98,7 +98,8 @@ class TitleScene(Scene):
         self.menu = Menu(self.item_list, fonts['font_24'], (50, 400), None, loopable=True)
         self.animations = [
             UIAnimationMove(self.assets['logo'], 60, 60, False, (100, 200), (300,250)),
-            UIAnimationMove(self.menu, 60, 60, False, (500, 200), (600,250))
+            UIAnimationAlpha(self.assets['logo'], 60, 60, False, target_alpha=40),
+            # UIAnimationMove(self.menu, 60, 60, True, (500, 200), (600,250))
         ]
 
     def jump_to_scene(self):
@@ -112,7 +113,7 @@ class TitleScene(Scene):
         self.menu.draw(self.screen)
 
     def update(self, events: list[pg.event.EventType]):
-        self.get_input(events)
+        self.update_inputs(events)
         self.menu.update(self.key_down)
 
         # Clear animations that are done
