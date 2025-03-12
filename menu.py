@@ -145,6 +145,7 @@ class UIAnimationAlpha(UIAnimation):
 class MenuItem(UIElement):
     def __init__(self, assigned_id: int, caption: str, action, valid=True):
         # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y
+        # assigned_id must correspond to the item index in item_list!!!
         super().__init__()
         self.id = assigned_id
         self.caption = caption
@@ -246,7 +247,8 @@ class Menu(UIElement):
 
     def update(self, key_down):
         if key_down(pg.K_z):
-            self.item_list[self.selected_item].action()
+            item = self.item_list[self.selected_item]
+            item.action(item.id)
         elif key_down(pg.K_DOWN):
             self.down()
             self.update_items()

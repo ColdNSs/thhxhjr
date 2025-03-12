@@ -86,14 +86,14 @@ class TitleScene(Scene):
             'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
                        }
         self.item_list = [
-            MenuItem(0, 'START', self.jump_to_scene, True),
-            MenuItem(1, 'PRACTICE START', self.jump_to_scene, False),
-            MenuItem(2, 'PLAYER DATA', self.jump_to_scene, True),
-            MenuItem(3, 'REPLAY', self.jump_to_scene, True),
-            MenuItem(4, 'MANUAL', self.jump_to_scene, True),
-            MenuItem(5, 'OPTION', self.jump_to_scene, True),
-            MenuItem(6, 'MUSIC ROOM', self.jump_to_scene, False),
-            MenuItem(7, 'EXIT', exit_game, True),
+            MenuItem(0, 'START', self.menu_action, True),
+            MenuItem(1, 'PRACTICE START', self.menu_action, False),
+            MenuItem(2, 'PLAYER DATA', self.menu_action, True),
+            MenuItem(3, 'REPLAY', self.menu_action, True),
+            MenuItem(4, 'MANUAL', self.menu_action, True),
+            MenuItem(5, 'OPTION', self.menu_action, True),
+            MenuItem(6, 'MUSIC ROOM', self.menu_action, False),
+            MenuItem(7, 'EXIT', self.menu_action, True),
         ]
         self.menu = Menu(self.item_list, fonts['font_24'], (50, 400), None, loopable=True)
         self.animations = [
@@ -102,8 +102,10 @@ class TitleScene(Scene):
             # UIAnimationMove(self.menu, 60, 60, True, (500, 200), (600,250))
         ]
 
-    def jump_to_scene(self):
-        if self.menu.selected_item != 0:
+    def menu_action(self, item_id):
+        if item_id == 7:
+            exit_game()
+        if item_id != 0:
             return
         self.goal = BannerScene(self.screen)
 
