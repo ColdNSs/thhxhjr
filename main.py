@@ -16,8 +16,7 @@ pg.display.set_caption(
 pg.display.set_icon(pg.image.load("Picture/colicon.png").convert_alpha())
 clock = pg.time.Clock()
 
-banner = BannerScene(screen)
-current_scene = banner
+current_scene = BannerScene(screen)
 
 while True:
     events = pg.event.get()

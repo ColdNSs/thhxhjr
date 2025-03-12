@@ -4,10 +4,6 @@
 import pygame as pg
 from menu import MenuItem, Menu, fonts, UIElement, UIAnimationMove, UIAnimationAlpha
 
-def exit_game():
-    # Post quit event. Quit is handled in the main loop instead
-    pg.event.post(pg.event.Event(pg.QUIT))
-
 
 class Scene:
     def __init__(self, screen: pg.surface.SurfaceType):
@@ -85,7 +81,7 @@ class TitleScene(Scene):
             'background': UIElement(pg.image.load("./Picture/mainbackground.png").convert(), (0, 0)),
             'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
                        }
-        self.item_list = [
+        item_list = [
             MenuItem(0, 'START', self.menu_action, True),
             MenuItem(1, 'PRACTICE START', self.menu_action, False),
             MenuItem(2, 'PLAYER DATA', self.menu_action, True),
@@ -95,7 +91,7 @@ class TitleScene(Scene):
             MenuItem(6, 'MUSIC ROOM', self.menu_action, False),
             MenuItem(7, 'EXIT', self.menu_action, True),
         ]
-        self.menu = Menu(self.item_list, fonts['font_24'], (50, 400), None, loopable=True)
+        self.menu = Menu(item_list, fonts['font_24'], (50, 400), None, loopable=True)
         self.animations = [
             UIAnimationMove(self.assets['logo'], 60, 0, False, (200, 100), (350,175)),
             UIAnimationAlpha(self.assets['logo'], 60, 0, False, start_alpha=40),
@@ -104,10 +100,12 @@ class TitleScene(Scene):
 
     def menu_action(self, action_id: int):
         if action_id == 7:
-            exit_game()
-        if action_id != 0:
-            return
-        self.goal = BannerScene(self.screen)
+            # Post quit event. Quit is handled in the main loop instead
+            pg.event.post(pg.event.Event(pg.QUIT))
+        elif action_id == 4:
+            self.goal = ManualScene(self.screen, self)
+        else:
+            self.goal = BannerScene(self.screen)
 
     def draw(self):
         self.assets['background'].draw(self.screen)
@@ -116,12 +114,63 @@ class TitleScene(Scene):
 
     def update(self, events: list[pg.event.EventType]):
         self.update_inputs(events)
-        self.menu.update(self.key_down)
 
-        # Clear animations that are done
+        # Clear animations that are done. Execute animations
         self.animations = [animation for animation in self.animations if animation.active]
         for animation in self.animations:
             animation.update()
+
+        self.menu.update(self.key_down)
+
+        self.draw()
+        self.tick += 1
+
+
+class ManualScene(Scene):
+    def __init__(self, screen: pg.surface.Surface, created_by: Scene):
+        super().__init__(screen)
+        self.created_by = created_by
+        self.assets = {
+            'background': UIElement(pg.image.load("./Picture/mainbackground.png").convert(), (0, 0)),
+            'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
+        }
+        item_list = [
+            MenuItem(0, 'START', self.menu_action, True),
+            MenuItem(1, 'PRACTICE\n START', self.menu_action, True),
+            MenuItem(2, 'PLAYER DATA', self.menu_action, True),
+            MenuItem(3, 'REPLAY', self.menu_action, True),
+        ]
+        self.menu = Menu(item_list, fonts['font_36'], (350, 250), None, loopable=False)
+        self.manual_show = False
+        self.animations = []
+
+    def menu_action(self, action_id):
+        if not self.manual_show:
+            self.manual_show = True
+            self.animations.append(UIAnimationMove(self.menu, 10, 0, False, target_pos=(50, 250)))
+
+    def draw(self):
+        self.assets['background'].draw(self.screen)
+        self.menu.draw(self.screen)
+
+    def update(self, events: list[pg.event.EventType]):
+        self.update_inputs(events)
+
+        # Clear animations that are done. Execute animations
+        self.animations = [animation for animation in self.animations if animation.active]
+        for animation in self.animations:
+            animation.update()
+
+        if not self.animations:
+            if self.key_down(pg.K_x):
+                if self.manual_show:
+                    self.manual_show = False
+                    self.animations.append(UIAnimationMove(self.menu, 10, 0, False, target_pos=(350, 250)))
+                else:
+                    self.goal = self.created_by
+
+            self.menu.update(self.key_down)
+
 
         self.draw()
         self.tick += 1

@@ -80,7 +80,7 @@ class UIAnimation:
             self.start()
         else:
             progress = self.animation_tick / self.duration # Linear
-            eased_progress = 1 - (1 - progress) ** 2  # Quadratic easing out
+            eased_progress = 1 - (1 - progress) ** 2  # None-linear
             if self.linear:
                 self.animate_progress(progress)
             else:
@@ -143,7 +143,7 @@ class UIAnimationAlpha(UIAnimation):
 
 
 class MenuItem(UIElement):
-    def __init__(self, action_id: int, caption: str, action_handler, valid=True):
+    def __init__(self, action_id: int, caption: str, action_handler=None, valid=True):
         # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y
         super().__init__()
         self.action_id = action_id
@@ -152,8 +152,8 @@ class MenuItem(UIElement):
         self.valid = valid
         self.color = 'white'
 
-    def update(self, font: pg.font.FontType, color: dict, line_space: int, selected_item: int, pos=(0, 0)):
-        if selected_item == self.action_id:
+    def update(self, font: pg.font.FontType, color: dict, line_space: int, selected_item, pos=(0, 0)):
+        if self is selected_item:
             self.color = color['selected']
         elif self.valid:
             self.color = color['valid']
@@ -185,7 +185,7 @@ class Menu(UIElement):
         self.pos = pos
         self.color = color
         self.line_space = line_space
-        self.selected_item = default_item
+        self.selected_index = default_item
         self.loopable = loopable
 
         self.update_items()
@@ -193,7 +193,7 @@ class Menu(UIElement):
     def down(self):
         # Continue searching in one direction until a valid one is found
         for i in range(1, len(self.item_list)):
-            goal_item = self.selected_item + i
+            goal_item = self.selected_index + i
 
             # Loop logic when out of index
             if goal_item > len(self.item_list) - 1:
@@ -203,13 +203,13 @@ class Menu(UIElement):
 
             # Set selected when a valid one is found
             if self.item_list[goal_item].valid:
-                self.selected_item = goal_item
+                self.selected_index = goal_item
                 return
 
     def up(self):
         # Similar to down(). See above
         for i in range(1, len(self.item_list)):
-            goal_item = self.selected_item - i
+            goal_item = self.selected_index - i
 
             if goal_item < 0:
                 if not self.loopable:
@@ -217,7 +217,7 @@ class Menu(UIElement):
                 goal_item = goal_item + len(self.item_list)
 
             if self.item_list[goal_item].valid:
-                self.selected_item = goal_item
+                self.selected_index = goal_item
                 return
 
     def update_items(self):
@@ -229,7 +229,7 @@ class Menu(UIElement):
         max_bottom = 1
 
         for item in self.item_list:
-            item.update(self.font, self.color, self.line_space, self.selected_item)
+            item.update(self.font, self.color, self.line_space, self.item_list[self.selected_index])
             item.rect.topleft = item.pos
 
             # Find the largest width
@@ -246,7 +246,7 @@ class Menu(UIElement):
 
     def update(self, key_down):
         if key_down(pg.K_z):
-            item = self.item_list[self.selected_item]
+            item = self.item_list[self.selected_index]
             item.action_handler(item.action_id)
         elif key_down(pg.K_DOWN):
             self.down()
