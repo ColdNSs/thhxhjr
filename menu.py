@@ -143,18 +143,17 @@ class UIAnimationAlpha(UIAnimation):
 
 
 class MenuItem(UIElement):
-    def __init__(self, assigned_id: int, caption: str, action, valid=True):
+    def __init__(self, action_id: int, caption: str, action_handler, valid=True):
         # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y
-        # assigned_id must correspond to the item index in item_list!!!
         super().__init__()
-        self.id = assigned_id
+        self.action_id = action_id
         self.caption = caption
-        self.action = action
+        self.action_handler = action_handler
         self.valid = valid
         self.color = 'white'
 
     def update(self, font: pg.font.FontType, color: dict, line_space: int, selected_item: int, pos=(0, 0)):
-        if selected_item == self.id:
+        if selected_item == self.action_id:
             self.color = color['selected']
         elif self.valid:
             self.color = color['valid']
@@ -164,7 +163,7 @@ class MenuItem(UIElement):
         x, y = pos
         self.image = font.render(self.caption, True, self.color)
         self.rect = self.image.get_rect()
-        self.pos = (x, y + (self.image.get_height() + line_space) * self.id)
+        self.pos = (x, y + (self.image.get_height() + line_space) * self.action_id)
 
 
 class Menu(UIElement):
@@ -237,7 +236,7 @@ class Menu(UIElement):
             if item.rect.right > max_right:
                 max_right = item.rect.right
 
-            # Find the height
+            # Use the bottom of the last item as height
             max_bottom = item.rect.bottom
 
         self.image = pg.surface.Surface((max_right, max_bottom), pg.SRCALPHA, 32)
@@ -248,7 +247,7 @@ class Menu(UIElement):
     def update(self, key_down):
         if key_down(pg.K_z):
             item = self.item_list[self.selected_item]
-            item.action(item.id)
+            item.action_handler(item.action_id)
         elif key_down(pg.K_DOWN):
             self.down()
             self.update_items()

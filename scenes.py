@@ -97,15 +97,15 @@ class TitleScene(Scene):
         ]
         self.menu = Menu(self.item_list, fonts['font_24'], (50, 400), None, loopable=True)
         self.animations = [
-            UIAnimationMove(self.assets['logo'], 60, 60, False, (100, 200), (300,250)),
-            UIAnimationAlpha(self.assets['logo'], 60, 60, False, target_alpha=40),
+            UIAnimationMove(self.assets['logo'], 60, 0, False, (200, 100), (350,175)),
+            UIAnimationAlpha(self.assets['logo'], 60, 0, False, start_alpha=40),
             # UIAnimationMove(self.menu, 60, 60, True, (500, 200), (600,250))
         ]
 
-    def menu_action(self, item_id):
-        if item_id == 7:
+    def menu_action(self, action_id: int):
+        if action_id == 7:
             exit_game()
-        if item_id != 0:
+        if action_id != 0:
             return
         self.goal = BannerScene(self.screen)
 
