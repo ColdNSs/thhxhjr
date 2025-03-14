@@ -32,6 +32,7 @@ class UIElement(pg.sprite.Sprite):
             pos = (0, 0)
         super().__init__()
         self.image = image
+        self.shadow = self.image
         self.rect = self.image.get_rect()
         self.pos = pos
 
@@ -39,6 +40,11 @@ class UIElement(pg.sprite.Sprite):
         # Use pos as the real rect coordinates, since rect.x and rect.y might be reset when rect is updated
         self.rect.topleft = self.pos
         screen.blit(self.image, self.rect)
+
+    def draw_shadow(self, screen: pg.surface.SurfaceType, shadow_offset: int):
+        x, y = self.pos
+        self.rect.topleft = (x + shadow_offset, y + shadow_offset)
+        screen.blit(self.shadow, self.rect)
 
 
 class UIAnimation:
@@ -142,6 +148,80 @@ class UIAnimationAlpha(UIAnimation):
         self.element.image.set_alpha(self.start_alpha + (self.target_alpha - self.start_alpha) * progress)
 
 
+class TextItem(UIElement):
+    def __init__(self, caption, color=None):
+        super().__init__()
+        self.caption = caption
+        self.color = color
+
+    def update(self, font: pg.font.FontType, color: str, line_space: int, index: int, pos=(0, 0)):
+        if self.color:
+            color = self.color
+
+        # pos here is relative to Text surface, not screen
+        x, y = pos
+        self.image = font.render(self.caption, True, color)
+        self.shadow = font.render(self.caption, True, 'black')
+        self.rect = self.image.get_rect()
+        self.pos = (x, y + (self.image.get_height() + line_space) * index)
+
+
+class Text(UIElement):
+    def __init__(
+            self,
+            item_list: list[TextItem],
+            font: pg.font.FontType,
+            pos: tuple,
+            color='white',
+            line_space=5,
+            shadow_offset = 1
+    ):
+        super().__init__()
+        self.item_list = item_list
+        self.font = font
+        self.pos = pos
+        self.color = color
+        self.line_space = line_space
+        self.shadow_offset = shadow_offset
+
+        self.update_items()
+
+    def update_items(self):
+        # Update color and relative pos of each item and blit all items on menu surface
+        if not self.item_list:
+            return
+
+        max_right = 1
+        max_bottom = 1
+
+        for i in range(len(self.item_list)):
+            item = self.item_list[i]
+            item.update(self.font, self.color, self.line_space, i)
+            item.rect.topleft = item.pos
+
+            # Find the largest width
+            if item.rect.right > max_right:
+                max_right = item.rect.right
+
+            # Use the bottom of the last item as height
+            max_bottom = item.rect.bottom
+
+        max_right += self.shadow_offset
+        max_bottom += self.shadow_offset
+
+        self.image = pg.surface.Surface((max_right, max_bottom), pg.SRCALPHA, 32)
+        self.rect = self.image.get_rect()
+
+        if self.shadow_offset:
+            for item in self.item_list:
+                item.draw_shadow(self.image, self.shadow_offset)
+        for item in self.item_list:
+            item.draw(self.image)
+
+    def update(self):
+        return
+
+
 class MenuItem(UIElement):
     def __init__(self, action_id: int, caption: str, action_handler=None, valid=True):
         # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y
@@ -152,7 +232,7 @@ class MenuItem(UIElement):
         self.valid = valid
         self.color = 'white'
 
-    def update(self, font: pg.font.FontType, color: dict, line_space: int, selected_item, pos=(0, 0)):
+    def update(self, font: pg.font.FontType, color: dict, line_space: int, index: int, selected_item, pos=(0, 0)):
         if self is selected_item:
             self.color = color['selected']
         elif self.valid:
@@ -160,10 +240,12 @@ class MenuItem(UIElement):
         else:
             self.color = color['invalid']
 
+        # pos here is relative to Menu surface, not screen
         x, y = pos
         self.image = font.render(self.caption, True, self.color)
+        self.shadow = font.render(self.caption, True, 'black')
         self.rect = self.image.get_rect()
-        self.pos = (x, y + (self.image.get_height() + line_space) * self.action_id)
+        self.pos = (x, y + (self.image.get_height() + line_space) * index)
 
 
 class Menu(UIElement):
@@ -176,6 +258,7 @@ class Menu(UIElement):
             line_space=5,
             default_item=0,
             loopable=False,
+            shadow_offset = 1
     ):
         if color is None:
             color = {'selected': 'red', 'valid': 'white', 'invalid': 'grey'}
@@ -187,6 +270,7 @@ class Menu(UIElement):
         self.line_space = line_space
         self.selected_index = default_item
         self.loopable = loopable
+        self.shadow_offset = shadow_offset
 
         self.update_items()
 
@@ -228,8 +312,9 @@ class Menu(UIElement):
         max_right = 1
         max_bottom = 1
 
-        for item in self.item_list:
-            item.update(self.font, self.color, self.line_space, self.item_list[self.selected_index])
+        for i in range(len(self.item_list)):
+            item = self.item_list[i]
+            item.update(self.font, self.color, self.line_space, i, self.item_list[self.selected_index])
             item.rect.topleft = item.pos
 
             # Find the largest width
@@ -239,8 +324,15 @@ class Menu(UIElement):
             # Use the bottom of the last item as height
             max_bottom = item.rect.bottom
 
+        max_right += self.shadow_offset
+        max_bottom += self.shadow_offset
+
         self.image = pg.surface.Surface((max_right, max_bottom), pg.SRCALPHA, 32)
         self.rect = self.image.get_rect()
+
+        if self.shadow_offset:
+            for item in self.item_list:
+                item.draw_shadow(self.image, self.shadow_offset)
         for item in self.item_list:
             item.draw(self.image)
 

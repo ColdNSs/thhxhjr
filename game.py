@@ -1884,7 +1884,7 @@ def savereplay(screenshot, endmask):
                                         tmpplayername = tmpplayername[:10]
                         screen.blit(screenshot, (0, 0))
                         screen.blit(endmask, (30, 20))
-                        mymenu.optiongroup.update(,
+                        mymenu.optiongroup.update()
                         mymenu.optiongroup.draw(screen)
                         gameflip()
                     if save:  # 如果刚刚在屎山循环里选择了保存
@@ -1899,7 +1899,7 @@ def savereplay(screenshot, endmask):
                     return
         screen.blit(screenshot, (0, 0))
         screen.blit(endmask, (30, 20))
-        mymenu.optiongroup.update(,
+        mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
 
@@ -1950,7 +1950,7 @@ def gameend(playreplay, clear=False):
                     return 0
         screen.blit(screenshot, (0, 0))
         screen.blit(endmask, (30, 20))
-        mymenu.optiongroup.update(,
+        mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
 
@@ -1994,7 +1994,7 @@ def pause(playreplay):
                     return 0, screenshot, pausemask
         screen.blit(screenshot, (0, 0))
         screen.blit(pausemask, (30, 20))
-        mymenu.optiongroup.update(,
+        mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
 
@@ -2252,7 +2252,7 @@ def option():
                     settings = tmpsetting.copy()
                     setdisplaymode()
                     return
-        mymenu.optiongroup.update(,
+        mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
 
@@ -2328,7 +2328,7 @@ def replay():
                 if event.key == pygame.K_x:
                     se.play("cancel")
                     return
-        mymenu.optiongroup.update(,
+        mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
 
@@ -2454,7 +2454,7 @@ def manual():
                 if event.key == pygame.K_x or event.key == pygame.K_ESCAPE:
                     se.play("cancel")
                     return
-        mymenu.optiongroup.update(,
+        mymenu.optiongroup.update()
         mymenu.optiongroup.draw(screen)
         gameflip()
 
@@ -2736,6 +2736,6 @@ while True:
                 if id == 7:
                     pygame.time.wait(200)  # 等待音效播放完成
                     sys.exit()
-    mymenu.optiongroup.update(,
+    mymenu.optiongroup.update()
     mymenu.optiongroup.draw(screen)
     gameflip()
