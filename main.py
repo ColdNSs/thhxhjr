@@ -4,7 +4,6 @@
 
 import pygame as pg
 from scenes import BannerScene
-from ui import Localization
 
 RESOLUTION = (960, 720)
 

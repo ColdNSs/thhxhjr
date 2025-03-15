@@ -19,8 +19,8 @@
 
   "manual": {
     "title": {
-      "font": "font_24",
-      "pos": {"x":  50, "y":  400},
+      "font": "font_36",
+      "pos": {"x":  50, "y":  30},
       "strings": {
         "title": "MANUAL"
       }
@@ -28,7 +28,7 @@
 
     "subtitle": {
       "font": "font_24",
-      "pos": {"x": 50, "y": 400},
+      "pos": {"x": 50, "y": 65},
       "strings": {
         "subtitle": "游戏使用说明书"
       }

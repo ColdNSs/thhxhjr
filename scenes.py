@@ -106,6 +106,16 @@ class TitleScene(Scene):
         pos = (localization.get('title.menu.pos.x'), localization.get('title.menu.pos.y'))
         self.menu = Menu(item_list, font, pos, loopable=True)
 
+    def get_goal(self):
+        goal = self.goal
+        if goal:
+            for animation in self.animations:
+                # This will flag the animation done at the next update
+                animation.delay = 0
+                animation.animation_tick = animation.duration
+            self.goal = None
+        return goal
+
     def menu_action(self, action_id: int):
         if action_id == 7:
             # Post quit event. Quit is handled in the main loop instead
@@ -140,7 +150,7 @@ class ManualScene(Scene):
         self.created_by = created_by
         self.assets = {
             'background': UIElement(pg.image.load("./Picture/mainbackground.png").convert(), (0, 0)),
-            'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
+            'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0))
         }
         self.assets['background'].image.set_alpha(128)
         self.menu = None
@@ -152,6 +162,16 @@ class ManualScene(Scene):
         self.animations = []
 
     def create_ui(self):
+        item_list = [TextItem(localization.get('manual.title.strings.title'))]
+        font = fonts[localization.get('manual.title.font')]
+        pos = (localization.get('manual.title.pos.x'), localization.get('manual.title.pos.y'))
+        self.assets['title'] = Text(item_list, font, pos, shadow_offset=2)
+
+        item_list = [TextItem(localization.get('manual.subtitle.strings.subtitle'))]
+        font = fonts[localization.get('manual.subtitle.font')]
+        pos = (localization.get('manual.subtitle.pos.x'), localization.get('manual.subtitle.pos.y'))
+        self.assets['subtitle'] = Text(item_list, font, pos, 'grey', shadow_offset=2)
+
         item_list = [
             MenuItem(0, localization.get('manual.menu.strings.introduction'), no_action, True),
             MenuItem(1, localization.get('manual.menu.strings.controls'), no_action, True),
@@ -232,11 +252,13 @@ class ManualScene(Scene):
             text.draw(self.screen)
 
         self.menu.draw(self.screen)
+        self.assets['subtitle'].draw(self.screen)
+        self.assets['title'].draw(self.screen)
 
     def scroll_down(self, action_id):
         if not self.text_show:
             return
-        # Make sure the menu is not loopable, or this will create an out-of-index error
+        # Make sure the menu is NOT loopable, or this will create an out-of-index error
         self.animations.append(UIAnimationAlpha(self.texts[self.menu.selected_index - 1], 6, 0, False, target_alpha=0))
         self.animations.append(UIAnimationAlpha(self.texts[self.menu.selected_index], 6, 0, False, target_alpha=255))
 
