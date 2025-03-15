@@ -4,6 +4,7 @@
 
 import pygame as pg
 from scenes import BannerScene
+from ui import Localization
 
 RESOLUTION = (960, 720)
 
@@ -32,6 +33,7 @@ while True:
     goal = current_scene.get_goal()
     if goal:
         current_scene = goal
+
     current_scene.update(events)
 
     # Update

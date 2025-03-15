@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from menu import TextItem, Text, MenuItem, Menu, fonts, UIElement, UIAnimationMove, UIAnimationAlpha
+from ui import TextItem, Text, MenuItem, Menu, fonts, UIElement, UIAnimationMove, UIAnimationAlpha, Localization
+
+localization = Localization('zh_CN')
 
 
 class Scene:
@@ -81,22 +83,28 @@ class TitleScene(Scene):
             'background': UIElement(pg.image.load("./Picture/mainbackground.png").convert(), (0, 0)),
             'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
                        }
-        item_list = [
-            MenuItem(0, 'START', self.menu_action, True),
-            MenuItem(1, 'PRACTICE START', self.menu_action, False),
-            MenuItem(2, 'PLAYER DATA', self.menu_action, True),
-            MenuItem(3, 'REPLAY', self.menu_action, True),
-            MenuItem(4, 'MANUAL', self.menu_action, True),
-            MenuItem(5, 'OPTION', self.menu_action, True),
-            MenuItem(6, 'MUSIC ROOM', self.menu_action, False),
-            MenuItem(7, 'EXIT', self.menu_action, True),
-        ]
-        self.menu = Menu(item_list, fonts['font_24'], (50, 400), None, loopable=True)
+        self.menu = None
+        self.create_ui()
         self.animations = [
             UIAnimationMove(self.assets['logo'], 60, 0, False, (200, 100), (350,175)),
             UIAnimationAlpha(self.assets['logo'], 60, 0, False, start_alpha=40),
             # UIAnimationMove(self.menu, 60, 60, True, (500, 200), (600,250))
         ]
+
+    def create_ui(self):
+        item_list = [
+            MenuItem(0, localization.get('title.menu.strings.start'), self.menu_action, True),
+            MenuItem(1, localization.get('title.menu.strings.practice_start'), self.menu_action, False),
+            MenuItem(2, localization.get('title.menu.strings.player_data'), self.menu_action, True),
+            MenuItem(3, localization.get('title.menu.strings.replay'), self.menu_action, True),
+            MenuItem(4, localization.get('title.menu.strings.manual'), self.menu_action, True),
+            MenuItem(5, localization.get('title.menu.strings.option'), self.menu_action, True),
+            MenuItem(6, localization.get('title.menu.strings.music_room'), self.menu_action, False),
+            MenuItem(7, localization.get('title.menu.strings.exit'), self.menu_action, True),
+        ]
+        font = fonts[localization.get('title.menu.font')]
+        pos = (localization.get('title.menu.pos.x'), localization.get('title.menu.pos.y'))
+        self.menu = Menu(item_list, font, pos, None, loopable=True)
 
     def menu_action(self, action_id: int):
         if action_id == 7:
@@ -126,7 +134,6 @@ class TitleScene(Scene):
         self.tick += 1
 
 
-# TODO: Move this whole ass text block to somewhere else; adding localization support
 class ManualScene(Scene):
     def __init__(self, screen: pg.surface.Surface, created_by: Scene):
         super().__init__(screen)
@@ -135,36 +142,91 @@ class ManualScene(Scene):
             'background': UIElement(pg.image.load("./Picture/mainbackground.png").convert(), (0, 0)),
             'logo': UIElement(pg.image.load('./Picture/title.png').convert_alpha(), (0, 0)),
         }
-        item_list = [
-            MenuItem(0, '简要介绍', self.no_action, True),
-            MenuItem(1, '操作方法', self.no_action, True),
-            MenuItem(2, '游戏界面', self.no_action, True),
-            MenuItem(3, '小心低温！', self.no_action, True),
-        ]
-        self.menu = Menu(item_list, fonts['font_36'], (350, 250), None, loopable=False)
-        item_list = [
-            TextItem("1.游戏的简要介绍:"),
-            TextItem("这是一款东方同人弹幕射击游戏，目标是操纵主角打倒敌人。"),
-            TextItem(""),
-            TextItem("背景故事:"),
-            TextItem("红魔馆旁的雾之湖，似乎受到了某种奇怪异变的影响。"),
-            TextItem("即使在初夏阳光的照耀下散去雾气的湖面，也散发着不自然的冷气。"),
-            TextItem("以雾之湖为基地，由自然力量具象出的冰之小妖精琪露诺，"),
-            TextItem("也因为这异变的影响变得更加的强大和躁动了起来。"),
-            TextItem("而灵梦和魔理沙，也已在前往雾之湖一探究竟的路上。")
-            # 纯属瞎编 没有后续
-            # 俺觉得编得蛮不错 - ColdNSs
-        ]
-        self.text_1 = Text(item_list, fonts['font_24'], (250, 200), 'white')
-        self.text_2 = Text(item_list, fonts['font_24'], (250, 200 + 720), 'white')
-        self.text_3 = Text(item_list, fonts['font_24'], (250, 200 + 720 * 2), 'white')
-        self.text_4 = Text(item_list, fonts['font_24'], (250, 200 + 720 * 3), 'white')
+
+        self.menu = None
+        self.texts = []
+        self.create_ui()
+
         self.text_1.image.set_alpha(0)
         self.text_2.image.set_alpha(0)
         self.text_3.image.set_alpha(0)
         self.text_4.image.set_alpha(0)
         self.manual_show = False
         self.animations = []
+
+    def create_ui(self):
+        item_list = [
+            MenuItem(0, localization.get('manual.menu.strings.introduction'), self.no_action, True),
+            MenuItem(1, localization.get('manual.menu.strings.controls'), self.no_action, True),
+            MenuItem(2, localization.get('manual.menu.strings.hud'), self.no_action, True),
+            MenuItem(3, localization.get('manual.menu.strings.freeze'), self.no_action, True),
+        ]
+        font = fonts[localization.get('manual.menu.font')]
+        pos = (localization.get('manual.menu.pos.x'), localization.get('manual.menu.pos.y'))
+        self.menu = Menu(item_list, font, pos, None, loopable=False)
+
+        item_list = [
+            TextItem(localization.get('manual.introduction.item_0')),
+            TextItem(localization.get('manual.introduction.item_1')),
+            TextItem(localization.get('manual.introduction.item_2')),
+            TextItem(localization.get('manual.introduction.item_3')),
+            TextItem(localization.get('manual.introduction.item_4')),
+            TextItem(localization.get('manual.introduction.item_5')),
+            TextItem(localization.get('manual.introduction.item_6')),
+            TextItem(localization.get('manual.introduction.item_7')),
+            TextItem(localization.get('manual.introduction.item_8')),
+        ]
+        font = fonts[localization.get('manual.introduction.font')]
+        pos = (localization.get('manual.introduction.pos.x'), localization.get('manual.introduction.pos.y'))
+        introduction = Text(item_list, font, pos, 'white')
+
+        item_list = [
+            TextItem(localization.get('manual.controls.item_0')),
+            TextItem(localization.get('manual.controls.item_1')),
+            TextItem(localization.get('manual.controls.item_2')),
+            TextItem(localization.get('manual.controls.item_3')),
+            TextItem(localization.get('manual.controls.item_4')),
+            TextItem(localization.get('manual.controls.item_5')),
+        ]
+        font = fonts[localization.get('manual.controls.font')]
+        pos = (localization.get('manual.controls.pos.x'), localization.get('manual.controls.pos.y'))
+        controls = Text(item_list, font, pos, 'white')
+
+        item_list = [
+            TextItem(localization.get('manual.hud.item_0')),
+            TextItem(localization.get('manual.hud.item_1')),
+            TextItem(localization.get('manual.hud.item_2')),
+            TextItem(localization.get('manual.hud.item_3')),
+            TextItem(localization.get('manual.hud.item_4')),
+            TextItem(localization.get('manual.hud.item_5')),
+            TextItem(localization.get('manual.hud.item_6')),
+        ]
+        font = fonts[localization.get('manual.hud.font')]
+        pos = (localization.get('manual.hud.pos.x'), localization.get('manual.hud.pos.y'))
+        hud = Text(item_list, font, pos, 'white')
+
+        item_list = [
+            TextItem(localization.get('manual.freeze.item_0')),
+            TextItem(localization.get('manual.freeze.item_1')),
+            TextItem(localization.get('manual.freeze.item_2')),
+            TextItem(localization.get('manual.freeze.item_3')),
+            TextItem(localization.get('manual.freeze.item_4')),
+            TextItem(localization.get('manual.freeze.item_5')),
+            TextItem(localization.get('manual.freeze.item_6')),
+            TextItem(localization.get('manual.freeze.item_7')),
+            TextItem(localization.get('manual.freeze.item_8')),
+            TextItem(localization.get('manual.freeze.item_9')),
+            TextItem(localization.get('manual.freeze.item_10')),
+            TextItem(localization.get('manual.freeze.item_11')),
+            TextItem(localization.get('manual.freeze.item_12')),
+            TextItem(localization.get('manual.freeze.item_13')),
+            TextItem(localization.get('manual.freeze.item_14')),
+        ]
+        font = fonts[localization.get('manual.freeze.font')]
+        pos = (localization.get('manual.freeze.pos.x'), localization.get('manual.freeze.pos.y'))
+        freeze = Text(item_list, font, pos, 'white')
+
+        self.texts = [introduction, controls, hud, freeze]
 
     def no_action(self, action_id):
         return

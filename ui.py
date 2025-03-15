@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
+import json
 
 pg.font.init()
 font_36 = pg.font.Font("fonts/fonts.ttf", 36)
@@ -145,7 +146,8 @@ class UIAnimationAlpha(UIAnimation):
         self.element.image.set_alpha(self.target_alpha)
 
     def animate_progress(self, progress):
-        self.element.image.set_alpha(self.start_alpha + (self.target_alpha - self.start_alpha) * progress)
+        new_alpha = self.start_alpha + (self.target_alpha - self.start_alpha) * progress
+        self.element.image.set_alpha(new_alpha)
 
 
 class TextItem(UIElement):
@@ -347,3 +349,20 @@ class Menu(UIElement):
             self.up()
             self.update_items()
 
+
+class Localization:
+    def __init__(self, language: str):
+        self.language = language
+        self.localization = self.set_language(language)
+
+    def set_language(self, language: str):
+        self.language = language
+        with open(f"localization/{self.language}.json") as f:
+            return json.load(f)
+
+    def get(self, scene_box_attr_item: str):
+        """Example usage: localization.get('title.menu.strings.manual')"""
+        values = scene_box_attr_item.split('.')
+        if len(values) >=4:
+            return self.localization.get(values[0], "").get(values[1], "").get(values[2], "").get(values[3], "")
+        return self.localization.get(values[0], "").get(values[1], "").get(values[2], "")
