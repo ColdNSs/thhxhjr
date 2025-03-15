@@ -24,6 +24,9 @@ fonts = {
     'font_mono_20': font_mono_20,
 }
 
+def no_action(action_id=None):
+    return
+
 
 class UIElement(pg.sprite.Sprite):
     def __init__(self, image=None, pos=None):
@@ -50,10 +53,8 @@ class UIElement(pg.sprite.Sprite):
 
 class UIAnimation:
     def __init__(self, element: UIElement, duration: int, delay=0, linear=True):
-        if duration < 1:
-            duration = 1
-        if delay < 0:
-            delay = 0
+        duration = max(duration, 1)
+        delay = max(delay, 0)
         self.element = element
         self.duration = duration
         self.delay = delay
@@ -156,7 +157,7 @@ class TextItem(UIElement):
         self.caption = caption
         self.color = color
 
-    def update(self, font: pg.font.FontType, color: str, line_space: int, index: int, pos=(0, 0)):
+    def update(self, font: pg.font.FontType, color: str, line_space: int, max_bottom: int, pos=(0, 0)):
         if self.color:
             color = self.color
 
@@ -165,21 +166,21 @@ class TextItem(UIElement):
         self.image = font.render(self.caption, True, color)
         self.shadow = font.render(self.caption, True, 'black')
         self.rect = self.image.get_rect()
-        self.pos = (x, y + (self.image.get_height() + line_space) * index)
+        self.pos = (x, y + max_bottom + line_space)
 
 
 class Text(UIElement):
     def __init__(
             self,
-            item_list: list[TextItem],
+            items: list[TextItem],
             font: pg.font.FontType,
             pos: tuple,
             color='white',
             line_space=5,
-            shadow_offset = 1
+            shadow_offset=1
     ):
         super().__init__()
-        self.item_list = item_list
+        self.items = items
         self.font = font
         self.pos = pos
         self.color = color
@@ -190,15 +191,14 @@ class Text(UIElement):
 
     def update_items(self):
         # Update color and relative pos of each item and blit all items on menu surface
-        if not self.item_list:
+        if not self.items:
             return
 
         max_right = 1
-        max_bottom = 1
+        max_bottom = 0
 
-        for i in range(len(self.item_list)):
-            item = self.item_list[i]
-            item.update(self.font, self.color, self.line_space, i)
+        for item in self.items:
+            item.update(self.font, self.color, self.line_space, max_bottom)
             item.rect.topleft = item.pos
 
             # Find the largest width
@@ -211,13 +211,15 @@ class Text(UIElement):
         max_right += self.shadow_offset
         max_bottom += self.shadow_offset
 
+        max_bottom = max(max_bottom, 1)
+
         self.image = pg.surface.Surface((max_right, max_bottom), pg.SRCALPHA, 32)
         self.rect = self.image.get_rect()
 
         if self.shadow_offset:
-            for item in self.item_list:
+            for item in self.items:
                 item.draw_shadow(self.image, self.shadow_offset)
-        for item in self.item_list:
+        for item in self.items:
             item.draw(self.image)
 
     def update(self):
@@ -225,7 +227,7 @@ class Text(UIElement):
 
 
 class MenuItem(UIElement):
-    def __init__(self, action_id: int, caption: str, action_handler=None, valid=True):
+    def __init__(self, action_id: int, caption: str, action_handler=no_action, valid=True):
         # Instantiate UIElement. Call Menu.update_items() to update image, rect, x and y
         super().__init__()
         self.action_id = action_id
@@ -234,7 +236,7 @@ class MenuItem(UIElement):
         self.valid = valid
         self.color = 'white'
 
-    def update(self, font: pg.font.FontType, color: dict, line_space: int, index: int, selected_item, pos=(0, 0)):
+    def update(self, font: pg.font.FontType, color: dict, line_space: int, max_bottom: int, selected_item, pos=(0, 0)):
         if self is selected_item:
             self.color = color['selected']
         elif self.valid:
@@ -247,15 +249,17 @@ class MenuItem(UIElement):
         self.image = font.render(self.caption, True, self.color)
         self.shadow = font.render(self.caption, True, 'black')
         self.rect = self.image.get_rect()
-        self.pos = (x, y + (self.image.get_height() + line_space) * index)
+        self.pos = (x, y + max_bottom + line_space)
 
 
 class Menu(UIElement):
     def __init__(
             self,
-            item_list: list[MenuItem],
+            items: list[MenuItem],
             font: pg.font.FontType,
             pos: tuple,
+            down_action=no_action,
+            up_action=no_action,
             color=None,
             line_space=5,
             default_item=0,
@@ -265,9 +269,11 @@ class Menu(UIElement):
         if color is None:
             color = {'selected': 'red', 'valid': 'white', 'invalid': 'grey'}
         super().__init__()
-        self.item_list = item_list
+        self.items = items
         self.font = font
         self.pos = pos
+        self.down_action = down_action
+        self.up_action = up_action
         self.color = color
         self.line_space = line_space
         self.selected_index = default_item
@@ -278,45 +284,46 @@ class Menu(UIElement):
 
     def down(self):
         # Continue searching in one direction until a valid one is found
-        for i in range(1, len(self.item_list)):
+        for i in range(1, len(self.items)):
             goal_item = self.selected_index + i
 
             # Loop logic when out of index
-            if goal_item > len(self.item_list) - 1:
+            if goal_item > len(self.items) - 1:
                 if not self.loopable:
                     return
-                goal_item = goal_item - len(self.item_list)
+                goal_item = goal_item - len(self.items)
 
             # Set selected when a valid one is found
-            if self.item_list[goal_item].valid:
+            if self.items[goal_item].valid:
                 self.selected_index = goal_item
+                self.down_action(self.items[self.selected_index].action_id)
                 return
 
     def up(self):
         # Similar to down(). See above
-        for i in range(1, len(self.item_list)):
+        for i in range(1, len(self.items)):
             goal_item = self.selected_index - i
 
             if goal_item < 0:
                 if not self.loopable:
                     return
-                goal_item = goal_item + len(self.item_list)
+                goal_item = goal_item + len(self.items)
 
-            if self.item_list[goal_item].valid:
+            if self.items[goal_item].valid:
                 self.selected_index = goal_item
+                self.up_action(self.items[self.selected_index].action_id)
                 return
 
     def update_items(self):
         # Update color and relative pos of each item and blit all items on menu surface
-        if not self.item_list:
+        if not self.items:
             return
 
         max_right = 1
-        max_bottom = 1
+        max_bottom = 0
 
-        for i in range(len(self.item_list)):
-            item = self.item_list[i]
-            item.update(self.font, self.color, self.line_space, i, self.item_list[self.selected_index])
+        for item in self.items:
+            item.update(self.font, self.color, self.line_space, max_bottom, self.items[self.selected_index])
             item.rect.topleft = item.pos
 
             # Find the largest width
@@ -329,18 +336,20 @@ class Menu(UIElement):
         max_right += self.shadow_offset
         max_bottom += self.shadow_offset
 
+        max_bottom = max(max_bottom, 1)
+
         self.image = pg.surface.Surface((max_right, max_bottom), pg.SRCALPHA, 32)
         self.rect = self.image.get_rect()
 
         if self.shadow_offset:
-            for item in self.item_list:
+            for item in self.items:
                 item.draw_shadow(self.image, self.shadow_offset)
-        for item in self.item_list:
+        for item in self.items:
             item.draw(self.image)
 
     def update(self, key_down):
         if key_down(pg.K_z):
-            item = self.item_list[self.selected_index]
+            item = self.items[self.selected_index]
             item.action_handler(item.action_id)
         elif key_down(pg.K_DOWN):
             self.down()
@@ -353,16 +362,19 @@ class Menu(UIElement):
 class Localization:
     def __init__(self, language: str):
         self.language = language
-        self.localization = self.set_language(language)
+        self.localization = None
+        self.reload()
 
     def set_language(self, language: str):
         self.language = language
+
+    def reload(self):
         with open(f"localization/{self.language}.json") as f:
-            return json.load(f)
+            self.localization =  json.load(f)
 
     def get(self, scene_box_attr_item: str):
         """Example usage: localization.get('title.menu.strings.manual')"""
-        values = scene_box_attr_item.split('.')
-        if len(values) >=4:
-            return self.localization.get(values[0], "").get(values[1], "").get(values[2], "").get(values[3], "")
-        return self.localization.get(values[0], "").get(values[1], "").get(values[2], "")
+        keys = scene_box_attr_item.split('.')
+        if len(keys) >=4:
+            return self.localization.get(keys[0], "").get(keys[1], "").get(keys[2], "").get(keys[3], "")
+        return self.localization.get(keys[0], "").get(keys[1], "").get(keys[2], "")
